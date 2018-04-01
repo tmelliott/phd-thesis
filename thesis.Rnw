@@ -1,0 +1,7 @@
+\documentclass{book}
+
+\begin{document}
+
+Hello world!
+
+\end{document}
