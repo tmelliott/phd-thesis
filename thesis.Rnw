@@ -1,7 +1,16 @@
 \documentclass{book}
 
+\title{Tom's awesome thesis on buses}
+\author{Tom Elliott}
+\date{2019}
+
 \begin{document}
 
-Hello world!
+\maketitle
+
+\tableofcontents
+
+\Sexpr{knit_child('chapters/introduction/introduction.Rnw')}
+\Sexpr{knit_child('chapters/chapter01/chapter01.Rnw')}
 
 \end{document}

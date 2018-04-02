@@ -1,0 +1,5 @@
+\Sexpr{set_parent('../../thesis.Rnw')}
+
+\chapter{The first}
+
+This is the first (main) chapter.
