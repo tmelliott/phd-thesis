@@ -1,19 +1,29 @@
-default: thesis.pdf
+NAME=thesis
 
-KNITRFILES := $(wildcard *.Rnw)
-FILES := thesis
+.PHONY: $(NAME).pdf all clean cleanall 
 
+TEX:=latexmk
+TEXOPTIONS := -pdf -pdflatex="pdflatex -interactive=nonstop" -use-make
+
+all: $(NAME).pdf
+
+FRONTFILES := $(shell find frontmatter -name '*.Rnw')
+CHFILES := $(shell find chapters -name '*.Rnw')
+ENDFILES := $(shell find endmatter -name '*.Rnw')
+ALLFILES = $(FRONTFILES) $(CHFILES) $(ENDFILES)
+FILES := $(ALLFILES:.Rnw=.tex)
 
 # convert *.Rnw -> *.tex
-$(FILES).tex: $(FILES).Rnw
-	@R -e "knitr::knit('$^')"
+%.tex: %.Rnw
+	@echo " * knitting $@"
+	@R --slave -e "knitr::knit(input='$^', output='$@')" > /dev/null
 
 # create PDF
-thesis.pdf: thesis.tex | $(FILES).tex
-	@latexmk -pdf $^
+$(NAME).pdf: $(NAME).tex | $(FILES)
+	@echo " * binding thesis"
+	@$(TEX) $(TEXOPTIONS) $^
 
 clean:
-	@latexmk -c thesis.tex
-	@rm $(FILES).tex
-
-.PHONY: clean
+	@-$(TEX) -c $(NAME).tex
+	@-rm $(FILES)
+	@-rm $(NAME).tex
