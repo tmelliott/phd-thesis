@@ -2,8 +2,44 @@
 	"folders":
 	[
 		{
-			"path": "."
+            "file_exclude_patterns":
+            [
+                "*.lof",
+                "*.lot",
+                "*.out",
+                "*.fmt",
+                "*.fot",
+                "*.cb",
+                "*.cb2",
+                "*.aux",
+                "*.fdb_latexmk",
+                "*.fls",
+                "*.toc",
+                "*.log",
+                "*.synctex.gz",
+                "*.synctex.gz(busy)",
+                "*.tex",
+                "thesis.pdf",
+            ],
+			"path": "./"
 		}
 	],
-    "file_exclude_patterns": ["*.tex"]
+    "settings":
+    {
+        "word_wrap": true,
+        "spell_check": true,
+        "ensure_newline_at_eof_on_save": true,
+        "trim_trailing_white_space_on_save": true,
+        "TEXroot": "thesis.tex"
+        // "project-specific":
+        // {
+        //     "sublime-settings":
+        //     {
+        //         "LaTeXing":
+        //         {
+        //             "knitr": true
+        //         }
+        //     }
+        // }
+    }
 }

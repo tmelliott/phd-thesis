@@ -1,4 +1,13 @@
-\documentclass{book}
+\documentclass[english]{MastersDoctoralThesis}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+
+\usepackage{mathpazo} % Use the Palatino font by default
+
+\usepackage[backend=bibtex,style=authoryear,natbib=true]{biblatex}
+
+
 
 \title{Tom's awesome thesis on buses}
 \author{Tom Elliott}
@@ -9,8 +18,23 @@
 \maketitle
 
 \tableofcontents
+\tabularnewline
 
+\frontmatter
+\Sexpr{knit_child('frontmatter/abstract/abstract.Rnw')}
+
+\mainmatter
+% Main chapters
 \Sexpr{knit_child('chapters/introduction/introduction.Rnw')}
 \Sexpr{knit_child('chapters/chapter01/chapter01.Rnw')}
+\Sexpr{knit_child('chapters/chapter02/chapter02.Rnw')}
+\Sexpr{knit_child('chapters/chapter03/chapter03.Rnw')}
+\Sexpr{knit_child('chapters/chapter04/chapter04.Rnw')}
+\Sexpr{knit_child('chapters/chapter05/chapter05.Rnw')}
+
+\appendix
+\Sexpr{knit_child('endmatter/appendix01/appendix01.Rnw')}
+
+
 
 \end{document}

@@ -1,4 +1,4 @@
-\documentclass{book}\usepackage[]{graphicx}\usepackage[]{color}
+\documentclass[english]{MastersDoctoralThesis}\usepackage[]{graphicx}\usepackage[]{color}
 %% maxwidth is the original width if it is less than linewidth
 %% otherwise use linewidth (to make sure the graphics do not exceed the margin)
 \makeatletter
@@ -50,6 +50,15 @@
 
 \usepackage{alltt}
 
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+
+\usepackage{mathpazo} % Use the Palatino font by default
+
+\usepackage[backend=bibtex,style=authoryear,natbib=true]{biblatex}
+
+
+
 \title{Tom's awesome thesis on buses}
 \author{Tom Elliott}
 \date{2019}
@@ -59,7 +68,16 @@
 \maketitle
 
 \tableofcontents
+\tabularnewline
 
+\frontmatter
+
+\chapter*{Abstract}
+
+This is the abstract.
+
+\mainmatter
+% Main chapters
 
 
 
@@ -72,5 +90,26 @@ This is the intro.
 \chapter{The first}
 
 This is the first (main) chapter.
+
+
+
+\chapter{Math test}
+
+Here's some math stuff
+\begin{equation}
+X_k = X_{k-1} + \mathbf{B}\beta
+\end{equation}
+
+
+
+
+\appendix
+
+\chapter{Interesting stuff}
+
+
+Blah blah blah.
+
+
 
 \end{document}
