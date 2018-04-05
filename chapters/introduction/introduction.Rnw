@@ -1,5 +1,0 @@
-\Sexpr{set_parent('../../thesis.Rnw')}
-
-\chapter{Introduction}
-
-This is the intro.

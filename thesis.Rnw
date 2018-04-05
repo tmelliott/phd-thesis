@@ -25,15 +25,21 @@
 
 \mainmatter
 % Main chapters
-\Sexpr{knit_child('chapters/introduction/introduction.Rnw')}
-\Sexpr{knit_child('chapters/chapter01/chapter01.Rnw')}
-\Sexpr{knit_child('chapters/chapter02/chapter02.Rnw')}
-\Sexpr{knit_child('chapters/chapter03/chapter03.Rnw')}
-\Sexpr{knit_child('chapters/chapter04/chapter04.Rnw')}
-\Sexpr{knit_child('chapters/chapter05/chapter05.Rnw')}
+\Sexpr{knit_child('chapters/introduction.Rnw')}
+
+\part{Real-time bus models}
+\Sexpr{knit_child('chapters/part1/literature.Rnw')}
+\Sexpr{knit_child('chapters/part1/gtfs.Rnw')}
+\Sexpr{knit_child('chapters/part1/vehicle_model.Rnw')}
+
+\part{Transit network}
+\Sexpr{knit_child('chapters/part2/network.Rnw')}
+\Sexpr{knit_child('chapters/part2/realtime_model.Rnw')}
+\Sexpr{knit_child('chapters/part2/historical_model.Rnw')}
+
 
 \appendix
-\Sexpr{knit_child('endmatter/appendix01/appendix01.Rnw')}
+% \Sexpr{knit_child('endmatter/appendix/app1.Rnw')}
 
 
 

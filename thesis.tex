@@ -83,32 +83,98 @@ This is the abstract.
 
 \chapter{Introduction}
 
-This is the intro.
+This is the intro. Literature review, the problem,
+and the goals of this work (i.e., to make better predictions
+that don't rely on the timetable).
+
+\part{Real-time bus models}
 
 
 
-\chapter{The first}
+\chapter{Literature review}
 
-This is the first (main) chapter.
+This is a ``review'' of what's been happening in the field of
+bus arrival-time prediction and modeling.
+From its routes in Kalman filtering,
+through fancy ANN and SVM models,
+to computer intensive particle filter models
+(not for real-time applications).
+
+What's missing: focus on improved arrival-time prediction,
+rather than an OR approach.
 
 
 
-\chapter{Math test}
+\chapter{GTFS data and route segmentation}
 
-Here's some math stuff
-\begin{equation}
-X_k = X_{k-1} + \mathbf{B}\beta
-\end{equation}
+Talk about the data itself: where it comes from,
+the important aspects we care about
+(trips/routes, shapes, stops, and stop times).
 
 
+\section{Real-time data}
+
+What's involved, frequency, and some of the
+quirks (at least in our Auckland Transport example).
+
+
+\section{Segmentation of routes}
+
+This is cool --- by segmenting routes
+(at intersections) we remove dependency of
+speed/travel time on \emph{route} and instead
+relate it to the physical road the vehicle is traveling along.
+
+
+
+\chapter{Transit vehicle model}
+
+This chapter should be about the model itself,
+including traffic lights, dwell times, speed, etc.
+It's a recursive Bayesian model,
+which means the state at time $k$ is a function
+of the state at time $k-1$.
+
+\section{Particle filter}
+
+About how it's actually implemented using a particle filter,
+and the reasons why we chose that.
+
+
+\part{Transit network}
+
+
+
+\chapter{Introduction}
+
+Here we give a detailed overview of what exactly the
+transit network is
+(in the previous chapter, we only alluded to it,
+and assumed segments where known).
+
+The basic idea of splitting shapes at intersections,
+which we get manually, or could potentially
+obtain using shape-processing methods.
+
+
+
+\chapter{Real-time network model}
+
+The modified Kalman filter approach to modeling
+travel times as vehicles travel along each
+road segment.
+
+
+
+\chapter{Historical data based priors}
+
+How we use Bayesian heirarchical models to
+estimate the typical speed along roads in the
+network, based on historical data.
 
 
 \appendix
-
-\chapter{Interesting stuff}
-
-
-Blah blah blah.
+% knit_child('endmatter/appendix/app1.Rnw')
 
 
 

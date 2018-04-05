@@ -1,0 +1,21 @@
+\Sexpr{set_parent('../../thesis.Rnw')}
+
+\chapter{GTFS data and route segmentation}
+
+Talk about the data itself: where it comes from,
+the important aspects we care about
+(trips/routes, shapes, stops, and stop times).
+
+
+\section{Real-time data}
+
+What's involved, frequency, and some of the
+quirks (at least in our Auckland Transport example).
+
+
+\section{Segmentation of routes}
+
+This is cool --- by segmenting routes
+(at intersections) we remove dependency of
+speed/travel time on \emph{route} and instead
+relate it to the physical road the vehicle is traveling along.

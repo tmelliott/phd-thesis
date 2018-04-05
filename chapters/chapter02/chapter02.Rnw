@@ -1,8 +1,0 @@
-\Sexpr{set_parent('../../thesis.Rnw')}
-
-\chapter{Math test}
-
-Here's some math stuff
-\begin{equation}
-X_k = X_{k-1} + \mathbf{B}\beta
-\end{equation}

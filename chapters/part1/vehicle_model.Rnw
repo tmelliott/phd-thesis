@@ -1,0 +1,15 @@
+\Sexpr{set_parent('../../thesis.Rnw')}
+
+\chapter{Transit vehicle model}
+
+This chapter should be about the model itself,
+including traffic lights, dwell times, speed, etc.
+It's a recursive Bayesian model,
+which means the state at time $k$ is a function
+of the state at time $k-1$.
+
+\section{Particle filter}
+
+About how it's actually implemented using a particle filter,
+and the reasons why we chose that.
+

@@ -1,0 +1,12 @@
+\Sexpr{set_parent('../../thesis.Rnw')}
+
+\chapter{Introduction}
+
+Here we give a detailed overview of what exactly the
+transit network is
+(in the previous chapter, we only alluded to it,
+and assumed segments where known).
+
+The basic idea of splitting shapes at intersections,
+which we get manually, or could potentially
+obtain using shape-processing methods.
