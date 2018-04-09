@@ -1,6 +1,7 @@
 \Sexpr{set_parent('../../thesis.Rnw')}
 
 \chapter{Historical data based priors}
+\label{cha:historymodel}
 
 How we use Bayesian heirarchical models to
 estimate the typical speed along roads in the

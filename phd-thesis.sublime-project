@@ -18,7 +18,7 @@
                 "*.log",
                 "*.synctex.gz",
                 "*.synctex.gz(busy)",
-                "*.tex",
+                // "*.tex",
                 "thesis.pdf",
             ],
 			"path": "."

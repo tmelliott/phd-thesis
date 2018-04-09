@@ -1,6 +1,7 @@
 \Sexpr{set_parent('../../thesis.Rnw')}
 
 \chapter{Transit vehicle model}
+\label{cha:vehiclemodel}
 
 This chapter should be about the model itself,
 including traffic lights, dwell times, speed, etc.

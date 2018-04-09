@@ -1,6 +1,6 @@
 \Sexpr{set_parent('../../thesis.Rnw')}
 
-\chapter{Introduction}
+\chapter{Constructing a GTFS network}
 
 Here we give a detailed overview of what exactly the
 transit network is
@@ -10,3 +10,5 @@ and assumed segments where known).
 The basic idea of splitting shapes at intersections,
 which we get manually, or could potentially
 obtain using shape-processing methods.
+
+Some of the slight issues, e.g., missing intersections.

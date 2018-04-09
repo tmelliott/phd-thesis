@@ -50,6 +50,9 @@
 
 \usepackage{alltt}
 
+\usepackage{amsmath}
+\usepackage{amsfonts}
+
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
 
@@ -57,6 +60,7 @@
 
 \usepackage[backend=bibtex,style=authoryear,natbib=true]{biblatex}
 
+\input{include/symbols.tex}
 
 
 \title{Tom's awesome thesis on buses}
@@ -128,6 +132,7 @@ relate it to the physical road the vehicle is traveling along.
 
 
 \chapter{Transit vehicle model}
+\label{cha:vehiclemodel}
 
 This chapter should be about the model itself,
 including traffic lights, dwell times, speed, etc.
@@ -145,7 +150,7 @@ and the reasons why we chose that.
 
 
 
-\chapter{Introduction}
+\chapter{Constructing a GTFS network}
 
 Here we give a detailed overview of what exactly the
 transit network is
@@ -156,17 +161,141 @@ The basic idea of splitting shapes at intersections,
 which we get manually, or could potentially
 obtain using shape-processing methods.
 
+Some of the slight issues, e.g., missing intersections.
+
 
 
 \chapter{Real-time network model}
 
-The modified Kalman filter approach to modeling
-travel times as vehicles travel along each
-road segment.
+%The modified Kalman filter approach to modeling
+%travel times as vehicles travel along each
+%road segment.
+
+
+The \emph{network state} is denoted by $\bbeta$,
+a vector of length $L$, the number of segments in the network.
+Each $\beta_\ell$ represents the \emph{mean travel time} of buses
+in segment $\ell$.
+To denote time, we add a $c$ subscript to the state, $\bbeta_c$
+and $\beta_{c\ell}$.
+
+The \emph{state estimate} will be denoted as $\bbetahat$.
+
+\section{Predict step}
+
+The first step in the EKF process is to predict the state at time $c$.
+Here we wish to estimate $\bbetahat_{c|c-1}$, the network state at time $c$,
+given the posterior state estimate at time $c-1$.
+
+\subsection{Transition function}
+
+Based on an extended Kalman filter,
+the transition function $f$ defines the state at time $c$
+as a deterministic function of the state at time $c-1$.
+That is,
+\begin{equation}
+    \label{eq:kf_transition_basic}
+    \bbetahat_{c|c-1} = f(\bbetahat_{c-1|c-1}).
+\end{equation}
+
+The next step is to define $f$ so that it meets the criteria for
+the EKF (it must be differentiable), and has the properties we desire:
+that the state will regress to the prior in the absense of any observations.
+
+To bring the state towards the prior mean travel time for segment $\ell$,
+$\nu_\ell$, we define the transition function for a single second, $f$, as
+\begin{equation}
+    \label{eq:kf_transition_def}
+    f(\beta_{\ell,c}, \nu_\ell, \lambda) = \beta_{\ell,c-1} + \lambda (\nu_\ell - \beta_{\ell,c-1})
+\end{equation}
+where $\lambda \in (0,1)$ is a tuning parameter that determines the rate at which
+the state converges.
+We can easily calculate the derivative of $f$, too, which is a requirement for the EKF.
+\begin{equation}
+    \label{eq:kf_transition_fderiv}
+    f'(\beta_{\ell,c}, \nu_\ell, \lambda) = 1 - \lambda
+\end{equation}
+
+Next we need to be able to define the a transition for $\Delta$ seconds,
+which by recursion of \ref{eq:kf_transition_def} is
+\begin{equation}
+    \label{eq:kf_transition_n}
+    f_n(\beta_{\ell,c-1}, \nu_\ell, \lambda) =
+    (f^1 \circ \cdots \circ f^n)(\beta_{\ell,c=1}, \nu_\ell, \lambda), \quad\text{where } f^j\equiv f\quad \forall j.
+\end{equation}
+
+The derivative of \ref{eq:kf_transition_n} is obtained used the chain rule,
+$f(g(x))' = f'(g(x)) g'(x)$.
+We will use $f(\beta) \equiv f(\beta_{\ell,c-1},\nu_\ell,\lambda)$ to simplify notation
+(the other parameters are constant).
+\begin{align}
+    \label{eq:kf_transition_F}
+    \F_n = f'_n(\beta) &=
+    f'\left((f^1\circ\cdots\circ f^{n-1})(\beta)\right)(f^1\circ\cdots\circ f^{n-1})'(\beta) \nonumber \\
+    &= f'\left(f_{n-1}(\beta)\right) \F_{n-1} \nonumber \\
+    &= f'\left(f_{n-1}(\beta)\right) f'\left(f_{n-2}(\beta)\right) \cdots f'\left(f_1(\beta)\right) f'(\beta) \nonumber \\
+    &= f'(\beta) \prod_{i=1}^{n-1} f'\left(f_i(\beta)\right) \nonumber \\
+\intertext{Substituting \ref{eq:kf_transition_fderiv}, we get}
+    \F_n &= (1-\lambda) \prod_{i=1}^{n-1}(1-\lambda) = (1-\lambda)^n
+\end{align}
+
+
+Next we need to ensure the entire state, and not just the mean,
+converges to the prior,
+i.e., the state variance $P_{\ell,c}$ converges to the prior variance, $\xi_{\ell} = \xi_\ell$.
+
+The system noise, $Q$, is used to predict the state variance,
+\begin{equation}
+    \label{eq:kf_transition_predvar}
+    P_{\ell,c|c-1} = F_n^2 P_{\ell,c-1|c-1} + Q
+\end{equation}
+At convergence, we want $P_{\ell,c|c-1} = P_{\ell,c-1|c-1} = \xi_\ell$.
+Substituting into \ref{eq:kf_transition_predvar} and solving for $Q$:
+\begin{align}
+    \label{eq:kf_transition_Q}
+    \xi_\ell &= F^2_n\xi_\ell + Q \nonumber \\
+    &= (1-\lambda)^{2n}\xi_\ell + Q \nonumber \\
+    Q &= \xi_\ell(1 - (1 - \lambda)^{2n})
+\end{align}
+
+Now that the state will converge to the prior,
+the last thing we have to do is determine how fast it does so.
+This is controlled by $\lambda$;
+however, we want the rate of convergence to be slow
+after an observation, and speed up the longer we go without seeing any buses.
+That is, we want to use a ratio of $P_\ell$ and $\xi_\ell$,
+\begin{equation}
+    \label{eq:kf_transition_lambda}
+    \lambda = \phi \frac{P_{\ell,c-1|c-1}}{P_{\ell,c-1|c-1} + \xi_\ell}
+\end{equation}
+where $\phi$ is a tuning parameter.
+
+
+
+\section{Update step}
+
+Having predicted the state at time $t_c$,
+we can now update our estimate based on the observed data,
+$\bB_c$, which consists of the combined travel times
+of all $K_m$ vehicles completing travel along the segment
+during the current iteration.
+For each vehicle, we can obtain the mean and uncertainty
+of travel time from the particle filter,
+$b_{v,\ell}$ and $e_{v\ell}$, respectively.
+These can then be combined to obtain a single observation for the EKF,
+along with an estimate to use as measurement error:
+\begin{align}
+    \label{eq:kf_update_B}
+    B_{\ell,c} &= \frac{1}{K_m} \sum_{v=1}^{K_m} b_{v,\ell} \\
+    \label{eq:kf_update_E}
+    E_{\ell,c} &= \frac{1}{K_m} \sum_{v=1}^{K_m}
+        \left(b_{v,\ell}^2 + e_{v,\ell}^2\right) - B_{\ell,c}
+\end{align}
 
 
 
 \chapter{Historical data based priors}
+\label{cha:historymodel}
 
 How we use Bayesian heirarchical models to
 estimate the typical speed along roads in the

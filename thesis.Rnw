@@ -1,5 +1,8 @@
 \documentclass[english]{MastersDoctoralThesis}
 
+\usepackage{amsmath}
+\usepackage{amsfonts}
+
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
 
@@ -7,6 +10,7 @@
 
 \usepackage[backend=bibtex,style=authoryear,natbib=true]{biblatex}
 
+\input{include/symbols.tex}
 
 
 \title{Tom's awesome thesis on buses}
