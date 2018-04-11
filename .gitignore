@@ -1,6 +1,8 @@
 
 # Created by https://www.gitignore.io/api/r,macos,linux,latex,emacs,sublimetext
 *.tex
+!include/*.tex
+
 ### Emacs ###
 # -*- mode: gitignore; -*-
 *~
