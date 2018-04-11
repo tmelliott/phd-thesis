@@ -26,11 +26,12 @@ given the posterior state estimate at time $c-1$.
 
 Based on an extended Kalman filter,
 the transition function $f$ defines the state at time $c$
-as a deterministic function of the state at time $c-1$.
+as a deterministic function of the state at time $c-1$
+and system noise, $u_c \sim \mathcal{N}(0, Q)$.
 That is,
 \begin{equation}
     \label{eq:kf_transition_basic}
-    \bbetahat_{c|c-1} = f(\bbetahat_{c-1|c-1}).
+    \bbetahat_{c|c-1} = f(\bbetahat_{c-1|c-1}, u_c).
 \end{equation}
 
 The next step is to define $f$ so that it meets the criteria for
@@ -82,9 +83,10 @@ i.e., the state variance $P_{\ell,c}$ converges to the prior variance, $\xi_{\el
 The system noise, $Q$, is used to predict the state variance,
 \begin{equation}
     \label{eq:kf_transition_predvar}
-    P_{\ell,c|c-1} = F_n^2 P_{\ell,c-1|c-1} + Q
+    P_{\ell,c|c-1} = F_n^2 P_{\ell,c-1|c-1} + L_c Q
 \end{equation}
-At convergence, we want $P_{\ell,c|c-1} = P_{\ell,c-1|c-1} = \xi_\ell$.
+At convergence, we want $P_{\ell,c|c-1} = P_{\ell,c-1|c-1} = \xi_\ell$, and
+$L_{c-1} = \left.\frac{\partial f_n}{\partial u}\right|_{\hat\beta_{\ell,c|c-1}} = 1$.
 Substituting into \ref{eq:kf_transition_predvar} and solving for $Q$:
 \begin{align}
     \label{eq:kf_transition_Q}
@@ -123,8 +125,46 @@ along with an estimate to use as measurement error:
     \label{eq:kf_update_B}
     B_{\ell,c} &= \frac{1}{K_m} \sum_{v=1}^{K_m} b_{v,\ell} \\
     \label{eq:kf_update_E}
-    E_{\ell,c} &= \frac{1}{K_m} \sum_{v=1}^{K_m}
+    \hat E_{\ell,c} &= \frac{1}{K_m} \sum_{v=1}^{K_m}
         \left(b_{v,\ell}^2 + e_{v,\ell}^2\right) - B_{\ell,c}
 \end{align}
 
-Now the EKF proceeds as normal.
+Now the EKF proceeds as normal,
+so we only need to define the measurement function, $h$,
+which defines how the true state $\nu_{\ell,c}$ is related to the observed state, $\beta_{\ell,c}$.
+\begin{equation}
+    \label{eq:kf_measure}
+    \nu_{\ell,c} = h(\beta_{\ell,c}, e_{\ell,c}) = \beta_{\ell,c} + e_{\ell,c},
+    \quad e_{\ell,c}\sim \mathcal{N}(0, \hat E_{\ell,c})
+\end{equation}
+
+Before we can complete the update step of the EKF algorithm, we need to calculate two more derivatives:
+\begin{align}
+    \label{eq:kf_update_H}
+    H_c = \left.\frac{\partial h}{\partial \nu}\right|_{\hat\beta_{\ell,c|c-1}} &= 1 \\
+    M_c = \left.\frac{\partial h}{\partial e}\right|_{\hat\beta_{\ell,c|c-1}} &= 1
+\end{align}
+As we are using additive effects, these are both 1;
+however, setting it out this way allows us to switch to using multiplicative
+noise terms in future.
+
+Now we can update the state estimates
+\begin{align}
+    \label{eq:kf_update_resid}
+    \tilde y_c &= B_{\ell,c} - h(\hat\beta_{\ell,c|c-1}) \\
+    \label{eq:kf_update_Sk}
+    S_c &= H^T P_{\ell,c|c-1} H + M^T \hat E_{\ell,c} M \\
+    \label{eq:kf_update_gain}
+    K_c &= P_{\ell,c|c-1} H_c S_c^{-1} \\
+    \label{eq:kf_update_statemean}
+    \hat\beta_{\ell,c|c} &= \hat\beta_{\ell,c|c-1} + K_c\tilde y_c \\
+    \label{eq:kf_update_statevar}
+    P_{\ell,c|c} &= (I - K_c H) P_{\ell,c|c-1}
+\end{align}
+
+And here's what that looks like when implemented for a single segment.
+<<kf_eg>>=
+x <- 1:10
+plot(x)
+@
+
