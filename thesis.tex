@@ -1,358 +1,287 @@
-\documentclass[english]{MastersDoctoralThesis}\usepackage[]{graphicx}\usepackage[]{color}
-%% maxwidth is the original width if it is less than linewidth
-%% otherwise use linewidth (to make sure the graphics do not exceed the margin)
-\makeatletter
-\def\maxwidth{ %
-  \ifdim\Gin@nat@width>\linewidth
-    \linewidth
-  \else
-    \Gin@nat@width
-  \fi
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Masters/Doctoral Thesis 
+% LaTeX Template
+% Version 2.5 (27/8/17)
+%
+% This template was downloaded from:
+% http://www.LaTeXTemplates.com
+%
+% Version 2.x major modifications by:
+% Vel (vel@latextemplates.com)
+%
+% This template is based on a template by:
+% Steve Gunn (http://users.ecs.soton.ac.uk/srg/softwaretools/document/templates/)
+% Sunil Patel (http://www.sunilpatel.co.uk/thesis-template/)
+%
+% Template license:
+% CC BY-NC-SA 3.0 (http://creativecommons.org/licenses/by-nc-sa/3.0/)
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%----------------------------------------------------------------------------------------
+%   PACKAGES AND OTHER DOCUMENT CONFIGURATIONS
+%----------------------------------------------------------------------------------------
+
+\documentclass[
+11pt, % The default document font size, options: 10pt, 11pt, 12pt
+%oneside, % Two side (alternating margins) for binding by default, uncomment to switch to one side
+english, % ngerman for German
+singlespacing, % Single line spacing, alternatives: onehalfspacing or doublespacing
+%draft, % Uncomment to enable draft mode (no pictures, no links, overfull hboxes indicated)
+%nolistspacing, % If the document is onehalfspacing or doublespacing, uncomment this to set spacing in lists to single
+%liststotoc, % Uncomment to add the list of figures/tables/etc to the table of contents
+%toctotoc, % Uncomment to add the main table of contents to the table of contents
+%parskip, % Uncomment to add space between paragraphs
+%nohyperref, % Uncomment to not load the hyperref package
+headsepline, % Uncomment to get a line under the header
+%chapterinoneline, % Uncomment to place the chapter title next to the number on one line
+%consistentlayout, % Uncomment to change the layout of the declaration, abstract and acknowledgements pages to match the default layout
+]{MastersDoctoralThesis} % The class file specifying the document structure
+
+\usepackage[utf8]{inputenc} % Required for inputting international characters
+\usepackage[T1]{fontenc} % Output font encoding for international characters
+
+% \usepackage{mathpazo} % Use the Palatino font by default
+
+\usepackage[backend=bibtex,style=authoryear,natbib=true]{biblatex} % Use the bibtex backend with the authoryear citation style (which resembles APA)
+
+\addbibresource{example.bib} % The filename of the bibliography
+
+\usepackage[autostyle=true]{csquotes} % Required to generate language-dependent quotes in the bibliography
+
+%----------------------------------------------------------------------------------------
+%   MARGIN SETTINGS
+%----------------------------------------------------------------------------------------
+
+\geometry{
+    paper=a4paper, % Change to letterpaper for US letter
+    inner=2.5cm, % Inner margin
+    outer=3.8cm, % Outer margin
+    bindingoffset=.5cm, % Binding offset
+    top=1.5cm, % Top margin
+    bottom=1.5cm, % Bottom margin
+    %showframe, % Uncomment to show how the type block is set on the page
 }
-\makeatother
 
-\definecolor{fgcolor}{rgb}{0.345, 0.345, 0.345}
-\newcommand{\hlnum}[1]{\textcolor[rgb]{0.686,0.059,0.569}{#1}}%
-\newcommand{\hlstr}[1]{\textcolor[rgb]{0.192,0.494,0.8}{#1}}%
-\newcommand{\hlcom}[1]{\textcolor[rgb]{0.678,0.584,0.686}{\textit{#1}}}%
-\newcommand{\hlopt}[1]{\textcolor[rgb]{0,0,0}{#1}}%
-\newcommand{\hlstd}[1]{\textcolor[rgb]{0.345,0.345,0.345}{#1}}%
-\newcommand{\hlkwa}[1]{\textcolor[rgb]{0.161,0.373,0.58}{\textbf{#1}}}%
-\newcommand{\hlkwb}[1]{\textcolor[rgb]{0.69,0.353,0.396}{#1}}%
-\newcommand{\hlkwc}[1]{\textcolor[rgb]{0.333,0.667,0.333}{#1}}%
-\newcommand{\hlkwd}[1]{\textcolor[rgb]{0.737,0.353,0.396}{\textbf{#1}}}%
-\let\hlipl\hlkwb
+%----------------------------------------------------------------------------------------
+%   THESIS INFORMATION
+%----------------------------------------------------------------------------------------
 
-\usepackage{framed}
-\makeatletter
-\newenvironment{kframe}{%
- \def\at@end@of@kframe{}%
- \ifinner\ifhmode%
-  \def\at@end@of@kframe{\end{minipage}}%
-  \begin{minipage}{\columnwidth}%
- \fi\fi%
- \def\FrameCommand##1{\hskip\@totalleftmargin \hskip-\fboxsep
- \colorbox{shadecolor}{##1}\hskip-\fboxsep
-     % There is no \\@totalrightmargin, so:
-     \hskip-\linewidth \hskip-\@totalleftmargin \hskip\columnwidth}%
- \MakeFramed {\advance\hsize-\width
-   \@totalleftmargin\z@ \linewidth\hsize
-   \@setminipage}}%
- {\par\unskip\endMakeFramed%
- \at@end@of@kframe}
-\makeatother
+\thesistitle{Thesis Title} % Your thesis title, this is used in the title and abstract, print it elsewhere with \ttitle
+\supervisor{Dr. James \textsc{Smith}} % Your supervisor's name, this is used in the title page, print it elsewhere with \supname
+\examiner{} % Your examiner's name, this is not currently used anywhere in the template, print it elsewhere with \examname
+\degree{Doctor of Philosophy} % Your degree name, this is used in the title page and abstract, print it elsewhere with \degreename
+\author{John \textsc{Smith}} % Your name, this is used in the title page and abstract, print it elsewhere with \authorname
+\addresses{} % Your address, this is not currently used anywhere in the template, print it elsewhere with \addressname
 
-\definecolor{shadecolor}{rgb}{.97, .97, .97}
-\definecolor{messagecolor}{rgb}{0, 0, 0}
-\definecolor{warningcolor}{rgb}{1, 0, 1}
-\definecolor{errorcolor}{rgb}{1, 0, 0}
-\newenvironment{knitrout}{}{} % an empty environment to be redefined in TeX
+\subject{Biological Sciences} % Your subject area, this is not currently used anywhere in the template, print it elsewhere with \subjectname
+\keywords{} % Keywords for your thesis, this is not currently used anywhere in the template, print it elsewhere with \keywordnames
+\university{\href{http://www.university.com}{University Name}} % Your university's name and URL, this is used in the title page and abstract, print it elsewhere with \univname
+\department{\href{http://department.university.com}{Department or School Name}} % Your department's name and URL, this is used in the title page and abstract, print it elsewhere with \deptname
+\group{\href{http://researchgroup.university.com}{Research Group Name}} % Your research group's name and URL, this is used in the title page, print it elsewhere with \groupname
+\faculty{\href{http://faculty.university.com}{Faculty Name}} % Your faculty's name and URL, this is used in the title page and abstract, print it elsewhere with \facname
 
-\usepackage{alltt}
+\AtBeginDocument{
+\hypersetup{pdftitle=\ttitle} % Set the PDF's title to your title
+\hypersetup{pdfauthor=\authorname} % Set the PDF's author to your name
+\hypersetup{pdfkeywords=\keywordnames} % Set the PDF's keywords to your keywords
+}
 
-\usepackage{amsmath}
-\usepackage{amsfonts}
-
-\usepackage[utf8]{inputenc}
-\usepackage[T1]{fontenc}
-
-\usepackage{mathpazo} % Use the Palatino font by default
-
-\usepackage[backend=bibtex,style=authoryear,natbib=true]{biblatex}
-
-\input{include/symbols.tex}
-
-
-\title{Tom's awesome thesis on buses}
-\author{Tom Elliott}
-\date{2019}
-\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
 \begin{document}
 
-\maketitle
+\frontmatter % Use roman page numbering style (i, ii, iii, iv...) for the pre-content pages
+
+\pagestyle{plain} % Default to the plain heading style until the thesis style is called for the body content
+
+%----------------------------------------------------------------------------------------
+%   TITLE PAGE
+%----------------------------------------------------------------------------------------
+
+\begin{titlepage}
+\begin{center}
+
+\vspace*{.06\textheight}
+{\scshape\LARGE \univname\par}\vspace{1.5cm} % University name
+\textsc{\Large Doctoral Thesis}\\[0.5cm] % Thesis type
+
+\HRule \\[0.4cm] % Horizontal line
+{\huge \bfseries \ttitle\par}\vspace{0.4cm} % Thesis title
+\HRule \\[1.5cm] % Horizontal line
+ 
+\begin{minipage}[t]{0.4\textwidth}
+\begin{flushleft} \large
+\emph{Author:}\\
+\href{http://www.johnsmith.com}{\authorname} % Author name - remove the \href bracket to remove the link
+\end{flushleft}
+\end{minipage}
+\begin{minipage}[t]{0.4\textwidth}
+\begin{flushright} \large
+\emph{Supervisor:} \\
+\href{http://www.jamessmith.com}{\supname} % Supervisor name - remove the \href bracket to remove the link  
+\end{flushright}
+\end{minipage}\\[3cm]
+ 
+\vfill
+
+\large \textit{A thesis submitted in fulfillment of the requirements\\ for the degree of \degreename}\\[0.3cm] % University requirement text
+\textit{in the}\\[0.4cm]
+\groupname\\\deptname\\[2cm] % Research group name and department name
+ 
+\vfill
+
+{\large \today}\\[4cm] % Date
+%\includegraphics{Logo} % University/department logo - uncomment to place it
+ 
+\vfill
+\end{center}
+\end{titlepage}
+
+%----------------------------------------------------------------------------------------
+%   DECLARATION PAGE
+%----------------------------------------------------------------------------------------
 
-\tableofcontents
-\tabularnewline
+\begin{declaration}
+\addchaptertocentry{\authorshipname} % Add the declaration to the table of contents
+\noindent I, \authorname, declare that this thesis titled, \enquote{\ttitle} and the work presented in it are my own. I confirm that:
 
-\frontmatter
+\begin{itemize} 
+\item This work was done wholly or mainly while in candidature for a research degree at this University.
+\item Where any part of this thesis has previously been submitted for a degree or any other qualification at this University or any other institution, this has been clearly stated.
+\item Where I have consulted the published work of others, this is always clearly attributed.
+\item Where I have quoted from the work of others, the source is always given. With the exception of such quotations, this thesis is entirely my own work.
+\item I have acknowledged all main sources of help.
+\item Where the thesis is based on work done by myself jointly with others, I have made clear exactly what was done by others and what I have contributed myself.\\
+\end{itemize}
+ 
+\noindent Signed:\\
+\rule[0.5em]{25em}{0.5pt} % This prints a line for the signature
+ 
+\noindent Date:\\
+\rule[0.5em]{25em}{0.5pt} % This prints a line to write the date
+\end{declaration}
 
-\chapter*{Abstract}
+\cleardoublepage
 
-This is the abstract.
+%----------------------------------------------------------------------------------------
+%   QUOTATION PAGE
+%----------------------------------------------------------------------------------------
 
-\mainmatter
-% Main chapters
+\vspace*{0.2\textheight}
 
+\noindent\enquote{\itshape Thanks to my solid academic training, today I can write hundreds of words on virtually any topic without possessing a shred of information, which is how I got a good job in journalism.}\bigbreak
 
+\hfill Dave Barry
 
-\chapter{Introduction}
+%----------------------------------------------------------------------------------------
+%   ABSTRACT PAGE
+%----------------------------------------------------------------------------------------
 
-This is the intro. Literature review, the problem,
-and the goals of this work (i.e., to make better predictions
-that don't rely on the timetable).
+\begin{abstract}
+\addchaptertocentry{\abstractname} % Add the abstract to the table of contents
+The Thesis Abstract is written here (and usually kept to just this page). The page is kept centered vertically so can expand into the blank space above the title too\ldots
+\end{abstract}
 
-\part{Real-time bus models}
+%----------------------------------------------------------------------------------------
+%   ACKNOWLEDGEMENTS
+%----------------------------------------------------------------------------------------
 
+\begin{acknowledgements}
+\addchaptertocentry{\acknowledgementname} % Add the acknowledgements to the table of contents
+The acknowledgments and the people to thank go here, don't forget to include your project advisor\ldots
+\end{acknowledgements}
 
+%----------------------------------------------------------------------------------------
+%   LIST OF CONTENTS/FIGURES/TABLES PAGES
+%----------------------------------------------------------------------------------------
 
-\chapter{Literature review}
+\tableofcontents % Prints the main table of contents
 
-This is a ``review'' of what's been happening in the field of
-bus arrival-time prediction and modeling.
-From its routes in Kalman filtering,
-through fancy ANN and SVM models,
-to computer intensive particle filter models
-(not for real-time applications).
+\listoffigures % Prints the list of figures
 
-What's missing: focus on improved arrival-time prediction,
-rather than an OR approach.
+\listoftables % Prints the list of tables
 
+%----------------------------------------------------------------------------------------
+%   ABBREVIATIONS
+%----------------------------------------------------------------------------------------
 
+\begin{abbreviations}{ll} % Include a list of abbreviations (a table of two columns)
 
-\chapter{GTFS data and route segmentation}
+\textbf{LAH} & \textbf{L}ist \textbf{A}bbreviations \textbf{H}ere\\
+\textbf{WSF} & \textbf{W}hat (it) \textbf{S}tands \textbf{F}or\\
 
-Talk about the data itself: where it comes from,
-the important aspects we care about
-(trips/routes, shapes, stops, and stop times).
+\end{abbreviations}
 
+%----------------------------------------------------------------------------------------
+%   PHYSICAL CONSTANTS/OTHER DEFINITIONS
+%----------------------------------------------------------------------------------------
 
-\section{Real-time data}
+\begin{constants}{lr@{${}={}$}l} % The list of physical constants is a three column table
 
-What's involved, frequency, and some of the
-quirks (at least in our Auckland Transport example).
+% The \SI{}{} command is provided by the siunitx package, see its documentation for instructions on how to use it
 
+Speed of Light & $c_{0}$ & \SI{2.99792458e8}{\meter\per\second} (exact)\\
+%Constant Name & $Symbol$ & $Constant Value$ with units\\
 
-\section{Segmentation of routes}
+\end{constants}
 
-This is cool --- by segmenting routes
-(at intersections) we remove dependency of
-speed/travel time on \emph{route} and instead
-relate it to the physical road the vehicle is traveling along.
+%----------------------------------------------------------------------------------------
+%   SYMBOLS
+%----------------------------------------------------------------------------------------
 
+\begin{symbols}{lll} % Include a list of Symbols (a three column table)
 
+$a$ & distance & \si{\meter} \\
+$P$ & power & \si{\watt} (\si{\joule\per\second}) \\
+%Symbol & Name & Unit \\
 
-\chapter{Transit vehicle model}
-\label{cha:vehiclemodel}
+\addlinespace % Gap to separate the Roman symbols from the Greek
 
-This chapter should be about the model itself,
-including traffic lights, dwell times, speed, etc.
-It's a recursive Bayesian model,
-which means the state at time $k$ is a function
-of the state at time $k-1$.
+$\omega$ & angular frequency & \si{\radian} \\
 
-\section{Particle filter}
+\end{symbols}
 
-About how it's actually implemented using a particle filter,
-and the reasons why we chose that.
+%----------------------------------------------------------------------------------------
+%   DEDICATION
+%----------------------------------------------------------------------------------------
 
+\dedicatory{For/Dedicated to/To my\ldots} 
 
-\part{Transit network}
+%----------------------------------------------------------------------------------------
+%   THESIS CONTENT - CHAPTERS
+%----------------------------------------------------------------------------------------
 
+\mainmatter % Begin numeric (1,2,3...) page numbering
 
+\pagestyle{thesis} % Return the page headers back to the "thesis" style
 
-\chapter{Constructing a GTFS network}
+% Include the chapters of the thesis as separate files from the Chapters folder
+% Uncomment the lines as you write the chapters
 
-Here we give a detailed overview of what exactly the
-transit network is
-(in the previous chapter, we only alluded to it,
-and assumed segments where known).
+% \include{Chapters/Chapter1}
+%\include{Chapters/Chapter2} 
+%\include{Chapters/Chapter3}
+%\include{Chapters/Chapter4} 
+%\include{Chapters/Chapter5} 
 
-The basic idea of splitting shapes at intersections,
-which we get manually, or could potentially
-obtain using shape-processing methods.
+%----------------------------------------------------------------------------------------
+%   THESIS CONTENT - APPENDICES
+%----------------------------------------------------------------------------------------
 
-Some of the slight issues, e.g., missing intersections.
+\appendix % Cue to tell LaTeX that the following "chapters" are Appendices
 
+% Include the appendices of the thesis as separate files from the Appendices folder
+% Uncomment the lines as you write the Appendices
 
+% \include{Appendices/AppendixA}
+%\include{Appendices/AppendixB}
+%\include{Appendices/AppendixC}
 
-\chapter{Real-time network model}
+%----------------------------------------------------------------------------------------
+%   BIBLIOGRAPHY
+%----------------------------------------------------------------------------------------
 
-%The modified Kalman filter approach to modeling
-%travel times as vehicles travel along each
-%road segment.
-
-
-The \emph{network state} is denoted by $\bbeta$,
-a vector of length $L$, the number of segments in the network.
-Each $\beta_\ell$ represents the \emph{mean travel time} of buses
-in segment $\ell$.
-To denote time, we add a $c$ subscript to the state, $\bbeta_c$
-and $\beta_{c\ell}$.
-
-The \emph{state estimate} will be denoted as $\bbetahat$.
-
-\section{Predict step}
-
-The first step in the EKF process is to predict the state at time $c$.
-Here we wish to estimate $\bbetahat_{c|c-1}$, the network state at time $c$,
-given the posterior state estimate at time $c-1$.
-
-\subsection{Transition function}
-
-Based on an extended Kalman filter,
-the transition function $f$ defines the state at time $c$
-as a deterministic function of the state at time $c-1$
-and system noise, $u_c \sim \mathcal{N}(0, Q)$.
-That is,
-\begin{equation}
-    \label{eq:kf_transition_basic}
-    \bbetahat_{c|c-1} = f(\bbetahat_{c-1|c-1}, u_c).
-\end{equation}
-
-The next step is to define $f$ so that it meets the criteria for
-the EKF (it must be differentiable), and has the properties we desire:
-that the state will regress to the prior in the absense of any observations.
-
-To bring the state towards the prior mean travel time for segment $\ell$,
-$\nu_\ell$, we define the transition function for a single second, $f$, as
-\begin{equation}
-    \label{eq:kf_transition_def}
-    f(\beta_{\ell,c}, \nu_\ell, \lambda) = \beta_{\ell,c-1} + \lambda (\nu_\ell - \beta_{\ell,c-1})
-\end{equation}
-where $\lambda \in (0,1)$ is a tuning parameter that determines the rate at which
-the state converges.
-We can easily calculate the derivative of $f$, too, which is a requirement for the EKF.
-\begin{equation}
-    \label{eq:kf_transition_fderiv}
-    f'(\beta_{\ell,c}, \nu_\ell, \lambda) = 1 - \lambda
-\end{equation}
-
-Next we need to be able to define the a transition for $\Delta$ seconds,
-which by recursion of \ref{eq:kf_transition_def} is
-\begin{equation}
-    \label{eq:kf_transition_n}
-    f_n(\beta_{\ell,c-1}, \nu_\ell, \lambda) =
-    (f^1 \circ \cdots \circ f^n)(\beta_{\ell,c=1}, \nu_\ell, \lambda), \quad\text{where } f^j\equiv f\quad \forall j.
-\end{equation}
-
-The derivative of \ref{eq:kf_transition_n} is obtained used the chain rule,
-$f(g(x))' = f'(g(x)) g'(x)$.
-We will use $f(\beta) \equiv f(\beta_{\ell,c-1},\nu_\ell,\lambda)$ to simplify notation
-(the other parameters are constant).
-\begin{align}
-    \label{eq:kf_transition_F}
-    \F_n = f'_n(\beta) &=
-    f'\left((f^1\circ\cdots\circ f^{n-1})(\beta)\right)(f^1\circ\cdots\circ f^{n-1})'(\beta) \nonumber \\
-    &= f'\left(f_{n-1}(\beta)\right) \F_{n-1} \nonumber \\
-    &= f'\left(f_{n-1}(\beta)\right) f'\left(f_{n-2}(\beta)\right) \cdots f'\left(f_1(\beta)\right) f'(\beta) \nonumber \\
-    &= f'(\beta) \prod_{i=1}^{n-1} f'\left(f_i(\beta)\right) \nonumber \\
-\intertext{Substituting \ref{eq:kf_transition_fderiv}, we get}
-    \F_n &= (1-\lambda) \prod_{i=1}^{n-1}(1-\lambda) = (1-\lambda)^n
-\end{align}
-
-
-Next we need to ensure the entire state, and not just the mean,
-converges to the prior,
-i.e., the state variance $P_{\ell,c}$ converges to the prior variance, $\xi_{\ell} = \xi_\ell$.
-
-The system noise, $Q$, is used to predict the state variance,
-\begin{equation}
-    \label{eq:kf_transition_predvar}
-    P_{\ell,c|c-1} = F_n^2 P_{\ell,c-1|c-1} + L_c Q
-\end{equation}
-At convergence, we want $P_{\ell,c|c-1} = P_{\ell,c-1|c-1} = \xi_\ell$, and
-$L_{c-1} = \left.\frac{\partial f_n}{\partial u}\right|_{\hat\beta_{\ell,c|c-1}} = 1$.
-Substituting into \ref{eq:kf_transition_predvar} and solving for $Q$:
-\begin{align}
-    \label{eq:kf_transition_Q}
-    \xi_\ell &= F^2_n\xi_\ell + Q \nonumber \\
-    &= (1-\lambda)^{2n}\xi_\ell + Q \nonumber \\
-    Q &= \xi_\ell(1 - (1 - \lambda)^{2n})
-\end{align}
-
-Now that the state will converge to the prior,
-the last thing we have to do is determine how fast it does so.
-This is controlled by $\lambda$;
-however, we want the rate of convergence to be slow
-after an observation, and speed up the longer we go without seeing any buses.
-That is, we want to use a ratio of $P_\ell$ and $\xi_\ell$,
-\begin{equation}
-    \label{eq:kf_transition_lambda}
-    \lambda = \phi \frac{P_{\ell,c-1|c-1}}{P_{\ell,c-1|c-1} + \xi_\ell}
-\end{equation}
-where $\phi$ is a tuning parameter.
-
-
-
-\section{Update step}
-
-Having predicted the state at time $t_c$,
-we can now update our estimate based on the observed data,
-$\bB_c$, which consists of the combined travel times
-of all $K_m$ vehicles completing travel along the segment
-during the current iteration.
-For each vehicle, we can obtain the mean and uncertainty
-of travel time from the particle filter,
-$b_{v,\ell}$ and $e_{v\ell}$, respectively.
-These can then be combined to obtain a single observation for the EKF,
-along with an estimate to use as measurement error:
-\begin{align}
-    \label{eq:kf_update_B}
-    B_{\ell,c} &= \frac{1}{K_m} \sum_{v=1}^{K_m} b_{v,\ell} \\
-    \label{eq:kf_update_E}
-    \hat E_{\ell,c} &= \frac{1}{K_m} \sum_{v=1}^{K_m}
-        \left(b_{v,\ell}^2 + e_{v,\ell}^2\right) - B_{\ell,c}
-\end{align}
-
-Now the EKF proceeds as normal,
-so we only need to define the measurement function, $h$,
-which defines how the true state $\nu_{\ell,c}$ is related to the observed state, $\beta_{\ell,c}$.
-\begin{equation}
-    \label{eq:kf_measure}
-    \nu_{\ell,c} = h(\beta_{\ell,c}, e_{\ell,c}) = \beta_{\ell,c} + e_{\ell,c},
-    \quad e_{\ell,c}\sim \mathcal{N}(0, \hat E_{\ell,c})
-\end{equation}
-
-Before we can complete the update step of the EKF algorithm, we need to calculate two more derivatives:
-\begin{align}
-    \label{eq:kf_update_H}
-    H_c = \left.\frac{\partial h}{\partial \nu}\right|_{\hat\beta_{\ell,c|c-1}} &= 1 \\
-    M_c = \left.\frac{\partial h}{\partial e}\right|_{\hat\beta_{\ell,c|c-1}} &= 1
-\end{align}
-As we are using additive effects, these are both 1;
-however, setting it out this way allows us to switch to using multiplicative
-noise terms in future.
-
-Now we can update the state estimates
-\begin{align}
-    \label{eq:kf_update_resid}
-    \tilde y_c &= B_{\ell,c} - h(\hat\beta_{\ell,c|c-1}) \\
-    \label{eq:kf_update_Sk}
-    S_c &= H^T P_{\ell,c|c-1} H + M^T \hat E_{\ell,c} M \\
-    \label{eq:kf_update_gain}
-    K_c &= P_{\ell,c|c-1} H_c S_c^{-1} \\
-    \label{eq:kf_update_statemean}
-    \hat\beta_{\ell,c|c} &= \hat\beta_{\ell,c|c-1} + K_c\tilde y_c \\
-    \label{eq:kf_update_statevar}
-    P_{\ell,c|c} &= (I - K_c H) P_{\ell,c|c-1}
-\end{align}
-
-And here's what that looks like when implemented for a single segment.
-\begin{knitrout}
-\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
-\begin{alltt}
-\hlstd{x} \hlkwb{<-} \hlnum{1}\hlopt{:}\hlnum{10}
-\hlkwd{plot}\hlstd{(x)}
-\end{alltt}
-\end{kframe}
-\includegraphics[width=\maxwidth]{figure/kf_eg-1} 
-
-\end{knitrout}
-
-
-
-
-\chapter{Historical data based priors}
-\label{cha:historymodel}
-
-How we use Bayesian heirarchical models to
-estimate the typical speed along roads in the
-network, based on historical data.
-
-
-\appendix
-% knit_child('endmatter/appendix/app1.Rnw')
-
-
-
-\end{document}
+\printbibliography[heading=bibintoc]
+
+%----------------------------------------------------------------------------------------
+
+\end{document}  
