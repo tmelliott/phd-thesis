@@ -1,6 +1,6 @@
-\Sexpr{set_parent('../../thesis.Rnw')}
+\Sexpr{set_parent('00_main.Rnw')}
 
-\chapter{GTFS data and route segmentation}
+% \chapter{GTFS data and route segmentation}
 
 Talk about the data itself: where it comes from,
 the important aspects we care about

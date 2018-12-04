@@ -1,6 +1,6 @@
-\Sexpr{set_parent('../../thesis.Rnw')}
+\Sexpr{set_parent('00_main.Rnw')}
 
-\chapter{Literature review}
+\section{On the evolution of bus prediction}
 
 This is a ``review'' of what's been happening in the field of
 bus arrival-time prediction and modeling.

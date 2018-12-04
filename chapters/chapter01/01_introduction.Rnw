@@ -1,10 +1,10 @@
-\Sexpr{set_parent('../thesis.Rnw')}
-
-\chapter{Introduction}
+\Sexpr{set_parent('00_main.Rnw')}
 
 This is the intro. Literature review, the problem,
 and the goals of this work (i.e., to make better predictions
 that don't rely on the timetable).
-Keep.
+Keep going.
 
 \cite{Cathey_2003}
+
+Test.

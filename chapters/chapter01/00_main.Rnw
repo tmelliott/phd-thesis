@@ -1,0 +1,12 @@
+\Sexpr{set_parent('../thesis.Rnw')}
+
+\chapter{Introduction}
+\label{cha:intro}
+
+\begin{equation}
+\label{test}
+x = 2
+\end{equation}
+
+\Sexpr{knit_child('01_introduction.Rnw')}
+\Sexpr{knit_child('literature.Rnw')}
