@@ -16,6 +16,10 @@
                 "*.fls",
                 "*.toc",
                 "*.log",
+                "*.bbl",
+                "*.blg",
+                "*-blx.bib",
+                "*.xml",
                 "*.synctex.gz",
                 "*.synctex.gz(busy)",
                 // "*.tex",
@@ -31,15 +35,17 @@
         "ensure_newline_at_eof_on_save": true,
         "trim_trailing_white_space_on_save": true,
         "TEXroot": "thesis.tex"
-        // "project-specific":
-        // {
-        //     "sublime-settings":
-        //     {
-        //         "LaTeXing":
-        //         {
-        //             "knitr": true
-        //         }
-        //     }
-        // }
-    }
+    },
+    "build_systems":
+    [
+        {
+            "name": "compile",
+            "shell_cmd": "cd ${project_path} && make"
+        },
+        {
+            "name": "clean",
+            "shell_cmd": "cd ${project_path} && make clean"
+        }
+    ]
+
 }
