@@ -3,6 +3,9 @@
 *.tex
 !include/*.tex
 
+allrefs.bib
+thesis.pdf
+
 ### Emacs ###
 # -*- mode: gitignore; -*-
 *~

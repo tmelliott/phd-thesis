@@ -3,7 +3,7 @@ NAME=thesis
 .PHONY: $(NAME).pdf all clean cleanall
 
 TEX:=latexmk
-TEXOPTIONS := -pdf -pdflatex="pdflatex -interaction=nonstop" -use-make
+TEXOPTIONS := -pdf -pdflatex="pdflatex -interaction=nonstop"
 
 all: $(NAME).pdf
 
@@ -26,3 +26,13 @@ $(NAME).pdf: $(NAME).tex
 clean:
 	@-$(TEX) -pdf -c $(NAME).tex
 	@-rm $(NAME).tex
+
+allrefs.bib:
+	ln -s ~/Dropbox/PhD/readings/reflist.bib allrefs.bib
+
+reflist.bib: $(NAME).tex allrefs.bib
+	@cp allrefs.bib $@
+	@$(TEX) $(TEXOPTIONS)
+	@echo " * creating reflist.bib"
+	@bibexport -o $@ $(NAME).aux
+	@rm reflist.bib-save*
