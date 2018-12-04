@@ -24,5 +24,5 @@ $(NAME).pdf: $(NAME).tex
 	@$(TEX) $(TEXOPTIONS) $<
 
 clean:
-	@-$(TEX) -c $(NAME).tex
+	@-$(TEX) -pdf -c $(NAME).tex
 	@-rm $(NAME).tex
