@@ -1,4 +1,4 @@
-\Sexpr{set_parent('../thesis.Rnw')}
+\Sexpr{set_parent('../../thesis.Rnw')}
 
 \chapter{Introduction}
 \label{cha:intro}

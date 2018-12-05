@@ -1,5 +1,7 @@
 \Sexpr{set_parent('../../thesis.Rnw')}
+
 \chapter{Transit network}
+\label{cha:network_model}
 
 \Sexpr{knit_child('network.Rnw')}
 \Sexpr{knit_child('realtime_model.Rnw')}

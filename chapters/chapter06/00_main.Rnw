@@ -1,3 +1,5 @@
-\Sexpr{set_parent('../thesis.Rnw')}
+\Sexpr{set_parent('../../thesis.Rnw')}
+
 \chapter{UX: where is my bus?}
+\label{cha:etas}
 
