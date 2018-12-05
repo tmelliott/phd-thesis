@@ -1,6 +1,6 @@
-\Sexpr{set_parent('../../thesis.Rnw')}
+\Sexpr{set_parent('00_main.Rnw')}
 
-\chapter{Constructing a GTFS network}
+\section{Constructing a GTFS network}
 
 Here we give a detailed overview of what exactly the
 transit network is

@@ -1,6 +1,6 @@
-\Sexpr{set_parent('../../thesis.Rnw')}
+\Sexpr{set_parent('00_main.Rnw')}
 
-\chapter{Real-time network model}
+\section{Real-time network model}
 
 %The modified Kalman filter approach to modeling
 %travel times as vehicles travel along each
@@ -66,13 +66,13 @@ We will use $f(\beta) \equiv f(\beta_{\ell,c-1},\nu_\ell,\lambda)$ to simplify n
 (the other parameters are constant).
 \begin{align}
     \label{eq:kf_transition_F}
-    \F_n = f'_n(\beta) &=
+    F_n = f'_n(\beta) &=
     f'\left((f^1\circ\cdots\circ f^{n-1})(\beta)\right)(f^1\circ\cdots\circ f^{n-1})'(\beta) \nonumber \\
-    &= f'\left(f_{n-1}(\beta)\right) \F_{n-1} \nonumber \\
+    &= f'\left(f_{n-1}(\beta)\right) F_{n-1} \nonumber \\
     &= f'\left(f_{n-1}(\beta)\right) f'\left(f_{n-2}(\beta)\right) \cdots f'\left(f_1(\beta)\right) f'(\beta) \nonumber \\
     &= f'(\beta) \prod_{i=1}^{n-1} f'\left(f_i(\beta)\right) \nonumber \\
 \intertext{Substituting \ref{eq:kf_transition_fderiv}, we get}
-    \F_n &= (1-\lambda) \prod_{i=1}^{n-1}(1-\lambda) = (1-\lambda)^n
+    F_n &= (1-\lambda) \prod_{i=1}^{n-1}(1-\lambda) = (1-\lambda)^n
 \end{align}
 
 

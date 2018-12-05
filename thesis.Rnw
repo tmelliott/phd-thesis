@@ -49,8 +49,7 @@ headsepline, % Uncomment to get a line under the header
 
 \usepackage[autostyle=true]{csquotes} % Required to generate language-dependent quotes in the bibliography
 
-% \usepackage{showlabels}
-% \showlabels{label}
+\usepackage{amsmath,amsfonts}
 
 %----------------------------------------------------------------------------------------
 %   MARGIN SETTINGS
@@ -214,6 +213,8 @@ The acknowledgments and the people to thank go here, don't forget to include you
 %   SYMBOLS
 %----------------------------------------------------------------------------------------
 
+\include{include/symbols}
+
 \begin{symbols}{lll} % Include a list of Symbols (a three column table)
 
 $a$ & distance & \si{\meter} \\
@@ -246,6 +247,10 @@ $\omega$ & angular frequency & \si{\radian} \\
 \Sexpr{knit_child('chapters/chapter01/00_main.Rnw')}
 \Sexpr{knit_child('chapters/chapter02/00_main.Rnw')}
 \Sexpr{knit_child('chapters/chapter03/00_main.Rnw')}
+\Sexpr{knit_child('chapters/chapter04/00_main.Rnw')}
+\Sexpr{knit_child('chapters/chapter05/00_main.Rnw')}
+\Sexpr{knit_child('chapters/chapter06/00_main.Rnw')}
+\Sexpr{knit_child('chapters/chapter07/00_main.Rnw')}
 
 
 %----------------------------------------------------------------------------------------

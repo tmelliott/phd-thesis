@@ -5,7 +5,7 @@
 
 \begin{equation}
 \label{test}
-x = 2
+x = 3
 \end{equation}
 
 \Sexpr{knit_child('01_introduction.Rnw')}

@@ -1,3 +1,3 @@
 \Sexpr{set_parent('../thesis.Rnw')}
-\chapter{Real-time transit data}
+\chapter{Predicting arrival time}
 

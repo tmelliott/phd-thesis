@@ -1,4 +1,4 @@
 \Sexpr{set_parent('../thesis.Rnw')}
-\chapter{The vehilce model}
+\chapter{Modelling a transit vehicle}
 
 \Sexpr{knit_child('vehicle_model.Rnw')}
