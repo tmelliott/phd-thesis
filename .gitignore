@@ -3,6 +3,7 @@
 *.tex
 !include/*.tex
 
+figure
 allrefs.bib
 thesis.pdf
 
