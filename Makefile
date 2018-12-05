@@ -10,8 +10,9 @@ all: $(NAME).pdf
 FRONTFILES := $(shell find frontmatter -name '*.Rnw')
 CHFILES := $(shell find chapters -name '*.Rnw')
 ENDFILES := $(shell find endmatter -name '*.Rnw')
+INCLUDEFILES := $(shell find include -name '*.tex')
 
-FILES = $(FRONTFILES) $(CHFILES) $(ENDFILES)
+FILES = $(FRONTFILES) $(CHFILES) $(ENDFILES) $(INCLUDEFILES)
 
 # convert *.Rnw -> *.tex
 $(NAME).tex: $(NAME).Rnw $(FILES)
@@ -19,7 +20,7 @@ $(NAME).tex: $(NAME).Rnw $(FILES)
 	@R --slave -e "library(knitr);knit(input='$<', output='$@')" > /dev/null
 
 # create PDF
-$(NAME).pdf: $(NAME).tex
+$(NAME).pdf: $(NAME).tex thesis.acr
 	@echo " * binding thesis"
 	@$(TEX) $(TEXOPTIONS) $<
 
@@ -36,3 +37,7 @@ reflist.bib: $(NAME).tex allrefs.bib
 	@echo " * creating reflist.bib"
 	@bibexport -o $@ $(NAME).aux
 	@rm reflist.bib-save*
+
+thesis.acr: include/abbreviations.tex
+	@makeglossaries thesis
+	@make thesis.pdf

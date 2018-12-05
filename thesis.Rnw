@@ -29,7 +29,8 @@ english, % ngerman for German
 singlespacing, % Single line spacing, alternatives: onehalfspacing or doublespacing
 % draft, % Uncomment to enable draft mode (no pictures, no links, overfull hboxes indicated)
 %nolistspacing, % If the document is onehalfspacing or doublespacing, uncomment this to set spacing in lists to single
-%liststotoc, % Uncomment to add the list of figures/tables/etc to the table of contents
+liststotoc, % Uncomment to add the list of figures/tables/etc to the table of contents
+tocbibind,
 %toctotoc, % Uncomment to add the main table of contents to the table of contents
 %parskip, % Uncomment to add space between paragraphs
 %nohyperref, % Uncomment to not load the hyperref package
@@ -50,6 +51,11 @@ headsepline, % Uncomment to get a line under the header
 \usepackage[autostyle=true]{csquotes} % Required to generate language-dependent quotes in the bibliography
 
 \usepackage{amsmath,amsfonts}
+
+\usepackage[acronym,nonumberlist,toc]{glossaries} %Load glossaries package
+\makeglossaries
+
+\include{include/abbreviations}
 
 %----------------------------------------------------------------------------------------
 %   MARGIN SETTINGS
@@ -201,13 +207,8 @@ The acknowledgments and the people to thank go here, don't forget to include you
 %   ABBREVIATIONS
 %----------------------------------------------------------------------------------------
 
-\begin{abbreviations}{ll} % Include a list of abbreviations (a table of two columns)
-
-\textbf{LAH} & \textbf{L}ist \textbf{A}bbreviations \textbf{H}ere\\
-\textbf{WSF} & \textbf{W}hat (it) \textbf{S}tands \textbf{F}or\\
-
-\end{abbreviations}
-
+\glsaddall
+\printglossary[type=\acronymtype,title=List of Abbreviations] %Generate List of Abbreviations
 
 %----------------------------------------------------------------------------------------
 %   SYMBOLS

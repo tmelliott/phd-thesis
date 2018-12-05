@@ -3,10 +3,45 @@
 \chapter{Introduction}
 \label{cha:intro}
 
-\begin{equation}
-\label{test}
-x = 3
-\end{equation}
 
-\Sexpr{knit_child('01_introduction.Rnw')}
-\Sexpr{knit_child('literature.Rnw')}
+Over the last three decades, technological advances have changed the way people use public transport.
+No longer do commuters arrive at a bus stop, take a seat,
+and wait as long as it takes for their bus to appear at the corner;
+instead they can open an app on their phone and see, on a map,
+just how far away their bus is.
+Indeed, the question of \emph{how far away is my bus?}
+has become one of \emph{how long until my bus arrives?},
+which is difficult to judge solely from the bus' location.
+
+
+So, just how is a position on a map turned into a
+decreasing number that reaches zero just as the bus reaches the stop?
+Usually, it's not.
+Most public transport users are well aware of the inaccuracy of the current system,
+with \glspl{eta} often reaching zero with no bus in sight.
+Despite decades of research into predicting bus arrival (see Section~\ref{sec:literature}),
+the responsibility of arrival time prediction has moved from a probabilitic model
+to a deterministic function based soley on observations and static schedule information.
+
+
+To reliably predict a bus's arrival time,
+we need to know two things:
+\emph{where it is now}, and \emph{how long it will take to get here}.
+As mentioned above, the first of these is readily available thanks to  GPS technology;
+the latter is simply a function of tavel time,
+which depends on traffic conditions: free-flowing, slow, or crawling?
+Sadly, this is an unknown quantity;
+while information of this type is available (for example in Google Maps),
+it is not \emph{accessible} for use in any predictive context.
+But surely there is a way.
+Surely, with the amount of data available, there is a way of figuring out
+just how congested the intermediate roads are,
+and using this to improve the reliability of \glspl{eta}.
+
+
+In this thesis, we explore the ways arrival times have been predicted.
+
+
+
+%%% the sections of this chapter
+\Sexpr{knit_child('01_literature.Rnw')}
