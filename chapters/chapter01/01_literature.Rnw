@@ -1,14 +1,7 @@
 \Sexpr{set_parent('00_main.Rnw')}
 
+
 \section{On the evolution of bus prediction}
 \label{sec:literature}
 
-This is a ``review'' of what's been happening in the field of
-bus arrival-time prediction and modeling.
-From its routes in Kalman filtering,
-through fancy ANN and SVM models,
-to computer intensive particle filter models
-(not for real-time applications).
 
-What's missing: focus on improved arrival-time prediction,
-rather than an OR approach.

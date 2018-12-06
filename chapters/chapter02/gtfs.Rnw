@@ -1,6 +1,7 @@
 \Sexpr{set_parent('00_main.Rnw')}
 
-% \chapter{GTFS data and route segmentation}
+\section{GTFS}
+\label{sec:gtfs}
 
 Talk about the data itself: where it comes from,
 the important aspects we care about

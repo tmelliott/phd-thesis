@@ -3,7 +3,7 @@ NAME=thesis
 .PHONY: $(NAME).pdf all clean cleanall
 
 TEX:=latexmk
-TEXOPTIONS := -pdf -pdflatex="pdflatex -interaction=nonstop" -f
+TEXOPTIONS := -pdf -f
 
 all: $(NAME).pdf
 
@@ -20,13 +20,14 @@ $(NAME).tex: $(NAME).Rnw $(FILES)
 	@R --slave -e "library(knitr);knit(input='$<', output='$@')" > /dev/null
 
 # create PDF
-$(NAME).pdf: $(NAME).tex thesis.acr
+$(NAME).pdf: $(NAME).tex
 	@echo " * binding thesis"
 	@$(TEX) $(TEXOPTIONS) $<
 
-clean:
-	@-$(TEX) -pdf -c $(NAME).tex
-	@-rm $(NAME).tex
+clean: $(NAME).tex
+	@-$(TEX) -pdf -c -f $(NAME).tex
+	@-rm -f $(NAME).tex
+	@-rm -f *.acr *.acn *.alg *.bbl *-blx.bib *.glg *.glo *.gls *.ist *.run.xml
 
 allrefs.bib:
 	ln -s ~/Dropbox/PhD/readings/reflist.bib allrefs.bib
@@ -37,7 +38,5 @@ reflist.bib: $(NAME).tex allrefs.bib
 	@echo " * creating reflist.bib"
 	@bibexport -o $@ $(NAME).aux
 	@rm reflist.bib-save*
-
-thesis.acr: include/abbreviations.tex
-	@makeglossaries thesis
-	@make thesis.pdf
+	@# remove pesky @{bibtex-control}
+	@R --slave -f clean_reflist.R

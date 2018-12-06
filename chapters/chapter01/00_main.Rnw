@@ -19,7 +19,7 @@ decreasing number that reaches zero just as the bus reaches the stop?
 Usually, it's not.
 Most public transport users are well aware of the inaccuracy of the current system,
 with \glspl{eta} often reaching zero with no bus in sight.
-Despite decades of research into predicting bus arrival (see Section~\ref{sec:literature}),
+Despite decades of research into predicting bus arrival (see section~\ref{sec:literature}),
 the responsibility of arrival time prediction has moved from a probabilitic model
 to a deterministic function based soley on observations and static schedule information.
 
@@ -39,7 +39,18 @@ just how congested the intermediate roads are,
 and using this to improve the reliability of \glspl{eta}.
 
 
-In this thesis, we explore the ways arrival times have been predicted.
+In this thesis, we present an approach to bus modelling that
+uses one of the most widely available transit data formats
+(GTFS, chapter~\ref{cha:data})
+to not only track the real-time locations of vehicles
+(chapter~\ref{cha:vehicle_model}),
+but also to model the congestion along roads within the transport network
+(chapter~\ref{cha:network_model}).
+This allows traffic flow to be incorporated into arrival time predictions
+(chapter~\ref{cha:prediction}),
+providing commuters with a more reliable answer to their question,
+\emph{just how long until my bus arrives?}
+(chapter~\ref{cha:etas}).
 
 
 
