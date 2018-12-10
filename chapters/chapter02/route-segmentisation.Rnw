@@ -1,0 +1,9 @@
+\Sexpr{set_parent("main.Rnw")}
+
+\section{Segmentation of routes}
+\label{sec:route-segments}
+
+This is cool --- by segmenting routes
+(at intersections) we remove dependency of
+speed/travel time on \emph{route} and instead
+relate it to the physical road the vehicle is traveling along.

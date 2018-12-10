@@ -1,6 +1,24 @@
 \Sexpr{set_parent('../../thesis.Rnw')}
 
-\chapter{Real-time transit data}
+\chapter{Working with transit data}
 \label{cha:data}
 
+One of the main goals of this work was to develop a generalised approach to
+bus modelling and prediction.
+Many previous papers have proposed new algorithms,
+but most of these have focussed on one specific bus network,
+often requiring external data of, for example, traffic light locations.
+However, this is usually difficult or impossible to generalise and distribution
+to other transit networks, and thus the scope is limited.
+
+
+The availability of a standard format for transit data,
+the General Transit Feed Specification (GTFS, \cite{GoogleDevelopers_2006}),
+has made it a lot easier to applications to display transit information to users.
+The most notable example of this is Google's Maps mobile application,
+which can display GTFS-based transit data from hundreds of transport authorities worldwide.
+
+
 \Sexpr{knit_child('gtfs.Rnw')}
+\Sexpr{knit_child('realtime-data.Rnw')}
+\Sexpr{knit_child('route-segmentisation.Rnw')}
