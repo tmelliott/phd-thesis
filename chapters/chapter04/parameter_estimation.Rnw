@@ -1,0 +1,26 @@
+\Sexpr{set_parent('00_main.Rnw')}
+
+\section{Estimating network parameters}
+\label{sec:nw_par_est}
+
+In order to get the most reliable forecasts as possible,
+it is necessary to estimate the main parameters in the network model.
+These are the system noise, $Q_\ell$,
+which describes how volatile speeds along the road are over time,
+and between-vehicle variability, $E_{\ell}$,
+which describes the variability of speeds of vehicles
+traveling along a road simultaneously.
+The additional measurement error for each individual vehicle
+will be estimated from the particle filter.
+
+
+The system noise parameter for each segment is assumed to come
+from a population distribution with hyperparameters $\mu_Q$ and $\sigma_Q$.
+Similarly the between-vehicle variability has hyperparameters $\mu_E$ and $\sigma_E$.
+
+
+To reduce model complexity,
+we decided to discretise the observation times into 15~minute intervals.
+To obtain the travel time observations,
+we ran the particle filter model over one day's historical data,
+and stored all of the individual vehicle travel times along each segment.

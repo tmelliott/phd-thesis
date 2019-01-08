@@ -5,4 +5,5 @@
 
 \Sexpr{knit_child('network.Rnw')}
 \Sexpr{knit_child('realtime_model.Rnw')}
+\Sexpr{knit_child('parameter_estimation.Rnw')}
 \Sexpr{knit_child('historical_model.Rnw')}
