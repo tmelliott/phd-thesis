@@ -1,0 +1,124 @@
+\Sexpr{set_parent('00_main.Rnw')}
+
+\section{Modelling real-time vehicle data}
+\label{sec:realtime-data}
+
+<<read_historical_data, cache=TRUE, echo=FALSE>>=
+library(tidyverse)
+library(RProtoBuf)
+library(RSQLite)
+library(dbplyr)
+# protobuf ... uhg
+dir <- setwd('../../data')
+readProtoFiles("gtfs-realtime.proto")
+setwd(dir)
+gtfs <- file.path("..", "..", "data", "fulldata.db")
+archive <- file.path("..", "..", "data", "archive.zip")
+files <- unzip(archive, list = TRUE)
+
+routes <- "NX1"
+# fetch route IDs from database ...
+con <- dbConnect(SQLite(), gtfs)
+routeids <- con %>% tbl("routes") %>%
+    filter(route_short_name %in% routes) %>%
+    collect() %>% pluck("route_id")
+dbDisconnect(con)
+vps <- do.call(
+    bind_rows,
+    pbapply::pblapply(
+        files[grepl('vehicle_', files$Name),]$Name,
+        function(file) {
+            unzip(archive, files = file)
+            pb <- read(transit_realtime.FeedMessage, file)
+            rm(file)
+            if (length(pb$entity) == 0) return(NULL)
+            ents <- pb$entity
+            res <- do.call(bind_rows,
+                lapply(ents, function(e) {
+                    if (! e$vehicle$trip$route_id %in% routeids ) return(NULL)
+                    tibble(
+                        vehicle_id = e$vehicle$vehicle$id,
+                        trip_id = e$vehicle$trip$trip_id,
+                        route_id = e$vehicle$trip$route_id,
+                        timestamp = e$vehicle$timestamp,
+                        position_latitude = e$vehicle$position$latitude,
+                        position_longitude = e$vehicle$position$longitude
+                    )
+                })
+            )
+            if (all(sapply(res, is.null))) return(NULL)
+            res %>% mutate(timestamp = as.POSIXct(timestamp, origin = "1970-01-01"))
+        }
+    )
+)
+@
+
+
+\subsection{Parameter estimation}
+\label{sec:pf_parameter_estimation}
+
+Deciding on the value of some important parameters should be done now-ish?
+These are things that are endemic to bus behaviour
+\begin{itemize}
+\item GPS error
+\item variability of speed, acceleration rate
+\item arrival/departure time error at bus stops
+\item stopping probability and dwell time at stops
+\end{itemize}
+Ideally these parameters will be estimated from the raw data,
+rather than tuning the model later.
+Of course, some cannot be estimated from the data,
+in which case values proposed in the literature are used to start with,
+where available.
+
+
+Easily obtained historical data can be used for most of these.
+Using vehicle positions,
+we can calculate the average distance between each observation
+and the route path,
+making the assumption that the GPS error is not biased in any particular direction.
+Of course, this is false,
+but should be suitable for our purposes.
+
+<<estimate_gps_error>>=
+library(tidyverse)
+library(RSQLite)
+library(dbplyr)
+con <- dbConnect(SQLite(), gtfs)
+sh <- con %>% tbl('routes') %>%
+    filter(route_short_name %in% routes) %>%
+    head(1) %>%
+    left_join(con %>% tbl('trips')) %>%
+    head(1) %>%
+    left_join(con %>% tbl('shapes')) %>%
+    arrange(shape_pt_sequence) %>%
+    collect()
+vps2 <- vps %>% filter(grepl(gsub("-.*", "", sh$route_id[1]), route_id))
+ggplot(sh, aes(shape_pt_lon, shape_pt_lat)) +
+    geom_point(
+        aes(position_longitude, position_latitude),
+        shape = 3,
+        data = vps2
+    ) +
+    geom_path(aes(group = shape_id), color = "red") +
+    coord_fixed(ratio = 1.2)
+
+## distance to shape
+library(sf)
+shLine <- st_linestring(sh %>% select(shape_pt_lon, shape_pt_lat) %>% as.matrix)
+z <- geosphere::dist2Line(
+    vps2 %>% select(position_longitude, position_latitude),
+    shLine
+)
+hist(z[z[, 1] < 40, 1], 50)
+
+xy <- vps %>%
+    select(position_longitude, position_latitude) %>%
+    as.matrix %>%
+    apply(1, paste)
+names(table(xy) > 10)
+@
+
+BUT that is messed up because of bus stop observations (they are ``exact'').
+
+

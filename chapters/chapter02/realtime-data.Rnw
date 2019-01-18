@@ -1,7 +1,8 @@
-\Sexpr{set_parent("main.Rnw")}
+\Sexpr{set_parent("00_main.Rnw")}
 
 \section{Real-time data}
 \label{sec:realtime-data}
 
 What's involved, frequency, and some of the
 quirks (at least in our Auckland Transport example).
+

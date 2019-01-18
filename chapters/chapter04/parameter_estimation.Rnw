@@ -24,3 +24,37 @@ we decided to discretise the observation times into 15~minute intervals.
 To obtain the travel time observations,
 we ran the particle filter model over one day's historical data,
 and stored all of the individual vehicle travel times along each segment.
+
+
+
+<<nw_dag, echo=FALSE, message=FALSE>>=
+library(ggdag)
+dag <- dagify(
+    Yk ~ Xk + R,
+    Xk ~ Xdotk,
+    Xdotk ~ Xkm1 + Q,
+    Q ~ muQ + sigmaQ,
+    R ~ muR + sigmaR,
+    outcome = "Yk",
+    latent = c("Xk", "Xdotk"),
+    labels = c(
+        Xk = "X[mk]",
+        Xdotk = "dot(X)[mk]",
+        Xkm1 = "X[mk-1]",
+        Yk = "Y[mk]",
+        Q = "Q[m]",
+        muQ = "mu[Q]",
+        sigmaQ = "sigma[Q]",
+        R = "R[mk]",
+        muR = "mu[R]",
+        sigmaR = "sigma[R]"
+    )
+) %>% tidy_dagitty()
+dag %>%
+    ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
+    geom_dag_node() +
+    geom_dag_edges() +
+    geom_dag_text(aes(label = label), parse = TRUE) +
+    theme_dag() +
+    scale_dag()
+@

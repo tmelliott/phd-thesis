@@ -1,0 +1,5 @@
+\Sexpr{set_parent('00_main.Rnw')}
+
+\section{Recursive Bayes}
+\label{sec:recursive-bayes}
+

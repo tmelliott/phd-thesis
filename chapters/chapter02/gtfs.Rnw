@@ -3,7 +3,26 @@
 \section{GTFS}
 \label{sec:gtfs}
 
-Talk about the data itself: where it comes from,
-the important aspects we care about
-(trips/routes, shapes, stops, and stop times).
+The adoption of GTFS to public transport agencies around the world
+has made it possible for apps such as Google Maps
+to access and display public transport data to users,
+regardless of their location.
+The main goal of GTFS is to specify, in detail,
+how transit data should be organised in a fundamental way
+that is consistent between the \glspl{api} provided
+by independent agencies.
+There are several components of GTFS that are of particular interest to us:
+routes, trips, stops, stop times, and shapes.
+Extensive documentation can be found on these and the other components
+on the GTFS website (\url{https://developers.google.com/transit/gtfs/}).
+
+A \emph{route} is a collection of \emph{trips} that are displayed to comuters
+as a single service;
+a \emph{trip} is a a journey servicing two or more stops at a specific time;
+\emph{stops} are locations where passengers are picked up or dropped off;
+\emph{stop times} are the (scheduled) times at which vehicles
+will arrive at stops for each trip;
+and a \emph{shape} is the GPS track a vehicle will take for a specific route.
+
+
 

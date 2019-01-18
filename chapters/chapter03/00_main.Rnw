@@ -3,5 +3,23 @@
 \chapter{Modelling a transit vehicle}
 \label{cha:vehicle_model}
 
+The real-time position data of vehicles is only a small piece
+of the information required to model network travel times.
+The main purpose of this section is to develop a model
+that can interpolate the trajectory of a vehicle between observations,
+thus providing estimates of the time taken to travel along road segments.
+This needs to account for any intermediate bus stops and, ideally,
+any intersections along the route.
 
-\Sexpr{knit_child('vehicle_model.Rnw')}
+
+In this chapter, we develop a model of the observed data $Y$ for each vehicle,
+using the GTFS network developed in section~\ref{sec:route-segments}.
+We have chosen to implement it in real-time using a particle filter,
+which allows much more flexibility in the model.
+The design and implementation of the particle filter is discussed later in
+section~\ref{sec:particle-filter}
+
+
+\Sexpr{knit_child('realtime_data.Rnw')}
+\Sexpr{knit_child('recursive_bayes.Rnw')}
+\Sexpr{knit_child('particle_filter.Rnw')}
