@@ -1,5 +1,36 @@
 \Sexpr{set_parent('00_main.Rnw')}
 
-\section{Recursive Bayes}
+\section{Recursive Bayesian estimation}
 \label{sec:recursive-bayes}
+
+In many real-time tracking applications,
+\gls{rbe} is used to model the state of the object
+and updating it each time a new observation is obtained.
+Before we can develop our specific model
+(using both vehicle locations and trip updates),
+we need first take a detour to describe what \gls{rbe} is,
+and why it is useful.
+
+
+In its simplest form, an \gls{rbe} provides a way of infering
+some unknown state of an object from a sequence of observations,
+$\bY = \{Y_1, Y_2, \ldots\}$.
+The unknown or \emph{hidden state} $\bX = \{X_0, X_1, X_2, \ldots\}$
+is assumed to be a Markov process,
+in that the state at time $t_k$ depends only on its previous state
+at time $t_{k-1}$,
+\begin{equation*}
+p(X_k | X_{k-1}, X_{k-2}, \cdots, X_0) = p(X_k | X_{k-1})
+\end{equation*}
+We also assume that the observation at time $t_k$ depends only
+on the state at time $t_{k-1}$.
+The two types of models we will look at are the Kalman filter,
+which is a simple model assuming Gaussian distributions for all parameters,
+and the particle filter,
+which makes no assumptions besides those specified by us.
+
+
+
+\subsubsection{Kalman filter}
+\label{sec:kf}
 
