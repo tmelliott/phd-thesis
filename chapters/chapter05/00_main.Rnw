@@ -3,3 +3,54 @@
 \chapter{Predicting arrival time}
 \label{cha:prediction}
 
+The prediction of arrival time is equivalent to predicting
+the travel time along roads between where the vehicle is now,
+and the bus stop,
+accounting for additional delay due to intermediate stops,
+traffic lights, etc.
+It is therefore reasonable to return to the particle filter
+estimates of vehicle state,
+which will allow us to account for multiple sources of variability with ease.
+Also note that this section focuses on obtaining an
+arrival time predictive distribution;
+chapter~\ref{cha:etas} will explore how these are presented to commuters.
+
+
+The main issue for this part is that, due to all of the many variables,
+travel times can change dramatically at some times.
+However, we do not want these to cause the \glspl{eta} to jump around,
+so we have developed a Kalman filter to smooth the \glspl{eta} over time.
+
+
+The overall procedure will be as follows:
+\begin{enumerate}
+\item predict travel/arrival times for each particle,
+    accounting for all sources of uncertainty
+\item determine the \emph{travel time observation vector} for the \emph{vehicle}
+    (along with measurement error matrix)
+    by summarizing the particle travel times---%
+    mean, variance, covariance between segment travel times, etc.
+\item update the travel time state vector using a Kalman filter update
+    to obtain distributions for the travel times along each segment,
+    account for correlations between sequential segments
+\item add the distributions together to obtain a final distribution
+    for the \gls{eta} at each stop
+\end{enumerate}
+
+
+If we assume we know the historical matrix $F_k$ such that
+$B_k = F_kB_{k-1}$ (i.e., road travel times).
+Then when predicting the travel times for each particle,
+we can use the conditional distribution of time to get a
+numerical estimate of variance and covariance.
+That is,
+$p(b_k^{(i)} | b_{k-1}^{(i)})$,
+so if two adjacent segments have highly correlated travel times,
+the particle swarm will follow the correlations correctly
+(i.e., we don't need to make any assuption of independence of segments
+for the travel time prediction part).
+
+Now, we can calculate the sum of travel times easily,
+since $E(\sum_\ell B_\ell) = \sum_\ell E(B_\ell)$ and
+$Var(\sum_\ell B_\ell) = \sum_i \sum_j Cov(B_i, B_j)$,
+where $Cov(B_k, B_\ell) = \frac{\sum_i(b_k^{i} - \bar b_k)(b_\ell^{(i)} - \bar b_\ell)}{n-1}$.

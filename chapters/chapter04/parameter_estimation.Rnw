@@ -26,6 +26,18 @@ we ran the particle filter model over one day's historical data,
 and stored all of the individual vehicle travel times along each segment.
 
 
+In order to select the best historical model,
+we used one week of data to train the model,
+and a second week of data to test the model.
+In the test set,
+we used three approaches
+\begin{itemize}
+\item historical model only,
+\item real-time model only, and
+\item historical and real-time model combined.
+\end{itemize}
+
+
 
 <<nw_dag, echo=FALSE, message=FALSE>>=
 library(ggdag)
