@@ -22,149 +22,149 @@ The first step in the EKF process is to predict the state at time $c$.
 Here we wish to estimate $\bbetahat_{c|c-1}$, the network state at time $c$,
 given the posterior state estimate at time $c-1$.
 
-\subsection{Transition function}
+% \subsection{Transition function}
 
-Based on an extended Kalman filter,
-the transition function $f$ defines the state at time $c$
-as a deterministic function of the state at time $c-1$
-and system noise, $u_c \sim \mathcal{N}(0, Q)$.
-That is,
-\begin{equation}
-    \label{eq:kf_transition_basic}
-    \bbetahat_{c|c-1} = f(\bbetahat_{c-1|c-1}, u_c).
-\end{equation}
+% Based on an extended Kalman filter,
+% the transition function $f$ defines the state at time $c$
+% as a deterministic function of the state at time $c-1$
+% and system noise, $u_c \sim \mathcal{N}(0, Q)$.
+% That is,
+% \begin{equation}
+%     \label{eq:kf_transition_basic}
+%     \bbetahat_{c|c-1} = f(\bbetahat_{c-1|c-1}, u_c).
+% \end{equation}
 
-The next step is to define $f$ so that it meets the criteria for
-the EKF (it must be differentiable), and has the properties we desire:
-that the state will regress to the prior in the absense of any observations.
+% The next step is to define $f$ so that it meets the criteria for
+% the EKF (it must be differentiable), and has the properties we desire:
+% that the state will regress to the prior in the absense of any observations.
 
-To bring the state towards the prior mean travel time for segment $\ell$,
-$\nu_\ell$, we define the transition function for a single second, $f$, as
-\begin{equation}
-    \label{eq:kf_transition_def}
-    f(\beta_{\ell,c}, \nu_\ell, \lambda) = \beta_{\ell,c-1} + \lambda (\nu_\ell - \beta_{\ell,c-1})
-\end{equation}
-where $\lambda \in (0,1)$ is a tuning parameter that determines the rate at which
-the state converges.
-We can easily calculate the derivative of $f$, too, which is a requirement for the EKF.
-\begin{equation}
-    \label{eq:kf_transition_fderiv}
-    f'(\beta_{\ell,c}, \nu_\ell, \lambda) = 1 - \lambda
-\end{equation}
+% To bring the state towards the prior mean travel time for segment $\ell$,
+% $\nu_\ell$, we define the transition function for a single second, $f$, as
+% \begin{equation}
+%     \label{eq:kf_transition_def}
+%     f(\beta_{\ell,c}, \nu_\ell, \lambda) = \beta_{\ell,c-1} + \lambda (\nu_\ell - \beta_{\ell,c-1})
+% \end{equation}
+% where $\lambda \in (0,1)$ is a tuning parameter that determines the rate at which
+% the state converges.
+% We can easily calculate the derivative of $f$, too, which is a requirement for the EKF.
+% \begin{equation}
+%     \label{eq:kf_transition_fderiv}
+%     f'(\beta_{\ell,c}, \nu_\ell, \lambda) = 1 - \lambda
+% \end{equation}
 
-Next we need to be able to define the a transition for $\Delta$ seconds,
-which by recursion of \ref{eq:kf_transition_def} is
-\begin{equation}
-    \label{eq:kf_transition_n}
-    f_n(\beta_{\ell,c-1}, \nu_\ell, \lambda) =
-    (f^1 \circ \cdots \circ f^n)(\beta_{\ell,c=1}, \nu_\ell, \lambda), \quad\text{where } f^j\equiv f\quad \forall j.
-\end{equation}
+% Next we need to be able to define the a transition for $\Delta$ seconds,
+% which by recursion of \ref{eq:kf_transition_def} is
+% \begin{equation}
+%     \label{eq:kf_transition_n}
+%     f_n(\beta_{\ell,c-1}, \nu_\ell, \lambda) =
+%     (f^1 \circ \cdots \circ f^n)(\beta_{\ell,c=1}, \nu_\ell, \lambda), \quad\text{where } f^j\equiv f\quad \forall j.
+% \end{equation}
 
-The derivative of \ref{eq:kf_transition_n} is obtained used the chain rule,
-$f(g(x))' = f'(g(x)) g'(x)$.
-We will use $f(\beta) \equiv f(\beta_{\ell,c-1},\nu_\ell,\lambda)$ to simplify notation
-(the other parameters are constant).
-\begin{align}
-    \label{eq:kf_transition_F}
-    F_n = f'_n(\beta) &=
-    f'\left((f^1\circ\cdots\circ f^{n-1})(\beta)\right)(f^1\circ\cdots\circ f^{n-1})'(\beta) \nonumber \\
-    &= f'\left(f_{n-1}(\beta)\right) F_{n-1} \nonumber \\
-    &= f'\left(f_{n-1}(\beta)\right) f'\left(f_{n-2}(\beta)\right) \cdots f'\left(f_1(\beta)\right) f'(\beta) \nonumber \\
-    &= f'(\beta) \prod_{i=1}^{n-1} f'\left(f_i(\beta)\right) \nonumber \\
-\intertext{Substituting \ref{eq:kf_transition_fderiv}, we get}
-    F_n &= (1-\lambda) \prod_{i=1}^{n-1}(1-\lambda) = (1-\lambda)^n
-\end{align}
+% The derivative of \ref{eq:kf_transition_n} is obtained used the chain rule,
+% $f(g(x))' = f'(g(x)) g'(x)$.
+% We will use $f(\beta) \equiv f(\beta_{\ell,c-1},\nu_\ell,\lambda)$ to simplify notation
+% (the other parameters are constant).
+% \begin{align}
+%     \label{eq:kf_transition_F}
+%     F_n = f'_n(\beta) &=
+%     f'\left((f^1\circ\cdots\circ f^{n-1})(\beta)\right)(f^1\circ\cdots\circ f^{n-1})'(\beta) \nonumber \\
+%     &= f'\left(f_{n-1}(\beta)\right) F_{n-1} \nonumber \\
+%     &= f'\left(f_{n-1}(\beta)\right) f'\left(f_{n-2}(\beta)\right) \cdots f'\left(f_1(\beta)\right) f'(\beta) \nonumber \\
+%     &= f'(\beta) \prod_{i=1}^{n-1} f'\left(f_i(\beta)\right) \nonumber \\
+% \intertext{Substituting \ref{eq:kf_transition_fderiv}, we get}
+%     F_n &= (1-\lambda) \prod_{i=1}^{n-1}(1-\lambda) = (1-\lambda)^n
+% \end{align}
 
 
-Next we need to ensure the entire state, and not just the mean,
-converges to the prior,
-i.e., the state variance $P_{\ell,c}$ converges to the prior variance, $\xi_{\ell} = \xi_\ell$.
+% Next we need to ensure the entire state, and not just the mean,
+% converges to the prior,
+% i.e., the state variance $P_{\ell,c}$ converges to the prior variance, $\xi_{\ell} = \xi_\ell$.
 
-The system noise, $Q$, is used to predict the state variance,
-\begin{equation}
-    \label{eq:kf_transition_predvar}
-    P_{\ell,c|c-1} = F_n^2 P_{\ell,c-1|c-1} + L_c Q
-\end{equation}
-At convergence, we want $P_{\ell,c|c-1} = P_{\ell,c-1|c-1} = \xi_\ell$, and
-$L_{c-1} = \left.\frac{\partial f_n}{\partial u}\right|_{\hat\beta_{\ell,c|c-1}} = 1$.
-Substituting into \ref{eq:kf_transition_predvar} and solving for $Q$:
-\begin{align}
-    \label{eq:kf_transition_Q}
-    \xi_\ell &= F^2_n\xi_\ell + Q \nonumber \\
-    &= (1-\lambda)^{2n}\xi_\ell + Q \nonumber \\
-    Q &= \xi_\ell(1 - (1 - \lambda)^{2n})
-\end{align}
+% The system noise, $Q$, is used to predict the state variance,
+% \begin{equation}
+%     \label{eq:kf_transition_predvar}
+%     P_{\ell,c|c-1} = F_n^2 P_{\ell,c-1|c-1} + L_c Q
+% \end{equation}
+% At convergence, we want $P_{\ell,c|c-1} = P_{\ell,c-1|c-1} = \xi_\ell$, and
+% $L_{c-1} = \left.\frac{\partial f_n}{\partial u}\right|_{\hat\beta_{\ell,c|c-1}} = 1$.
+% Substituting into \ref{eq:kf_transition_predvar} and solving for $Q$:
+% \begin{align}
+%     \label{eq:kf_transition_Q}
+%     \xi_\ell &= F^2_n\xi_\ell + Q \nonumber \\
+%     &= (1-\lambda)^{2n}\xi_\ell + Q \nonumber \\
+%     Q &= \xi_\ell(1 - (1 - \lambda)^{2n})
+% \end{align}
 
-Now that the state will converge to the prior,
-the last thing we have to do is determine how fast it does so.
-This is controlled by $\lambda$;
-however, we want the rate of convergence to be slow
-after an observation, and speed up the longer we go without seeing any buses.
-That is, we want to use a ratio of $P_\ell$ and $\xi_\ell$,
-\begin{equation}
-    \label{eq:kf_transition_lambda}
-    \lambda = \phi \frac{P_{\ell,c-1|c-1}}{P_{\ell,c-1|c-1} + \xi_\ell}
-\end{equation}
-where $\phi$ is a tuning parameter.
+% Now that the state will converge to the prior,
+% the last thing we have to do is determine how fast it does so.
+% This is controlled by $\lambda$;
+% however, we want the rate of convergence to be slow
+% after an observation, and speed up the longer we go without seeing any buses.
+% That is, we want to use a ratio of $P_\ell$ and $\xi_\ell$,
+% \begin{equation}
+%     \label{eq:kf_transition_lambda}
+%     \lambda = \phi \frac{P_{\ell,c-1|c-1}}{P_{\ell,c-1|c-1} + \xi_\ell}
+% \end{equation}
+% where $\phi$ is a tuning parameter.
 
 
 
 \section{Update step}
 
-Having predicted the state at time $t_c$,
-we can now update our estimate based on the observed data,
-$\bB_c$, which consists of the combined travel times
-of all $K_m$ vehicles completing travel along the segment
-during the current iteration.
-For each vehicle, we can obtain the mean and uncertainty
-of travel time from the particle filter,
-$b_{v,\ell}$ and $e_{v\ell}$, respectively.
-These can then be combined to obtain a single observation for the EKF,
-along with an estimate to use as measurement error:
-\begin{align}
-    \label{eq:kf_update_B}
-    B_{\ell,c} &= \frac{1}{K_m} \sum_{v=1}^{K_m} b_{v,\ell} \\
-    \label{eq:kf_update_E}
-    \hat E_{\ell,c} &= \frac{1}{K_m} \sum_{v=1}^{K_m}
-        \left(b_{v,\ell}^2 + e_{v,\ell}^2\right) - B_{\ell,c}
-\end{align}
+% Having predicted the state at time $t_c$,
+% we can now update our estimate based on the observed data,
+% $\bB_c$, which consists of the combined travel times
+% of all $K_m$ vehicles completing travel along the segment
+% during the current iteration.
+% For each vehicle, we can obtain the mean and uncertainty
+% of travel time from the particle filter,
+% $b_{v,\ell}$ and $e_{v\ell}$, respectively.
+% These can then be combined to obtain a single observation for the EKF,
+% along with an estimate to use as measurement error:
+% \begin{align}
+%     \label{eq:kf_update_B}
+%     B_{\ell,c} &= \frac{1}{K_m} \sum_{v=1}^{K_m} b_{v,\ell} \\
+%     \label{eq:kf_update_E}
+%     \hat E_{\ell,c} &= \frac{1}{K_m} \sum_{v=1}^{K_m}
+%         \left(b_{v,\ell}^2 + e_{v,\ell}^2\right) - B_{\ell,c}
+% \end{align}
 
-Now the EKF proceeds as normal,
-so we only need to define the measurement function, $h$,
-which defines how the true state $\nu_{\ell,c}$ is related to the observed state, $\beta_{\ell,c}$.
-\begin{equation}
-    \label{eq:kf_measure}
-    \nu_{\ell,c} = h(\beta_{\ell,c}, e_{\ell,c}) = \beta_{\ell,c} + e_{\ell,c},
-    \quad e_{\ell,c}\sim \mathcal{N}(0, \hat E_{\ell,c})
-\end{equation}
+% Now the EKF proceeds as normal,
+% so we only need to define the measurement function, $h$,
+% which defines how the true state $\nu_{\ell,c}$ is related to the observed state, $\beta_{\ell,c}$.
+% \begin{equation}
+%     \label{eq:kf_measure}
+%     \nu_{\ell,c} = h(\beta_{\ell,c}, e_{\ell,c}) = \beta_{\ell,c} + e_{\ell,c},
+%     \quad e_{\ell,c}\sim \mathcal{N}(0, \hat E_{\ell,c})
+% \end{equation}
 
-Before we can complete the update step of the EKF algorithm, we need to calculate two more derivatives:
-\begin{align}
-    \label{eq:kf_update_H}
-    H_c = \left.\frac{\partial h}{\partial \nu}\right|_{\hat\beta_{\ell,c|c-1}} &= 1 \\
-    M_c = \left.\frac{\partial h}{\partial e}\right|_{\hat\beta_{\ell,c|c-1}} &= 1
-\end{align}
-As we are using additive effects, these are both 1;
-however, setting it out this way allows us to switch to using multiplicative
-noise terms in future.
+% Before we can complete the update step of the EKF algorithm, we need to calculate two more derivatives:
+% \begin{align}
+%     \label{eq:kf_update_H}
+%     H_c = \left.\frac{\partial h}{\partial \nu}\right|_{\hat\beta_{\ell,c|c-1}} &= 1 \\
+%     M_c = \left.\frac{\partial h}{\partial e}\right|_{\hat\beta_{\ell,c|c-1}} &= 1
+% \end{align}
+% As we are using additive effects, these are both 1;
+% however, setting it out this way allows us to switch to using multiplicative
+% noise terms in future.
 
-Now we can update the state estimates
-\begin{align}
-    \label{eq:kf_update_resid}
-    \tilde y_c &= B_{\ell,c} - h(\hat\beta_{\ell,c|c-1}) \\
-    \label{eq:kf_update_Sk}
-    S_c &= H^T P_{\ell,c|c-1} H + M^T \hat E_{\ell,c} M \\
-    \label{eq:kf_update_gain}
-    K_c &= P_{\ell,c|c-1} H_c S_c^{-1} \\
-    \label{eq:kf_update_statemean}
-    \hat\beta_{\ell,c|c} &= \hat\beta_{\ell,c|c-1} + K_c\tilde y_c \\
-    \label{eq:kf_update_statevar}
-    P_{\ell,c|c} &= (I - K_c H) P_{\ell,c|c-1}
-\end{align}
+% Now we can update the state estimates
+% \begin{align}
+%     \label{eq:kf_update_resid}
+%     \tilde y_c &= B_{\ell,c} - h(\hat\beta_{\ell,c|c-1}) \\
+%     \label{eq:kf_update_Sk}
+%     S_c &= H^T P_{\ell,c|c-1} H + M^T \hat E_{\ell,c} M \\
+%     \label{eq:kf_update_gain}
+%     K_c &= P_{\ell,c|c-1} H_c S_c^{-1} \\
+%     \label{eq:kf_update_statemean}
+%     \hat\beta_{\ell,c|c} &= \hat\beta_{\ell,c|c-1} + K_c\tilde y_c \\
+%     \label{eq:kf_update_statevar}
+%     P_{\ell,c|c} &= (I - K_c H) P_{\ell,c|c-1}
+% \end{align}
 
-And here's what that looks like when implemented for a single segment.
-<<kf_eg>>=
-x <- 1:10
-plot(x)
-@
+% And here's what that looks like when implemented for a single segment.
+% <<kf_eg>>=
+% x <- 1:10
+% plot(x)
+% @
 
