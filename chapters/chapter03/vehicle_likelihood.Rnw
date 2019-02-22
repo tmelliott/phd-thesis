@@ -1,6 +1,10 @@
 \Sexpr{set_parent('particle_filter.Rnw')}
 
-\subsection{Likelihood}
+\section{Likelihood}
 \label{sec:pf-likelihood}
 
 
+\subsection{GPS vehicle locations}
+
+
+\subsection{Trip updates}

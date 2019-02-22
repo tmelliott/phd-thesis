@@ -58,3 +58,4 @@ where $Cov(B_k, B_\ell) = \frac{\sum_i(b_k^{i} - \bar b_k)(b_\ell^{(i)} - \bar b
 
 
 \Sexpr{knit_child('particle_etas.Rnw')}
+\Sexpr{knit_child('trip_eta_distributions.Rnw')}

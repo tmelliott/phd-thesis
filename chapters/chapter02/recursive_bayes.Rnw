@@ -31,6 +31,9 @@ which makes no assumptions besides those specified by us.
 
 
 
-\subsubsection{Kalman filter}
+\subsection{Kalman filter}
 \label{sec:kf}
 
+
+\subsection{Particle filter}
+\label{sec:pf}

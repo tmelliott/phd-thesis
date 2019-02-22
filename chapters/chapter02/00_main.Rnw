@@ -1,6 +1,6 @@
 \Sexpr{set_parent('../../thesis.Rnw')}
 
-\chapter{Working with transit data}
+\chapter{Working with real-time transit data}
 \label{cha:data}
 
 One of the main goals of this work was to develop a generalised approach to
@@ -22,3 +22,4 @@ which can display GTFS-based transit data from hundreds of transport authorities
 \Sexpr{knit_child('gtfs.Rnw')}
 \Sexpr{knit_child('realtime-data.Rnw')}
 \Sexpr{knit_child('route-segmentisation.Rnw')}
+\Sexpr{knit_child('recursive_bayes.Rnw')}

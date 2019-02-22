@@ -1,9 +1,18 @@
 \Sexpr{set_parent('particle_filter.Rnw')}
 
-\subsection{Real-time vehicle model}
+\section{Real-time vehicle model}
 \label{sec:vehicle_model}
 
 The vehicle model itself implements a simplified estimation of bus behaviour,
 allowing us to infer the vehicle's trajectory between consecutive observations.
 The foundation of this model is a simple dynamic vehicle tracking model,
 in which the vehicle's unknown state is infered
+
+
+\subsection{General vehicle behaviour}
+
+\subsection{Bus stops}
+
+\subsection{Intersections}
+
+

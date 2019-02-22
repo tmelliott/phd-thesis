@@ -21,5 +21,7 @@ section~\ref{sec:particle-filter}
 
 
 \Sexpr{knit_child('realtime_data.Rnw')}
-\Sexpr{knit_child('recursive_bayes.Rnw')}
+\Sexpr{knit_child('vehicle_model.Rnw')}
+\Sexpr{knit_child('vehicle_likelihood.Rnw')}
 \Sexpr{knit_child('particle_filter.Rnw')}
+
