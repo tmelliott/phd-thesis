@@ -1,7 +1,129 @@
+% plan to remove these
 \newcommand{\bB}{\mathbf{B}}
-
 \newcommand{\bbeta}{\boldsymbol\beta}
 \newcommand{\bbetahat}{\boldsymbol{\hat\beta}}
 \newcommand{\bY}{\boldsymbol Y}
 \newcommand{\bX}{\boldsymbol X}
 \newcommand{\bbX}{\textbf{X}}
+
+
+
+%% new symbol list, better structured
+\newcommand{\mat}[1]{\mathbf{#1}}
+\newcommand{\Vtime}{t}
+\newcommand{\Vtdiff}{\delta}
+
+\newcommand{\Vobs}{\boldsymbol{Y}}
+\newcommand{\Vlat}{\phi}
+\newcommand{\Vlon}{\lambda}
+\newcommand{\Varr}{A}
+\newcommand{\Vdep}{D}
+
+\newcommand{\Vstate}{\boldsymbol{X}}
+\newcommand{\Vdist}{x}
+\newcommand{\Vspeed}{\dot x}
+\newcommand{\Vtt}{z}
+\newcommand{\Np}{N}
+\newcommand{\Pwt}{W^{(i)}}
+\newcommand{\Vtrans}{f}
+\newcommand{\Vmeas}{h}
+\newcommand{\Vproj}{g}
+\newcommand{\Vnoise}{\sigma^2}
+\newcommand{\GPSerr}{\varepsilon^2}
+
+\newcommand{\Nstop}{M}
+\newcommand{\Nseg}{L}
+\newcommand{\Tstopd}{\mathcal{S}}
+\newcommand{\Tsegd}{\mathcal{D}}
+\newcommand{\Tseglen}{\mathcal{L}}
+\newcommand{\Prstop}{\pi}
+\newcommand{\mindwell}{\gamma}
+\newcommand{\dwell}{\tau}
+\newcommand{\dwellvar}{\omega^2}
+\newcommand{\Istop}{p}
+
+\newcommand{\NWstate}{\boldsymbol{\beta}}
+\newcommand{\NWvar}{\mat{V}}
+\newcommand{\Rstate}{b}
+\newcommand{\Rvar}{v}
+\newcommand{\NWnoise}{\mat{Q}}
+\newcommand{\NWerr}{\mat{E}}
+\newcommand{\NWtrans}{\mat{F}}
+\newcommand{\NWmeas}{\mat{H}}
+\newcommand{\NWobs}{\boldsymbol{Z}}
+\newcommand{\NWinfmat}{\mat{U}}
+\newcommand{\NWinfvec}{\boldsymbol{u}}
+
+\newcommand{\NWhistmean}{\beta}
+\newcommand{\NWhistvar}{\phi}
+
+\newcommand{\Linktt}{\boldsymbol{\eta}}
+\newcommand{\Nodedwell}{\kappa}
+\newcommand{\Teta}{\boldsymbol{\alpha}}
+\newcommand{\Tdwell}{\boldsymbol{\Delta}}
+
+
+
+\begin{symbols}{lll} % Include a list of Symbols (a three column table)
+
+% time symbols
+$\Vtime_k$      & time of the $k^{\text{th}}$ observation & Unix timestamp \\
+$\Vtdiff_k$     & time since the last observation & seconds \\
+\addlinespace
+
+% vehicle observation symbols
+$\Vobs_k$     & vehicle observation (at time $\Vtime_k$) & \\
+$\Vlat_k$     & vehicle latitude & degrees \\
+$\Vlon_k$     & vehicle longitude & degrees \\
+$\Varr_m$     & vehicle arrival time at stop $m$ & Unix timestamp \\
+$\Vdep_m$     & vehicle departure time from stop $m$ & Unix timestamp \\
+\addlinespace
+
+% vehicle state symbols
+$\Vstate_k$   & vehicle state (at time $\Vtime_k$) & \\
+$\Vdist_k$    & vehicle distance into trip & m \\
+$\Vdist_k$    & vehicle speed & m/s \\
+$\Vtt_\ell$   & vehicle travel time along segment $\ell$ & seconds \\
+$\Np$         & number of particles per vehicle & \\
+$\Pwt_k$      & weight of particle $i$ given observation at time $\Vtime_k$ & \\
+$\Vtrans$     & vehicle transition function & \\
+$\Vmeas$      & vehicle measurement function & \\
+$\Vproj$      & equirectangular projection function & \\
+$\Vnoise$     & vehicle model system noise & m/s \\
+$\GPSerr$     & GPS error & meters \\
+\addlinespace
+
+% trip symbols
+$\Nstop_r$      & number of stops in trip $r$ & \\
+$\Nseg_r$       & number of segments in trip $r$ & \\
+$\Tstopd_m$     & distance into trip of stop $m$ & meters \\
+$\Tsegd_\ell$   & distance into trip of start of segment $m$ & meters \\
+$\Tseglen_\ell$ & length of segment $m$ & meters \\
+$\Prstop_m$     & probability of stopping at stop $m$ & \\
+$\mindwell$     & minimum dwell time & seconds \\
+$\dwell_m$      & mean dwell time at stop $m$ & seconds \\
+$\dwellvar_m$   & variance of dwell time at stop $m$ & seconds \\
+$\Istop_m$      & indicator that vehicle stopped at stop $m$ & \\
+\addlinespace
+
+% network symbols
+$\NWstate_c$        & road network state (travel time, at time $t_c$)   & seconds \\
+$\NWvar_c$          & road network state (travel time) variance & seconds \\
+% $\Rstate_{\ell c}$  & travel time along road segment $\ell$ & seconds \\
+% $\Rvar_{\ell c}$    & travel time variance along road segment $\ell$ & seconds \\
+$\NWnoise_c$        & road network system noise matrix & seconds \\
+$\NWmeas_c$         & road network measurement error matrix & seconds \\
+$\NWobs_c$          & road network observation vector & seconds \\
+$\NWinfmat_c$       & road network information matrix & \\
+$\NWinfvec_c$       & road network information vector & \\
+\addlinespace
+
+$\NWhistmean_\ell(t_c)$ & historical mean travel time (along segment $\ell$ at time $t_c$) & seconds \\
+$\NWhistvar_\ell(t_c)$  & historical variance of travel time & seconds \\
+
+% ETA symbols
+$\Linktt_r$      & vector of inter-stop (link) travel times for trip $r$ & seconds \\
+$\Teta_r$        & vector of times until arrival for trip $r$ & seconds \\
+$\Tdwell_r$      & vector of node dwell times for trip $r$ & seconds \\
+
+\end{symbols}
