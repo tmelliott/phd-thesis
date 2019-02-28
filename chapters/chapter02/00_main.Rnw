@@ -20,6 +20,6 @@ which can display GTFS-based transit data from hundreds of transport authorities
 
 
 \Sexpr{knit_child('gtfs.Rnw')}
-\Sexpr{knit_child('realtime-data.Rnw')}
+\Sexpr{knit_child('realtime_data.Rnw')}
 \Sexpr{knit_child('route-segmentisation.Rnw')}
 \Sexpr{knit_child('recursive_bayes.Rnw')}

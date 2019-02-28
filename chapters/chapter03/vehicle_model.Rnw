@@ -3,16 +3,44 @@
 \section{Real-time vehicle model}
 \label{sec:vehicle_model}
 
-The vehicle model itself implements a simplified estimation of bus behaviour,
-allowing us to infer the vehicle's trajectory between consecutive observations.
-The foundation of this model is a simple dynamic vehicle tracking model,
-in which the vehicle's unknown state is infered
+Transit vehicle behaviour is both predictable and volatile.
+The trajectory of a bus servicing a trip is known,
+so the direction of travel---a major component in vehicle tracking---%
+is a non-issue.
+Instead, the main parameter of interest is the vehicle's speed,
+with which we can determine information about the congestion along roads.
+
+
+In this section, we describe the mechanics of bus behaviour,
+and how these are included in the final model.
+
 
 
 \subsection{General vehicle behaviour}
+\label{sec:vehicle_model_behaviour}
+
+Vehicles travel along a known route at variable speeds.
+To begin our model, we assume the vehicle simply travels the route
+from beginning to end along a known path, with unknown speed.
+The vehicle state in \cref{eq:vehicle_state}
+can now be predicted using the time since the previous observation,
+$\Vtdiff_k = t_k - t_{k-1}$,
+and the transition function
+\begin{equation}
+\label{eq:vehicle_transition1}
+\Vstate_k\vi = f(\Vstate_{k-1}\vi, \Vtdiff_k, \Vnoise) =
+\begin{bmatrix}
+\Vdist_{k-1} + \Vtdiff\Vspeed_k \\
+\Vspeed_{k-1} + v_k
+\end{bmatrix}
+\end{equation}
+
 
 \subsection{Bus stops}
+\label{sec:vehicle_model_stops}
+
 
 \subsection{Intersections}
+\label{sec:vehicle_model_intersections}
 
 
