@@ -19,21 +19,226 @@ and how these are included in the final model.
 \subsection{General vehicle behaviour}
 \label{sec:vehicle_model_behaviour}
 
-Vehicles travel along a known route at variable speeds.
-To begin our model, we assume the vehicle simply travels the route
-from beginning to end along a known path, with unknown speed.
-The vehicle state in \cref{eq:vehicle_state}
-can now be predicted using the time since the previous observation,
-$\Vtdiff_k = t_k - t_{k-1}$,
-and the transition function
-\begin{equation}
-\label{eq:vehicle_transition1}
-\Vstate_k\vi = f(\Vstate_{k-1}\vi, \Vtdiff_k, \Vnoise) =
-\begin{bmatrix}
-\Vdist_{k-1} + \Vtdiff\Vspeed_k \\
-\Vspeed_{k-1} + v_k
-\end{bmatrix}
-\end{equation}
+% Vehicles travel along a known route at variable speeds.
+% To begin our model, we assume the vehicle simply travels the route
+% from beginning to end along a known path, with unknown speed.
+% The vehicle state in \cref{eq:vehicle_state}
+% can now be predicted using the time since the previous observation,
+% $\Vtdiff_k = t_k - t_{k-1}$,
+% and the transition function
+% \begin{equation}
+% \label{eq:vehicle_transition1}
+% \Vstate_k\vi = f(\Vstate_{k-1}\vi, \Vtdiff_k, \Vnoise) =
+% \begin{bmatrix}
+% \Vdist_{k-1} + \Vtdiff\Vspeed_k \\
+% \Vspeed_{k-1} + v_k
+% \end{bmatrix}
+% \end{equation}
+
+
+
+\subsubsection{Simulation}
+
+<<sim1_gen,echo=FALSE,message=FALSE>>=
+source('sims.R')
+n <- 240
+seg1 <- c(600, 900)
+seg2 <- c(1200, 1500)
+s1 <- sim1(n = n, noise = 0.08)
+tt1 <- s1 %>% filter(between(x, seg1[1], seg1[2])) %>% pluck('t') %>% range %>% diff
+tt2 <- s1 %>% filter(between(x, seg2[1], seg2[2])) %>% pluck('t') %>% range %>% diff
+fcap1 <- sprintf(
+    'Simulated vehicle trajectory, with two road segments of interest. The first road segment from %d--%sm has travel time %.2fs, while the second from %s--%dm has travel time %.2fs',
+    seg1[1], seg1[2], tt1, seg2[1], seg2[2], tt2
+)
+fscap1 <- c(
+    "The simulated data.",
+    "Uniform, 10~s sampling.",
+    "Uniform, 30~s sampling.",
+    "Non-uniform sampling."
+)
+@
+
+
+To assess the adequacy of this simplistic model as a means of
+estimating road travel times, we implemented a simple simulation.
+The simulated data, shown in \cref{fig:sim1_graph1},
+uses the random acceleration model displayed above,
+using several time point sampling methods:
+uniform sampling with high (\cref{fig:sim1_graph2})
+and low (\cref{fig:sim1_graph3}) frequency,
+and non-uniform sampling (\cref{fig:sim1_graph4}),
+which is more in line with how the Auckland Transport data is collected.
+
+
+The goal of the simulation is to estimate the travel time
+along a \Sexpr{diff(seg1)}~m ``road segment'' with constant traffic flow,
+and a \Sexpr{diff(seg2)}~m segment with congestion,
+denoted by the shaded regions in the figures below.
+
+<<sim1_graph,echo=FALSE,fig.height=2,fig.width=4,out.width=".49\\linewidth",fig.cap=fcap1,fig.subcap=fscap1,fig.ncol=2>>=
+p1 <- s1 %>%
+    ggplot(aes(t)) +
+    geom_rect(aes(xmin = 0, xmax = n, ymin = seg1[1], ymax = seg1[2]),
+        data = NULL, fill = 'lightgray') +
+    geom_rect(aes(xmin = 0, xmax = n, ymin = seg2[1], ymax = seg2[2]),
+        data = NULL, fill = 'lightgray') +
+    theme_minimal() +
+    theme(panel.grid = element_blank()) +
+    xlab('Time (s)') + ylab('Distance (m)') +
+    ylim(0, max(s1$x)) + xlim(0, n)
+
+d1 <- s1 %>% filter(t %% 10 == 0)
+d2 <- s1 %>% filter(t %% 30 == 0)
+set.seed(3)
+delta <- cumsum(round(runif(10, 10, 40)))
+d3 <- s1 %>% filter(t %in% delta)
+
+p1 + geom_path(aes(y = x))
+p1 + geom_point(aes(y = x), data = d1)
+p1 + geom_point(aes(y = x), data = d2)
+p1 + geom_point(aes(y = x), data = d3)
+@
+
+<<sim1_pf,echo=FALSE,message=FALSE,warning=FALSE,fig.height=2,fig.width=8,out.width="\\linewidth",fig.cap="Estimated travel times for segments",fig.ncol=1,fig.subcap=fscap1[-1]>>=
+set.seed(200)
+sr1 <- pf1(d1, n=1500,noise = 1, seg = list(seg1, seg2))
+# sr1 %>% filter(!is.na(s2)) %>% pluck("s2")
+# ggplot(sr1, aes(t, x)) +
+#     geom_rect(aes(xmin = 0, xmax = n, ymin = seg1[1], ymax = seg1[2]),
+#         data = NULL, fill = 'lightgray') +
+#     geom_rect(aes(xmin = 0, xmax = n, ymin = seg2[1], ymax = seg2[2]),
+#         data = NULL, fill = 'lightgray') +
+#     geom_point(aes(y = xhat), col = 'red') +
+#     geom_point() +
+#     geom_path(aes(y = x), data = s1)
+sr1 <- sr1 %>%
+    mutate(
+        s1 = ifelse(s1 > 0, s1, NA),
+        s2 = ifelse(s2 > 0, s2, NA)
+    ) %>%
+    select(s1, s2) %>%
+    gather(key = "segment", value = "travel_time") %>%
+    filter(!is.na(travel_time))
+
+ggplot(sr1, aes(travel_time)) +
+    geom_histogram(bins = 15) +
+    facet_grid(~segment, scales = "free")
+
+sr2 <- pf1(d2, noise = 1, seg = list(seg1, seg2)) %>%
+    mutate(
+        s1 = ifelse(s1 > 0, s1, NA),
+        s2 = ifelse(s2 > 0, s2, NA)
+    ) %>%
+    select(s1, s2) %>%
+    gather(key = "segment", value = "travel_time") %>%
+    filter(!is.na(travel_time))
+
+ggplot(sr2, aes(travel_time)) +
+    geom_histogram(bins = 15) +
+    facet_grid(~segment, scales = "free")
+
+sr3 <- pf1(d3, noise = 1, seg = list(seg1, seg2)) %>%
+    mutate(
+        s1 = ifelse(s1 > 0, s1, NA),
+        s2 = ifelse(s2 > 0, s2, NA)
+    ) %>%
+    select(s1, s2) %>%
+    gather(key = "segment", value = "travel_time") %>%
+    filter(!is.na(travel_time))
+
+ggplot(sr3, aes(travel_time)) +
+    geom_histogram(bins = 15) +
+    facet_grid(~segment, scales = "free")
+@
+
+<<sim1_pf2,echo=FALSE,message=FALSE,warning=FALSE,fig.height=2,fig.width=8,out.width="\\linewidth",fig.cap="Estimated travel times for segments",fig.ncol=1,fig.subcap=fscap1[-1]>>=
+set.seed(200)
+sr1 <- pf2(d1, noise = 0.5, seg = list(seg1, seg2)) %>%
+    mutate(
+        s1 = ifelse(s1 > 0, s1, NA),
+        s2 = ifelse(s2 > 0, s2, NA)
+    ) %>%
+    select(s1, s2) %>%
+    gather(key = "segment", value = "travel_time") %>%
+    filter(!is.na(travel_time))
+
+ggplot(sr1, aes(travel_time)) +
+    geom_histogram(bins = 15) +
+    facet_grid(~segment, scales = "free")
+
+sr2 <- pf2(d2, noise = 0.5, seg = list(seg1, seg2)) %>%
+    mutate(
+        s1 = ifelse(s1 > 0, s1, NA),
+        s2 = ifelse(s2 > 0, s2, NA)
+    ) %>%
+    select(s1, s2) %>%
+    gather(key = "segment", value = "travel_time") %>%
+    filter(!is.na(travel_time))
+
+ggplot(sr2, aes(travel_time)) +
+    geom_histogram(bins = 15) +
+    facet_grid(~segment, scales = "free")
+
+sr3 <- pf2(d3, noise = 0.5, seg = list(seg1, seg2)) %>%
+    mutate(
+        s1 = ifelse(s1 > 0, s1, NA),
+        s2 = ifelse(s2 > 0, s2, NA)
+    ) %>%
+    select(s1, s2) %>%
+    gather(key = "segment", value = "travel_time") %>%
+    filter(!is.na(travel_time))
+
+ggplot(sr3, aes(travel_time)) +
+    geom_histogram(bins = 15) +
+    facet_grid(~segment, scales = "free")
+@
+
+<<sim1_pf3,echo=FALSE,message=FALSE,warning=FALSE,fig.height=2,fig.width=8,out.width="\\linewidth",fig.cap="Estimated travel times for segments",fig.ncol=1,fig.subcap=fscap1[-1]>>=
+set.seed(200)
+sr1 <- pf3(d1, n=1500, noise = 0.1, seg = list(seg1, seg2)) %>%
+    mutate(
+        s1 = ifelse(s1 > 0, s1, NA),
+        s2 = ifelse(s2 > 0, s2, NA)
+    ) %>%
+    select(s1, s2) %>%
+    gather(key = "segment", value = "travel_time") %>%
+    filter(!is.na(travel_time))
+
+ggplot(sr1, aes(travel_time)) +
+    geom_histogram(bins = 15) +
+    facet_grid(~segment, scales = "free")
+
+sr2 <- pf3(d2, noise = 0.1, seg = list(seg1, seg2)) %>%
+    mutate(
+        s1 = ifelse(s1 > 0, s1, NA),
+        s2 = ifelse(s2 > 0, s2, NA)
+    ) %>%
+    select(s1, s2) %>%
+    gather(key = "segment", value = "travel_time") %>%
+    filter(!is.na(travel_time))
+
+ggplot(sr2, aes(travel_time)) +
+    geom_histogram(bins = 15) +
+    facet_grid(~segment, scales = "free")
+
+sr3 <- pf3(d3, noise = 0.1, seg = list(seg1, seg2)) %>%
+    mutate(
+        s1 = ifelse(s1 > 0, s1, NA),
+        s2 = ifelse(s2 > 0, s2, NA)
+    ) %>%
+    select(s1, s2) %>%
+    gather(key = "segment", value = "travel_time") %>%
+    filter(!is.na(travel_time))
+
+ggplot(sr3, aes(travel_time)) +
+    geom_histogram(bins = 15) +
+    facet_grid(~segment, scales = "free")
+@
+
+From these two model simulations,
+it is obvious that the preferred model is model A1
+with non-constant speed controlled by noise ("acceleration") each second.
 
 
 \subsection{Bus stops}

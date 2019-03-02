@@ -98,6 +98,8 @@ headsepline, % Uncomment to get a line under the header
 \usepackage{hyperref}
 \usepackage{cleveref}
 
+\usepackage{subfig}
+
 \begin{document}
 
 \frontmatter % Use roman page numbering style (i, ii, iii, iv...) for the pre-content pages
