@@ -13,28 +13,101 @@ with which we can determine information about the congestion along roads.
 
 In this section, we describe the mechanics of bus behaviour,
 and how these are included in the final model.
+That is, we construct the transition function $f$.
 
 
 
 \subsection{General vehicle behaviour}
 \label{sec:vehicle_model_behaviour}
 
-% Vehicles travel along a known route at variable speeds.
-% To begin our model, we assume the vehicle simply travels the route
-% from beginning to end along a known path, with unknown speed.
-% The vehicle state in \cref{eq:vehicle_state}
-% can now be predicted using the time since the previous observation,
-% $\Vtdiff_k = t_k - t_{k-1}$,
-% and the transition function
-% \begin{equation}
-% \label{eq:vehicle_transition1}
-% \Vstate_k\vi = f(\Vstate_{k-1}\vi, \Vtdiff_k, \Vnoise) =
-% \begin{bmatrix}
-% \Vdist_{k-1} + \Vtdiff\Vspeed_k \\
-% \Vspeed_{k-1} + v_k
-% \end{bmatrix}
-% \end{equation}
+We will be working with the following definition of the transition function
+for this part,
+\begin{equation}
+\label{eq:vtrans_general}
+\Vstate_k = \Vtrans(\Vstate_{k-1}, \Vtdiff_k, \Vnoise)
+\end{equation}
+where $\Vtdiff_k = \Vtime_k - \Vtime_{k-1}$
+and the system noise $\Vnoise$ is constant over time.
 
+We use a particle filter so we do not need to talk in terms of a distributions.
+Instead, in the section, we describe the motion of a particle, a unique ``imaginary'' vehicle.
+So, given a particle with state $\Vstate\vi_{k-1}$ at time $\Vtime_{k-1}$,
+we use Newton's Laws of Motion \cite{cn}
+to predict the state at time $\Vtime_k$
+after travelling for $\Vtdiff_k$ seconds.
+
+In the first model, A1, we assume a constant speed $\Vspeed_k$
+in the interval $(\Vtime_{k-1}, \Vtime_k)$,
+\begin{equation*}
+\Vspeed\vi_k \sim \TNormal{\Vspeed\vi_{k-1}}{\Vnoise}{0}{30}
+\end{equation*}
+where $\TNormal{\mu}{\sigma}{a}{b}$ is the normal distribution
+truncated to the interval $(a, b)$.
+In this case, we truncate the vehicle's speed to ensure it is
+both positive and under 30~m/s,
+which is 108~km/h (the maximum road speed in Auckland is 100~km/h).
+
+Having sampled a new speed (to ensure system variability, see \cref{sec:pf}),
+the particle can be transitioned forward,
+as shown in \cref{fig:vtrans_general1},
+using the equation
+\begin{equation*}
+\Vdist\vi_k = \Vdist\vi_{k-1} + \Vtdiff_k\Vspeed\vi_k.
+\end{equation*}
+
+To compute the travel time along segments,
+blah blah blah.
+
+
+In the second model, A2, we allow the vehicle speed to follow a random walk
+between observations rather than remaining constant,
+as shown in \cref{fig:vtrans_general2}.
+That is,
+\begin{equation*}
+\Vspeed\vi_s \sim \TNormal{\Vspeed\vi_{s-1}}{\Vnoise}{0}{30},\quad
+\Vtime_s \in (\Vtime_{k-1}, \Vtime_k]
+\end{equation*}
+Now, the distance is updated iteratively at the same time as the speed,
+\begin{equation*}
+\Vdist\vi_s = \Vdist\vi_{s-1} + \Vspeed\vi_s.
+\end{equation*}
+which also makes travel time computation easier:
+once the particle enters segment $\ell$ ($\Vdist\vi_s \geq \Tsegd_\ell$),
+the travel time $\Vtt\vi_\ell$ is incremented by one second each
+iteration until the particle leaves the segment
+($\Vdist\vi_s \geq \Tsegd_\ell + \Tseglen_\ell$).
+
+
+In the third model, A3, we add an additional parameter to the vehicle's state,
+the acceleration $\Vaccel_k$ at time $\Vtime_k$.
+This allows us to more realistically model the vehicle's behaviour,
+and it is this model we use to generate the simulated data below.
+Given an acceleration, we can update the vehicle's speed using
+\begin{equation*}
+\Vspeed\vi_s = \Vspeed\vi_{s-1} + \Vaccel\vi_{s}
+\end{equation*}
+We must truncate the acceleration distribution to ensure
+the vehicle's speed remains positive and under 30~m/s,
+which given the above equation yields the inequality
+\begin{equation*}
+0 \leq \Vspeed\vi_{s-1} + \Vaccel\vi_s \leq 30
+\end{equation*}
+so the acceleration distribution is
+\begin{equation*}
+\Vaccel\vi_s \sim \TNormal{\Vaccel\vi_{s-1}}{\Vnoise}{-\Vspeed\vi_{s-1}}{30 - \Vspeed\vi_{s-1}}
+\end{equation*}
+This model would be improved by placing additional constraints on the range of acceleration,
+but as this was unnecessary (discussed later) we chose to leave out those details.
+The travel time computation for this model is the same as for A2.
+
+
+<<vtrans_general,echo=FALSE,message=FALSE,fig.width=8,fig.height=3,fig.cap="Vehicle transition function for the three models.",fig.ncol=1,fig.subcap=c("Model A1", "Model A2", "Model A3")>>=
+t <- c(30, 60)
+d <- c(100, 200)
+plot(t, d)
+plot(t+2, d)
+plot(t+4, d)
+@
 
 
 \subsubsection{Simulation}
@@ -57,11 +130,13 @@ fscap1 <- c(
     "Uniform, 30~s sampling.",
     "Non-uniform sampling."
 )
+simnames <- c("Uniform (10s)", "Uniform (30s)", "Non-uniform")
+
 @
 
 
-To assess the adequacy of this simplistic model as a means of
-estimating road travel times, we implemented a simple simulation.
+To assess the performance of these models and compare their
+estimation of road travel times, we implemented a simple simulation.
 The simulated data, shown in \cref{fig:sim1_graph1},
 uses the random acceleration model displayed above,
 using several time point sampling methods:
@@ -100,9 +175,10 @@ p1 + geom_point(aes(y = x), data = d2)
 p1 + geom_point(aes(y = x), data = d3)
 @
 
-<<sim1_pf,echo=FALSE,message=FALSE,warning=FALSE,fig.height=2,fig.width=8,out.width="\\linewidth",fig.cap="Estimated travel times for segments",fig.ncol=1,fig.subcap=fscap1[-1]>>=
+<<sim1_pf,echo=FALSE,message=FALSE,warning=FALSE,fig.height=5,fig.width=8,out.width="\\linewidth",fig.cap="Simulation results for model A1: constant speed between time points.",fig.ncol=1>>=
 set.seed(200)
-sr1 <- pf1(d1, n=1500,noise = 1, seg = list(seg1, seg2))
+Nparticle = 2000
+sr1 <- pf1(d1, n = Nparticle, noise = 1, seg = list(seg1, seg2))
 # sr1 %>% filter(!is.na(s2)) %>% pluck("s2")
 # ggplot(sr1, aes(t, x)) +
 #     geom_rect(aes(xmin = 0, xmax = n, ymin = seg1[1], ymax = seg1[2]),
@@ -121,11 +197,7 @@ sr1 <- sr1 %>%
     gather(key = "segment", value = "travel_time") %>%
     filter(!is.na(travel_time))
 
-ggplot(sr1, aes(travel_time)) +
-    geom_histogram(bins = 15) +
-    facet_grid(~segment, scales = "free")
-
-sr2 <- pf1(d2, noise = 1, seg = list(seg1, seg2)) %>%
+sr2 <- pf1(d2, n = Nparticle, noise = 1, seg = list(seg1, seg2)) %>%
     mutate(
         s1 = ifelse(s1 > 0, s1, NA),
         s2 = ifelse(s2 > 0, s2, NA)
@@ -134,11 +206,7 @@ sr2 <- pf1(d2, noise = 1, seg = list(seg1, seg2)) %>%
     gather(key = "segment", value = "travel_time") %>%
     filter(!is.na(travel_time))
 
-ggplot(sr2, aes(travel_time)) +
-    geom_histogram(bins = 15) +
-    facet_grid(~segment, scales = "free")
-
-sr3 <- pf1(d3, noise = 1, seg = list(seg1, seg2)) %>%
+sr3 <- pf1(d3, n = Nparticle, noise = 1, seg = list(seg1, seg2)) %>%
     mutate(
         s1 = ifelse(s1 > 0, s1, NA),
         s2 = ifelse(s2 > 0, s2, NA)
@@ -147,14 +215,22 @@ sr3 <- pf1(d3, noise = 1, seg = list(seg1, seg2)) %>%
     gather(key = "segment", value = "travel_time") %>%
     filter(!is.na(travel_time))
 
-ggplot(sr3, aes(travel_time)) +
-    geom_histogram(bins = 15) +
-    facet_grid(~segment, scales = "free")
+bind_rows(
+    sr1 %>% mutate(sim = simnames[1]),
+    sr2 %>% mutate(sim = simnames[2]),
+    sr3 %>% mutate(sim = simnames[3])
+) %>% mutate(
+        segment = fct_recode(segment, "Segment 1" = "s1", "Segment 2" = "s2"),
+        sim = fct_relevel(sim, simnames[1], simnames[2], simnames[3])
+    ) %>%
+    ggplot(aes(travel_time))  +
+    geom_histogram(bins = 30) +
+    facet_grid(sim~segment, scales = "free_x")
 @
 
-<<sim1_pf2,echo=FALSE,message=FALSE,warning=FALSE,fig.height=2,fig.width=8,out.width="\\linewidth",fig.cap="Estimated travel times for segments",fig.ncol=1,fig.subcap=fscap1[-1]>>=
+<<sim1_pf2,echo=FALSE,message=FALSE,warning=FALSE,fig.height=5,fig.width=8,out.width="\\linewidth",fig.cap="Simulation results for model A2: non-constant speed with random noise on speed.",fig.ncol=1>>=
 set.seed(200)
-sr1 <- pf2(d1, noise = 0.5, seg = list(seg1, seg2)) %>%
+sr1 <- pf2(d1, n = Nparticle, noise = 0.5, seg = list(seg1, seg2)) %>%
     mutate(
         s1 = ifelse(s1 > 0, s1, NA),
         s2 = ifelse(s2 > 0, s2, NA)
@@ -163,11 +239,7 @@ sr1 <- pf2(d1, noise = 0.5, seg = list(seg1, seg2)) %>%
     gather(key = "segment", value = "travel_time") %>%
     filter(!is.na(travel_time))
 
-ggplot(sr1, aes(travel_time)) +
-    geom_histogram(bins = 15) +
-    facet_grid(~segment, scales = "free")
-
-sr2 <- pf2(d2, noise = 0.5, seg = list(seg1, seg2)) %>%
+sr2 <- pf2(d2, n = Nparticle, noise = 0.5, seg = list(seg1, seg2)) %>%
     mutate(
         s1 = ifelse(s1 > 0, s1, NA),
         s2 = ifelse(s2 > 0, s2, NA)
@@ -176,11 +248,7 @@ sr2 <- pf2(d2, noise = 0.5, seg = list(seg1, seg2)) %>%
     gather(key = "segment", value = "travel_time") %>%
     filter(!is.na(travel_time))
 
-ggplot(sr2, aes(travel_time)) +
-    geom_histogram(bins = 15) +
-    facet_grid(~segment, scales = "free")
-
-sr3 <- pf2(d3, noise = 0.5, seg = list(seg1, seg2)) %>%
+sr3 <- pf2(d3, n = Nparticle, noise = 0.5, seg = list(seg1, seg2)) %>%
     mutate(
         s1 = ifelse(s1 > 0, s1, NA),
         s2 = ifelse(s2 > 0, s2, NA)
@@ -189,14 +257,22 @@ sr3 <- pf2(d3, noise = 0.5, seg = list(seg1, seg2)) %>%
     gather(key = "segment", value = "travel_time") %>%
     filter(!is.na(travel_time))
 
-ggplot(sr3, aes(travel_time)) +
-    geom_histogram(bins = 15) +
-    facet_grid(~segment, scales = "free")
+bind_rows(
+    sr1 %>% mutate(sim = simnames[1]),
+    sr2 %>% mutate(sim = simnames[2]),
+    sr3 %>% mutate(sim = simnames[3])
+) %>% mutate(
+        segment = fct_recode(segment, "Segment 1" = "s1", "Segment 2" = "s2"),
+        sim = fct_relevel(sim, simnames[1], simnames[2], simnames[3])
+    ) %>%
+    ggplot(aes(travel_time))  +
+    geom_histogram(bins = 30) +
+    facet_grid(sim~segment, scales = "free_x")
 @
 
-<<sim1_pf3,echo=FALSE,message=FALSE,warning=FALSE,fig.height=2,fig.width=8,out.width="\\linewidth",fig.cap="Estimated travel times for segments",fig.ncol=1,fig.subcap=fscap1[-1]>>=
+<<sim1_pf3,echo=FALSE,message=FALSE,warning=FALSE,fig.height=5,fig.width=8,out.width="\\linewidth",fig.cap="Simulation results for model A3: non-constant speed with random noise on acceleration.",fig.ncol=1>>=
 set.seed(200)
-sr1 <- pf3(d1, n=1500, noise = 0.1, seg = list(seg1, seg2)) %>%
+sr1 <- pf3(d1, n = Nparticle, noise = 0.1, seg = list(seg1, seg2)) %>%
     mutate(
         s1 = ifelse(s1 > 0, s1, NA),
         s2 = ifelse(s2 > 0, s2, NA)
@@ -205,11 +281,7 @@ sr1 <- pf3(d1, n=1500, noise = 0.1, seg = list(seg1, seg2)) %>%
     gather(key = "segment", value = "travel_time") %>%
     filter(!is.na(travel_time))
 
-ggplot(sr1, aes(travel_time)) +
-    geom_histogram(bins = 15) +
-    facet_grid(~segment, scales = "free")
-
-sr2 <- pf3(d2, noise = 0.1, seg = list(seg1, seg2)) %>%
+sr2 <- pf3(d2, n = Nparticle, noise = 0.1, seg = list(seg1, seg2)) %>%
     mutate(
         s1 = ifelse(s1 > 0, s1, NA),
         s2 = ifelse(s2 > 0, s2, NA)
@@ -218,11 +290,7 @@ sr2 <- pf3(d2, noise = 0.1, seg = list(seg1, seg2)) %>%
     gather(key = "segment", value = "travel_time") %>%
     filter(!is.na(travel_time))
 
-ggplot(sr2, aes(travel_time)) +
-    geom_histogram(bins = 15) +
-    facet_grid(~segment, scales = "free")
-
-sr3 <- pf3(d3, noise = 0.1, seg = list(seg1, seg2)) %>%
+sr3 <- pf3(d3, n = Nparticle, noise = 0.1, seg = list(seg1, seg2)) %>%
     mutate(
         s1 = ifelse(s1 > 0, s1, NA),
         s2 = ifelse(s2 > 0, s2, NA)
@@ -231,9 +299,17 @@ sr3 <- pf3(d3, noise = 0.1, seg = list(seg1, seg2)) %>%
     gather(key = "segment", value = "travel_time") %>%
     filter(!is.na(travel_time))
 
-ggplot(sr3, aes(travel_time)) +
-    geom_histogram(bins = 15) +
-    facet_grid(~segment, scales = "free")
+bind_rows(
+    sr1 %>% mutate(sim = simnames[1]),
+    sr2 %>% mutate(sim = simnames[2]),
+    sr3 %>% mutate(sim = simnames[3])
+) %>% mutate(
+        segment = fct_recode(segment, "Segment 1" = "s1", "Segment 2" = "s2"),
+        sim = fct_relevel(sim, simnames[1], simnames[2], simnames[3])
+    ) %>%
+    ggplot(aes(travel_time))  +
+    geom_histogram(bins = 30) +
+    facet_grid(sim~segment, scales = "free_x")
 @
 
 From these two model simulations,
