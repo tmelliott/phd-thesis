@@ -27,6 +27,188 @@ sim1 <- function(n = 120, noise = 0.09, seed = 1) {
     )
 }
 
+doSim <- function(n, seg1, seg2, Nparticle, simnames, seed) {
+    file <- sprintf('sims/sim1_%s.rda', seed)
+    if (file.exists(file)) {
+        load(file)
+        if (!is.null(z)) return(z)
+    }
+    s1 <- sim1(n = n, noise = 0.08, seed = seed)
+    if (max(s1$x) < max(seg2)) return(NULL)
+    tt1 <- s1 %>% filter(between(x, seg1[1], seg1[2])) %>% pluck('t') %>% range %>% diff
+    tt2 <- s1 %>% filter(between(x, seg2[1], seg2[2])) %>% pluck('t') %>% range %>% diff
+    d1 <- s1 %>% filter(t %% 10 == 0)
+    d2 <- s1 %>% filter(t %% 30 == 0)
+    delta <- cumsum(round(runif(10, 10, 40)))
+    d3 <- s1 %>% filter(t %in% delta)
+
+    badcount <- 0
+
+    # gp <- ggplot(s1, aes(t)) +
+    #     geom_rect(aes(xmin = 0, xmax = n, ymin = seg1[1], ymax = seg1[2]),
+    #         data = NULL, fill = 'lightgray') +
+    #     geom_rect(aes(xmin = 0, xmax = n, ymin = seg2[1], ymax = seg2[2]),
+    #         data = NULL, fill = 'lightgray') +
+    #     theme_minimal() +
+    #     theme(panel.grid = element_blank()) +
+    #     xlab('Time (s)') + ylab('Distance (m)') +
+    #     ylim(0, max(s1$x)) + xlim(0, n) +
+    #     geom_path(aes(y = x))
+    # print(gp)
+
+    sr1 <- sr2 <- sr3 <- NULL
+    while(is.null(sr1) || inherits(sr1, "try-error")) try({
+        badcount <- badcount + 1
+        if (badcount > 100) return(NULL)
+        sr1 <- pf1(d1, n = Nparticle, noise = 1, seg = list(seg1, seg2)) %>%
+            mutate(
+                s1 = ifelse(s1 > 0, s1, NA),
+                s2 = ifelse(s2 > 0, s2, NA)
+            ) %>%
+            select(s1, s2) %>%
+            gather(key = "segment", value = "travel_time") %>%
+            filter(!is.na(travel_time))
+    })
+    while(is.null(sr2) || inherits(sr2, "try-error")) try({
+        badcount <- badcount + 1
+        if (badcount > 100) return(NULL)
+        sr2 <- pf1(d2, n = Nparticle, noise = 1, seg = list(seg1, seg2)) %>%
+            mutate(
+                s1 = ifelse(s1 > 0, s1, NA),
+                s2 = ifelse(s2 > 0, s2, NA)
+            ) %>%
+            select(s1, s2) %>%
+            gather(key = "segment", value = "travel_time") %>%
+            filter(!is.na(travel_time))
+    })
+    while(is.null(sr3) || inherits(sr3, "try-error")) try({
+        badcount <- badcount + 1
+        if (badcount > 100) return(NULL)
+        sr3 <- pf1(d3, n = Nparticle, noise = 1, seg = list(seg1, seg2)) %>%
+            mutate(
+                s1 = ifelse(s1 > 0, s1, NA),
+                s2 = ifelse(s2 > 0, s2, NA)
+            ) %>%
+            select(s1, s2) %>%
+            gather(key = "segment", value = "travel_time") %>%
+            filter(!is.na(travel_time))
+    })
+    S1 <- bind_rows(
+        sr1 %>% mutate(sim = simnames[1]),
+        sr2 %>% mutate(sim = simnames[2]),
+        sr3 %>% mutate(sim = simnames[3])
+    ) %>% mutate(
+            segment = fct_recode(segment, "Segment 1" = "s1", "Segment 2" = "s2"),
+            sim = fct_relevel(sim, simnames[1], simnames[2], simnames[3]),
+            model = "A1"
+        )
+
+    sr1 <- sr2 <- sr3 <- NULL
+    while(is.null(sr1) || inherits(sr1, "try-error")) try({
+        badcount <- badcount + 1
+        if (badcount > 100) return(NULL)
+        sr1 <- pf2(d1, n = Nparticle, noise = 0.5, seg = list(seg1, seg2)) %>%
+            mutate(
+                s1 = ifelse(s1 > 0, s1, NA),
+                s2 = ifelse(s2 > 0, s2, NA)
+            ) %>%
+            select(s1, s2) %>%
+            gather(key = "segment", value = "travel_time") %>%
+            filter(!is.na(travel_time))
+    })
+    while(is.null(sr2) || inherits(sr2, "try-error")) try({
+        badcount <- badcount + 1
+        if (badcount > 100) return(NULL)
+        sr2 <- pf2(d2, n = Nparticle, noise = 0.5, seg = list(seg1, seg2)) %>%
+            mutate(
+                s1 = ifelse(s1 > 0, s1, NA),
+                s2 = ifelse(s2 > 0, s2, NA)
+            ) %>%
+            select(s1, s2) %>%
+            gather(key = "segment", value = "travel_time") %>%
+            filter(!is.na(travel_time))
+    })
+    while(is.null(sr3) || inherits(sr3, "try-error")) try({
+        badcount <- badcount + 1
+        if (badcount > 100) return(NULL)
+        sr3 <- pf2(d3, n = Nparticle, noise = 0.5, seg = list(seg1, seg2)) %>%
+            mutate(
+                s1 = ifelse(s1 > 0, s1, NA),
+                s2 = ifelse(s2 > 0, s2, NA)
+            ) %>%
+            select(s1, s2) %>%
+            gather(key = "segment", value = "travel_time") %>%
+            filter(!is.na(travel_time))
+    })
+    S2 <- bind_rows(
+        sr1 %>% mutate(sim = simnames[1]),
+        sr2 %>% mutate(sim = simnames[2]),
+        sr3 %>% mutate(sim = simnames[3])
+    ) %>% mutate(
+            segment = fct_recode(segment, "Segment 1" = "s1", "Segment 2" = "s2"),
+            sim = fct_relevel(sim, simnames[1], simnames[2], simnames[3]),
+            model = "A2"
+        )
+
+    sr1 <- sr2 <- sr3 <- NULL
+    while(is.null(sr1) || inherits(sr1, "try-error")) try({
+        badcount <- badcount + 1
+        if (badcount > 100) return(NULL)
+        sr1 <- pf3(d1, n = Nparticle, noise = 0.1, seg = list(seg1, seg2)) %>%
+            mutate(
+                s1 = ifelse(s1 > 0, s1, NA),
+                s2 = ifelse(s2 > 0, s2, NA)
+            ) %>%
+            select(s1, s2) %>%
+            gather(key = "segment", value = "travel_time") %>%
+            filter(!is.na(travel_time))
+    })
+    while(is.null(sr2) || inherits(sr2, "try-error")) try({
+        badcount <- badcount + 1
+        if (badcount > 100) return(NULL)
+        sr2 <- pf3(d2, n = Nparticle, noise = 0.1, seg = list(seg1, seg2)) %>%
+            mutate(
+                s1 = ifelse(s1 > 0, s1, NA),
+                s2 = ifelse(s2 > 0, s2, NA)
+            ) %>%
+            select(s1, s2) %>%
+            gather(key = "segment", value = "travel_time") %>%
+            filter(!is.na(travel_time))
+    })
+    while(is.null(sr3) || inherits(sr3, "try-error")) try({
+        badcount <- badcount + 1
+        if (badcount > 100) return(NULL)
+        sr3 <- pf3(d3, n = Nparticle, noise = 0.1, seg = list(seg1, seg2)) %>%
+            mutate(
+                s1 = ifelse(s1 > 0, s1, NA),
+                s2 = ifelse(s2 > 0, s2, NA)
+            ) %>%
+            select(s1, s2) %>%
+            gather(key = "segment", value = "travel_time") %>%
+            filter(!is.na(travel_time))
+    })
+    S3 <- bind_rows(
+        sr1 %>% mutate(sim = simnames[1]),
+        sr2 %>% mutate(sim = simnames[2]),
+        sr3 %>% mutate(sim = simnames[3])
+    ) %>% mutate(
+            segment = fct_recode(segment, "Segment 1" = "s1", "Segment 2" = "s2"),
+            sim = fct_relevel(sim, simnames[1], simnames[2], simnames[3]),
+            model = "A3"
+        )
+    z <- bind_rows(S1, S2, S3) %>%
+        group_by(sim, model, segment) %>%
+        summarize(
+            tt = mean(travel_time, na.rm = TRUE),
+        ) %>%
+        mutate(
+            truth = ifelse(segment == "Segment 1", tt1, tt2),
+            err = tt - truth
+        )
+    save(z, file = file)
+    z
+}
+
 
 pf1 <- function(d, n = 5000, seg, noise = 1, gps = 3) {
     nseg <- 0
