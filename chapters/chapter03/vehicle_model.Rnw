@@ -1,9 +1,420 @@
 \Sexpr{set_parent('particle_filter.Rnw')}
 
-\subsection{Real-time vehicle model}
+\section{Real-time vehicle model}
 \label{sec:vehicle_model}
 
-The vehicle model itself implements a simplified estimation of bus behaviour,
-allowing us to infer the vehicle's trajectory between consecutive observations.
-The foundation of this model is a simple dynamic vehicle tracking model,
-in which the vehicle's unknown state is infered
+Transit vehicle behaviour is both predictable and volatile.
+The trajectory of a bus servicing a trip is known,
+so the direction of travel---a major component in vehicle tracking---%
+is a non-issue.
+Instead, the main parameter of interest is the vehicle's speed,
+with which we can determine information about the congestion along roads.
+
+
+In this section, we describe the mechanics of bus behaviour,
+and how these are included in the final model.
+That is, we construct the transition function $f$.
+
+
+
+\subsection{General vehicle behaviour}
+\label{sec:vehicle_model_behaviour}
+
+We will be working with the following definition of the transition function
+for this part,
+\begin{equation}
+\label{eq:vtrans_general}
+\Vstate_k = \Vtrans(\Vstate_{k-1}, \Vtdiff_k, \Vnoise)
+\end{equation}
+where $\Vtdiff_k = \Vtime_k - \Vtime_{k-1}$
+and the system noise $\Vnoise$ is constant over time.
+
+We use a particle filter so we do not need to talk in terms of a distributions.
+Instead, in the section, we describe the motion of a particle, a unique ``imaginary'' vehicle.
+So, given a particle with state $\Vstate\vi_{k-1}$ at time $\Vtime_{k-1}$,
+we use Newton's Laws of Motion \cite{cn}
+to predict the state at time $\Vtime_k$
+after travelling for $\Vtdiff_k$ seconds.
+
+In the first model, A1, we assume a constant speed $\Vspeed_k$
+in the interval $(\Vtime_{k-1}, \Vtime_k)$,
+\begin{equation*}
+\Vspeed\vi_k \sim \TNormal{\Vspeed\vi_{k-1}}{\Vnoise}{0}{30}
+\end{equation*}
+where $\TNormal{\mu}{\sigma}{a}{b}$ is the normal distribution
+truncated to the interval $(a, b)$.
+In this case, we truncate the vehicle's speed to ensure it is
+both positive and under 30~m/s,
+which is 108~km/h (the maximum road speed in Auckland is 100~km/h).
+
+Having sampled a new speed (to ensure system variability, see \cref{sec:pf}),
+the particle can be transitioned forward,
+% as shown in \cref{fig:vtrans_general1},
+using the equation
+\begin{equation*}
+\Vdist\vi_k = \Vdist\vi_{k-1} + \Vtdiff_k\Vspeed\vi_k.
+\end{equation*}
+
+To compute the travel time along segments,
+blah blah blah.
+
+
+In the second model, A2, we allow the vehicle speed to follow a random walk
+between observations rather than remaining constant,
+% as shown in \cref{fig:vtrans_general2}.
+That is,
+\begin{equation*}
+\Vspeed\vi_s \sim \TNormal{\Vspeed\vi_{s-1}}{\Vnoise}{0}{30},\quad
+\Vtime_s \in (\Vtime_{k-1}, \Vtime_k]
+\end{equation*}
+Now, the distance is updated iteratively at the same time as the speed,
+\begin{equation*}
+\Vdist\vi_s = \Vdist\vi_{s-1} + \Vspeed\vi_s.
+\end{equation*}
+which also makes travel time computation easier:
+once the particle enters segment $\ell$ ($\Vdist\vi_s \geq \Tsegd_\ell$),
+the travel time $\Vtt\vi_\ell$ is incremented by one second each
+iteration until the particle leaves the segment
+($\Vdist\vi_s \geq \Tsegd_\ell + \Tseglen_\ell$).
+
+
+In the third model, A3, we add an additional parameter to the vehicle's state,
+the acceleration $\Vaccel_k$ at time $\Vtime_k$.
+This allows us to more realistically model the vehicle's behaviour,
+and it is this model we use to generate the simulated data below.
+Given an acceleration, we can update the vehicle's speed using
+\begin{equation*}
+\Vspeed\vi_s = \Vspeed\vi_{s-1} + \Vaccel\vi_{s}
+\end{equation*}
+We must truncate the acceleration distribution to ensure
+the vehicle's speed remains positive and under 30~m/s,
+which given the above equation yields the inequality
+\begin{equation*}
+0 \leq \Vspeed\vi_{s-1} + \Vaccel\vi_s \leq 30
+\end{equation*}
+so the acceleration distribution is
+\begin{equation*}
+\Vaccel\vi_s \sim \TNormal{\Vaccel\vi_{s-1}}{\Vnoise}{-\Vspeed\vi_{s-1}}{30 - \Vspeed\vi_{s-1}}
+\end{equation*}
+This model would be improved by placing additional constraints on the acceleration,
+for example to model acceleration and deceleration phases
+differently.
+However, as we will discuss later,
+such detail was unnecessary in the model
+due to the sparsity of the observations.
+The travel time computation for this model is the same as for A2.
+
+
+% <<vtrans_general,echo=FALSE,message=FALSE,fig.width=8,fig.height=1.5,fig.cap="Vehicle transition function for the three models.",fig.ncol=1,fig.subcap=c("Model A1", "Model A2", "Model A3")>>=
+% library(tidyverse)
+% set.seed(11)
+% d <-
+%     tibble(
+%         t = 0:10,
+%         v1 = 10,
+%         v2 = cumsum(c(10, rnorm(10, 0, 1)))
+%     )
+% set.seed(30)
+% d <- d %>% mutate(
+%         v3 = cumsum(
+%             c(10, cumsum(rnorm(10, 0, 0.5)))
+%         ),
+%         d1 = cumsum(v1),
+%         d2 = cumsum(v2),
+%         d3 = cumsum(v3)
+%     )
+% px <- ggplot(d, aes(t)) +
+%     theme_minimal() +
+%     theme(panel.grid = element_blank()) +
+%     xlab("Time") +
+%     scale_x_continuous(
+%         breaks = c(0, 10),
+%         labels = c(expression(t[k-1]), expression(t[k]))
+%     )
+% egg::ggarrange(
+%     px + geom_path(aes(y = d1)) + ylab("Distance") +
+%     scale_y_continuous(
+%         breaks = range(d$d1),
+%         labels = c(expression(x[k-1]), expression(x[k]))
+%     ),
+%     px + geom_path(aes(y = v1)) + ylab("Speed") +
+%     scale_y_continuous(
+%         breaks = range(d$v1),
+%         labels = c(expression(v[k-1]), '')
+%     ),
+%     nrow = 1
+% )
+% egg::ggarrange(
+%     px + geom_path(aes(y = d2)) + ylab("Distance") +
+%     scale_y_continuous(
+%         breaks = range(d$d2),
+%         labels = c(expression(x[k-1]), expression(x[k]))
+%     ),
+%     px + geom_path(aes(y = v2)) + ylab("Speed") +
+%     scale_y_continuous(
+%         breaks = d$v2[c(1, 11)],
+%         labels = c(expression(v[k]), expression(v[k-1]))
+%     ),
+%     nrow = 1
+% )
+% egg::ggarrange(
+%     px + geom_path(aes(y = d3)) + ylab("Distance") +
+%     scale_y_continuous(
+%         breaks = range(d$d3),
+%         labels = c(expression(x[k-1]), expression(x[k]))
+%     ),
+%     px + geom_path(aes(y = v3)) + ylab("Speed") +
+%     scale_y_continuous(
+%         breaks = d$v3[c(1, 11)],
+%         labels = c(expression(v[k-1]), expression(v[k]))
+%     ),
+%     nrow = 1
+% )
+% @
+
+
+\subsubsection{Simulation}
+
+<<sim1_gen,echo=FALSE,message=FALSE>>=
+source('sims.R')
+n <- 240
+seg1 <- c(600, 900)
+seg2 <- c(1200, 1500)
+s1 <- sim1(n = n, noise = 0.08)
+tt1 <- s1 %>% filter(between(x, seg1[1], seg1[2])) %>% pluck('t') %>% range %>% diff
+tt2 <- s1 %>% filter(between(x, seg2[1], seg2[2])) %>% pluck('t') %>% range %>% diff
+fcap1 <- sprintf(
+    'Simulated vehicle trajectory, with two road segments of interest. The first road segment from %d--%sm has travel time %.2fs, while the second from %s--%dm has travel time %.2fs',
+    seg1[1], seg1[2], tt1, seg2[1], seg2[2], tt2
+)
+fscap1 <- c(
+    "The simulated data.",
+    "Uniform, 10~s sampling.",
+    "Uniform, 30~s sampling.",
+    "Non-uniform sampling."
+)
+simnames <- c("Uniform (10s)", "Uniform (30s)", "Non-uniform")
+
+@
+
+
+To assess the performance of these models and compare their
+estimation of road travel times, we implemented a simple simulation.
+The simulated data, shown in \cref{fig:sim1_graph1},
+uses model A3 to simulate a vehicle trajectory,
+and uses several time point sampling methods:
+uniform sampling with high (\cref{fig:sim1_graph2})
+and low (\cref{fig:sim1_graph3}) frequency,
+and non-uniform sampling (\cref{fig:sim1_graph4}),
+which is more in line with how the Auckland Transport data is collected.
+
+
+The goal of the simulation is to estimate the travel time
+along a \Sexpr{diff(seg1)}~m ``road segment'' with constant traffic flow,
+and a \Sexpr{diff(seg2)}~m segment with congestion,
+denoted by the shaded regions in the figures below.
+The simulation was performed in R \citep{rcore}
+using $\Np = 2000$ particles per vehicle,
+and so the implementation is slightly different from the C++ one
+defined in \cref{sec:pf_implementation}.
+
+<<sim1_graph,echo=FALSE,fig.height=2,fig.width=4,out.width=".49\\linewidth",fig.cap=fcap1,fig.subcap=fscap1,fig.ncol=2>>=
+p1 <- s1 %>%
+    ggplot(aes(t)) +
+    geom_rect(aes(xmin = 0, xmax = n, ymin = seg1[1], ymax = seg1[2]),
+        data = NULL, fill = 'lightgray') +
+    geom_rect(aes(xmin = 0, xmax = n, ymin = seg2[1], ymax = seg2[2]),
+        data = NULL, fill = 'lightgray') +
+    theme_minimal() +
+    theme(panel.grid = element_blank()) +
+    xlab('Time (s)') + ylab('Distance (m)') +
+    ylim(0, max(s1$x)) + xlim(0, n)
+
+d1 <- s1 %>% filter(t %% 10 == 0)
+d2 <- s1 %>% filter(t %% 30 == 0)
+set.seed(3)
+delta <- cumsum(round(runif(10, 10, 40)))
+d3 <- s1 %>% filter(t %in% delta)
+
+p1 + geom_path(aes(y = x))
+p1 + geom_point(aes(y = x), data = d1)
+p1 + geom_point(aes(y = x), data = d2)
+p1 + geom_point(aes(y = x), data = d3)
+@
+
+<<sim1_pf,echo=FALSE,message=FALSE,warning=FALSE,fig.height=3,fig.width=8,out.width="\\linewidth",fig.cap="Simulation results for the three models (rows) applied to the data from three sampling methods (columns), using $\\Np=2000$ particles. Model A1 tended to underestimate the travel time, whilst models A2 and A3 gave quite similar results. As expected, the uniform high-frequency sampling gives the best estimate of travel time, while the other two result in significant uncertainty in travel times.",fig.ncol=1,fig.subcap=c(sprintf("Segment 1, with actual travel time of %ds (shown in red)", tt1), sprintf("Segment 2, with actual travel time of %ds (shown in red)", tt2))>>=
+set.seed(200)
+Nparticle = 2000
+sr1 <- pf1(d1, n = Nparticle, noise = 1, seg = list(seg1, seg2)) %>%
+    mutate(
+        s1 = ifelse(s1 > 0, s1, NA),
+        s2 = ifelse(s2 > 0, s2, NA)
+    ) %>%
+    select(s1, s2) %>%
+    gather(key = "segment", value = "travel_time") %>%
+    filter(!is.na(travel_time))
+
+sr2 <- pf1(d2, n = Nparticle, noise = 1, seg = list(seg1, seg2)) %>%
+    mutate(
+        s1 = ifelse(s1 > 0, s1, NA),
+        s2 = ifelse(s2 > 0, s2, NA)
+    ) %>%
+    select(s1, s2) %>%
+    gather(key = "segment", value = "travel_time") %>%
+    filter(!is.na(travel_time))
+
+sr3 <- pf1(d3, n = Nparticle, noise = 1, seg = list(seg1, seg2)) %>%
+    mutate(
+        s1 = ifelse(s1 > 0, s1, NA),
+        s2 = ifelse(s2 > 0, s2, NA)
+    ) %>%
+    select(s1, s2) %>%
+    gather(key = "segment", value = "travel_time") %>%
+    filter(!is.na(travel_time))
+
+S1 <- bind_rows(
+    sr1 %>% mutate(sim = simnames[1]),
+    sr2 %>% mutate(sim = simnames[2]),
+    sr3 %>% mutate(sim = simnames[3])
+) %>% mutate(
+        segment = fct_recode(segment, "Segment 1" = "s1", "Segment 2" = "s2"),
+        sim = fct_relevel(sim, simnames[1], simnames[2], simnames[3]),
+        model = "A1"
+    )
+    # ggplot(aes(travel_time))  +
+    # geom_histogram(bins = 30) +
+    # facet_grid(sim~segment, scales = "free_x")
+
+set.seed(200)
+sr1 <- pf2(d1, n = Nparticle, noise = 0.5, seg = list(seg1, seg2)) %>%
+    mutate(
+        s1 = ifelse(s1 > 0, s1, NA),
+        s2 = ifelse(s2 > 0, s2, NA)
+    ) %>%
+    select(s1, s2) %>%
+    gather(key = "segment", value = "travel_time") %>%
+    filter(!is.na(travel_time))
+
+sr2 <- pf2(d2, n = Nparticle, noise = 0.5, seg = list(seg1, seg2)) %>%
+    mutate(
+        s1 = ifelse(s1 > 0, s1, NA),
+        s2 = ifelse(s2 > 0, s2, NA)
+    ) %>%
+    select(s1, s2) %>%
+    gather(key = "segment", value = "travel_time") %>%
+    filter(!is.na(travel_time))
+
+sr3 <- pf2(d3, n = Nparticle, noise = 0.5, seg = list(seg1, seg2)) %>%
+    mutate(
+        s1 = ifelse(s1 > 0, s1, NA),
+        s2 = ifelse(s2 > 0, s2, NA)
+    ) %>%
+    select(s1, s2) %>%
+    gather(key = "segment", value = "travel_time") %>%
+    filter(!is.na(travel_time))
+
+S2 <- bind_rows(
+    sr1 %>% mutate(sim = simnames[1]),
+    sr2 %>% mutate(sim = simnames[2]),
+    sr3 %>% mutate(sim = simnames[3])
+) %>% mutate(
+        segment = fct_recode(segment, "Segment 1" = "s1", "Segment 2" = "s2"),
+        sim = fct_relevel(sim, simnames[1], simnames[2], simnames[3]),
+        model = "A2"
+    )
+    # ggplot(aes(travel_time))  +
+    # geom_histogram(bins = 30) +
+    # facet_grid(sim~segment, scales = "free_x")
+
+set.seed(200)
+sr1 <- pf3(d1, n = Nparticle, noise = 0.1, seg = list(seg1, seg2)) %>%
+    mutate(
+        s1 = ifelse(s1 > 0, s1, NA),
+        s2 = ifelse(s2 > 0, s2, NA)
+    ) %>%
+    select(s1, s2) %>%
+    gather(key = "segment", value = "travel_time") %>%
+    filter(!is.na(travel_time))
+
+sr2 <- pf3(d2, n = Nparticle, noise = 0.1, seg = list(seg1, seg2)) %>%
+    mutate(
+        s1 = ifelse(s1 > 0, s1, NA),
+        s2 = ifelse(s2 > 0, s2, NA)
+    ) %>%
+    select(s1, s2) %>%
+    gather(key = "segment", value = "travel_time") %>%
+    filter(!is.na(travel_time))
+
+sr3 <- pf3(d3, n = Nparticle, noise = 0.1, seg = list(seg1, seg2)) %>%
+    mutate(
+        s1 = ifelse(s1 > 0, s1, NA),
+        s2 = ifelse(s2 > 0, s2, NA)
+    ) %>%
+    select(s1, s2) %>%
+    gather(key = "segment", value = "travel_time") %>%
+    filter(!is.na(travel_time))
+
+S3 <- bind_rows(
+    sr1 %>% mutate(sim = simnames[1]),
+    sr2 %>% mutate(sim = simnames[2]),
+    sr3 %>% mutate(sim = simnames[3])
+) %>% mutate(
+        segment = fct_recode(segment, "Segment 1" = "s1", "Segment 2" = "s2"),
+        sim = fct_relevel(sim, simnames[1], simnames[2], simnames[3]),
+        model = "A3"
+    )
+
+S0 <- bind_rows(S1, S2, S3)
+
+ggplot(S0 %>% filter(segment == "Segment 1"), aes(travel_time))  +
+    geom_histogram(bins = 30) +
+    facet_grid(model~sim, scales = "free_y") +
+    theme_minimal() + theme(panel.grid = element_blank()) +
+    geom_vline(aes(xintercept = tt1), lty = 2, col = "red") +
+    scale_y_continuous(breaks = NULL) + ylab("")
+
+ggplot(S0 %>% filter(segment == "Segment 2"), aes(travel_time))  +
+    geom_histogram(bins = 30) +
+    facet_grid(model~sim, scales = "free_y") +
+    theme_minimal() + theme(panel.grid = element_blank()) +
+    geom_vline(aes(xintercept = tt2), lty = 2, col = "red") +
+    scale_y_continuous(breaks = NULL) + ylab("")
+@
+
+<<sim1_pf_full,echo=FALSE,message=FALSE>>=
+# do the whole thing over and over again
+n <- 240
+seg1 <- c(600, 900)
+seg2 <- c(1200, 1500)
+Nparticle <- 2000
+simnames <- c("Uniform (10s)", "Uniform (30s)", "Non-uniform")
+
+s00 <- lapply(1:100, function(seed) {
+    if (!dir.exists("sims")) dir.create("sims")
+    # cat("\n\n * Now running simulation", seed, " ... ")
+    x <- NULL
+    set.seed(seed)
+    while(is.null(x))
+        x <- doSim(n, seg1, seg2, Nparticle, simnames, seed = sample(1e9, 1))
+    x
+}) %>% bind_rows()
+
+s00 %>% filter(segment == "Segment 1") %>%
+    ggplot(aes(err)) +
+    geom_histogram() +
+    facet_grid(model~sim)
+@
+
+From these two model simulations,
+it is obvious that the preferred model is model A1
+with non-constant speed controlled by noise ("acceleration") each second.
+
+
+\subsection{Bus stops}
+\label{sec:vehicle_model_stops}
+
+
+\subsection{Intersections}
+\label{sec:vehicle_model_intersections}
+
+

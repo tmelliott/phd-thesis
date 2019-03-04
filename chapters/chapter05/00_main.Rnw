@@ -54,3 +54,8 @@ Now, we can calculate the sum of travel times easily,
 since $E(\sum_\ell B_\ell) = \sum_\ell E(B_\ell)$ and
 $Var(\sum_\ell B_\ell) = \sum_i \sum_j Cov(B_i, B_j)$,
 where $Cov(B_k, B_\ell) = \frac{\sum_i(b_k^{i} - \bar b_k)(b_\ell^{(i)} - \bar b_\ell)}{n-1}$.
+
+
+
+\Sexpr{knit_child('particle_etas.Rnw')}
+\Sexpr{knit_child('trip_eta_distributions.Rnw')}
