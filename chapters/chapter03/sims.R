@@ -68,7 +68,7 @@ doSim <- function(n, seg1, seg2, Nparticle, simnames, seed, fn) {
             select(s1, s2) %>%
             gather(key = "segment", value = "travel_time") %>%
             filter(!is.na(travel_time))
-    })
+    }, silent = TRUE)
     while(is.null(sr2) || inherits(sr2, "try-error")) try({
         badcount <- badcount + 1
         if (badcount > 100) return(NULL)
@@ -80,7 +80,7 @@ doSim <- function(n, seg1, seg2, Nparticle, simnames, seed, fn) {
             select(s1, s2) %>%
             gather(key = "segment", value = "travel_time") %>%
             filter(!is.na(travel_time))
-    })
+    }, silent = TRUE)
     while(is.null(sr3) || inherits(sr3, "try-error")) try({
         badcount <- badcount + 1
         if (badcount > 100) return(NULL)
@@ -92,7 +92,7 @@ doSim <- function(n, seg1, seg2, Nparticle, simnames, seed, fn) {
             select(s1, s2) %>%
             gather(key = "segment", value = "travel_time") %>%
             filter(!is.na(travel_time))
-    })
+    }, silent = TRUE)
     S1 <- bind_rows(
         sr1 %>% mutate(sim = simnames[1]),
         sr2 %>% mutate(sim = simnames[2]),
@@ -115,7 +115,7 @@ doSim <- function(n, seg1, seg2, Nparticle, simnames, seed, fn) {
             select(s1, s2) %>%
             gather(key = "segment", value = "travel_time") %>%
             filter(!is.na(travel_time))
-    })
+    }, silent = TRUE)
     while(is.null(sr2) || inherits(sr2, "try-error")) try({
         badcount <- badcount + 1
         if (badcount > 100) return(NULL)
@@ -127,7 +127,7 @@ doSim <- function(n, seg1, seg2, Nparticle, simnames, seed, fn) {
             select(s1, s2) %>%
             gather(key = "segment", value = "travel_time") %>%
             filter(!is.na(travel_time))
-    })
+    }, silent = TRUE)
     while(is.null(sr3) || inherits(sr3, "try-error")) try({
         badcount <- badcount + 1
         if (badcount > 100) return(NULL)
@@ -139,7 +139,7 @@ doSim <- function(n, seg1, seg2, Nparticle, simnames, seed, fn) {
             select(s1, s2) %>%
             gather(key = "segment", value = "travel_time") %>%
             filter(!is.na(travel_time))
-    })
+    }, silent = TRUE)
     S2 <- bind_rows(
         sr1 %>% mutate(sim = simnames[1]),
         sr2 %>% mutate(sim = simnames[2]),
@@ -162,7 +162,7 @@ doSim <- function(n, seg1, seg2, Nparticle, simnames, seed, fn) {
             select(s1, s2) %>%
             gather(key = "segment", value = "travel_time") %>%
             filter(!is.na(travel_time))
-    })
+    }, silent = TRUE)
     while(is.null(sr2) || inherits(sr2, "try-error")) try({
         badcount <- badcount + 1
         if (badcount > 100) return(NULL)
@@ -174,7 +174,7 @@ doSim <- function(n, seg1, seg2, Nparticle, simnames, seed, fn) {
             select(s1, s2) %>%
             gather(key = "segment", value = "travel_time") %>%
             filter(!is.na(travel_time))
-    })
+    }, silent = TRUE)
     while(is.null(sr3) || inherits(sr3, "try-error")) try({
         badcount <- badcount + 1
         if (badcount > 100) return(NULL)
@@ -186,7 +186,7 @@ doSim <- function(n, seg1, seg2, Nparticle, simnames, seed, fn) {
             select(s1, s2) %>%
             gather(key = "segment", value = "travel_time") %>%
             filter(!is.na(travel_time))
-    })
+    }, silent = TRUE)
     S3 <- bind_rows(
         sr1 %>% mutate(sim = simnames[1]),
         sr2 %>% mutate(sim = simnames[2]),
