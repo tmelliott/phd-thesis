@@ -381,7 +381,7 @@ ggplot(S0 %>% filter(segment == "Segment 2"), aes(travel_time))  +
     scale_y_continuous(breaks = NULL) + ylab("")
 @
 
-<<sim1_pf_full,echo=FALSE,message=FALSE>>=
+<<sim1_pf_full,echo=FALSE,message=FALSE,fig.width=8,fig.height=3,fig.cap="RMSE results for 100 simulations of each model and sampling method.">>=
 # do the whole thing over and over again
 n <- 240
 seg1 <- c(600, 900)
@@ -400,9 +400,11 @@ s00 <- lapply(1:100, function(seed) {
 }) %>% bind_rows()
 
 s00 %>% filter(segment == "Segment 1") %>%
-    ggplot(aes(err)) +
-    geom_histogram() +
-    facet_grid(model~sim)
+    group_by(model, sim) %>% summarize(rmse = median(rmse)) %>%
+    ggplot(aes(model, rmse)) +
+    geom_bar(stat = "identity") +
+    facet_wrap(~ sim) +
+    theme_minimal() + theme(panel.grid = element_blank())
 @
 
 From these two model simulations,
@@ -412,6 +414,70 @@ with non-constant speed controlled by noise ("acceleration") each second.
 
 \subsection{Bus stops}
 \label{sec:vehicle_model_stops}
+
+The main feature of transit vehicle behaviour that distinguishes it from
+other vehicle tracking applications is the presense of known stopping locations,
+or \emph{bus stops}.
+It is therefore an integral component of our model;
+however, modelling stopping behaviour in real-time is a difficult problem,
+particularly when the observations are sparse,
+or frequently observed (only) at bus stops (\cref{sec:realtime-data}).
+
+The typical behaviour is that, with some probability $\Prstop_m$,
+a bus servicing route $r$ will stop at bus stop $m \in \{1, \ldots, \Nstop_r\}$.
+In those situations when the bus does not stop,
+the behaviour follows the model described above (\cref{sec:vehicle_model_behaviour}).
+Conversely, when it does stop, it follows the following behaviour:
+\begin{enumerate}
+\item deceleration on approach to stop, doors open,
+\item passengers alight and board, and
+\item doors close, acceleration into traffic flow.
+\end{enumerate}
+Following the work by \cite{Hans_2015},
+steps 1 and 3 above are combined into a single constant parameter $\mindwell$,
+which represents the \emph{minimum dwell time} at a stop.
+
+The second step is modelled as the service time of the stop,
+that is the time to allow passengers to alight and board.
+As we have no real-time data on passenger counts available in Auckland,
+we rely on the flexibility of the particle filter to estimate
+dwell time in real-time.
+We are using a truncated normal distribution
+with mean $\mindwell + \dwell_m$ and variance $\dwellvar_m$,
+with a point mass of $1-\Prstop_m$ on zero,
+as shown in \cref{fig:eta_dwell_times}.
+
+<<eta_dwell_times, echo=FALSE, fig.height=5,fig.cap="Dwell time at bus stop $m$">>=
+gamma <- 10
+tau <- 20
+omega <- 10
+xx <- seq(gamma, 40, length.out = 1001)
+yy <- dnorm(xx, tau, omega)
+pi <- max(yy) * 0.8
+plot(xx, yy, type = "l", xlim = c(0, max(xx)), ylim = c(0, max(yy)),
+    xlab = "Dwell time", ylab = "Probability density",
+    xaxt = "n", yaxt = "n")
+lines(c(0, gamma), c(0, 0))
+points(gamma, yy[1], pch = 19)
+points(c(0, gamma), c(0, 0), pch = 21, bg = "white")
+points(0, pi, pch = 19)
+axis(2, at = c(0, pi), label = c(0, expression(1-pi[m])), las = 2)
+axis(1, at = c(0, gamma, tau), label = c(0, expression(gamma), expression(gamma + tau[m])))
+@
+
+So, for a given particle approaching stop $m$,
+the dwell time associated with that stop
+can be expressed as a function of
+\begin{equation*}
+\Istop\vi_m \sim \Bern{\Prstop_m}\quad\text{and}\quad
+\pserve\vi_m \sim \TNormal{\dwell_m}{\dwellvar_m}{\gamma}{\infty}
+\end{equation*}
+giving the dwell time $\pdwell\vi_m$ as
+\begin{equation}
+\label{eq:stop_dwell_time}
+\pdwell\vi_m = \Istop\vi_m (\mindwell + \pserve\vi_m)
+\end{equation}
+
 
 
 \subsection{Intersections}

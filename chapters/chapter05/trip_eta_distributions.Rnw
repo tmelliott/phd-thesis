@@ -11,7 +11,7 @@ and combining them to obtain \gls{eta} distributions.
 
 
 For a bus arriving at stop $s$ at time $t_k$, the arrival time at stop $j > s$, $A_j$,
-can be expressed as the sum of travel times between all intermediate stops, 
+can be expressed as the sum of travel times between all intermediate stops,
 $\tilde B_{m}$ and the dwell time at the,
 $D_m$, for $m = s, \ldots, j-1$.
 Thus,
@@ -20,10 +20,10 @@ Thus,
 A_j = t_k + \sum_{m = s}^{j-1} \tilde B_m + D_m
 \end{equation}
 
-For the travel times, 
+For the travel times,
 the distributions are calculated using the segments between them,
 which are created to be between nodes at intersections \emph{and} stops;
-therefore, the segment indices between stops $m$ and $m+1$ are 
+therefore, the segment indices between stops $m$ and $m+1$ are
 denoted $L_m = \{\ell, \ldots, \ell + k\}$ for $k\in \mathbb{Z}^+$.
 \begin{equation}
 \label{eq:stop_segment_times}
@@ -35,9 +35,9 @@ where $\beta_\ell$ was estimated in section~\ref{sec:nw_realtime},
 \mathrm{Var}(\beta_\ell) = E_{\ell\ell}
 \end{equation*}
 
-For dwell times, 
+For dwell times,
 we do not yet have any real-time model,
-however we will be using fixed values for their distribution 
+however we will be using fixed values for their distribution
 that can be estimated in future work.
 For each stop, the dwell time distribution at stop $m$ is defined by
 \begin{equation}
@@ -54,33 +54,16 @@ and $\pi_m$ is the probability that the bus stops.
 This is shown in figure~\ref{fig:eta_dwell_times}.
 
 % to be honest this will probably be moved to section 3
-<<eta_dwell_times, echo=FALSE, fig.height=5,fig.cap="Dwell time at bus stop">>=
-gamma <- 10
-tau <- 20
-omega <- 10
-xx <- seq(gamma, 40, length.out = 1001)
-yy <- dnorm(xx, tau, omega)
-pi <- max(yy) * 0.8
-plot(xx, yy, type = "l", xlim = c(0, max(xx)), ylim = c(0, max(yy)),
-    xlab = "Dwell time", ylab = "Probability density", 
-    xaxt = "n", yaxt = "n")
-lines(c(0, gamma), c(0, 0))
-points(gamma, yy[1], pch = 19)
-points(c(0, gamma), c(0, 0), pch = 21, bg = "white")
-points(0, pi, pch = 19)
-axis(2, at = c(0, pi), label = c(0, expression(1-pi)), las = 2)
-axis(1, at = c(0, gamma, tau), label = c(0, expression(gamma), expression(tau)))
-@
 
 
 If dwell time and stopping probability are independent,
-it is trivial to show that 
+it is trivial to show that
 \begin{equation*}
 \begin{split}
 \mathbb{E}(D_m) &= \gamma\pi_m + \pi_m\tau_m \\
-\mathrm{Var}(D_m) &= 
-    % \gamma^2\pi_m(1-\pi_m) + 
-    % \pi_m^2\omega_m^2 + \tau_m^2\pi_m(1-\pi_m) + 
+\mathrm{Var}(D_m) &=
+    % \gamma^2\pi_m(1-\pi_m) +
+    % \pi_m^2\omega_m^2 + \tau_m^2\pi_m(1-\pi_m) +
     % \pi_m(1-\pi_m)\omega_m^2 \\
     \pi\left(
         (1-\pi_m)(\gamma^2 + \tau_m^2) + \omega_m^2
@@ -107,20 +90,20 @@ we get
 \label{eq:eta_dist}
 \begin{split}
 \mathbb{E}(A_j) &=
-    t_k + 
+    t_k +
     \mathbb{E}\left(
         \sum_{m=s}^{j-1} \sum_{l\in L_m} \beta_\ell
-    \right) + 
+    \right) +
     \sum_{m=s}^{j-1} \mathbb{E}(D_m) \\
 \mathrm{Var}(A_j) &=
     \mathrm{Var}\left(
         \sum_{m=s}^{j-1} \sum_{l\in L_m} \beta_\ell
-    \right) + 
+    \right) +
     \sum_{m=s}^{j-1} \mathrm{Var}(D_m)
 \end{split}
 \end{equation}
 
-Mathmatically, the variance of the sum of random variables 
+Mathmatically, the variance of the sum of random variables
 is the sum of their variances plus the sum of all pairwise covariances.
 Computationally, this is the sum of all values in the relevant covariance matrix.
 Moreover, since we will be estimating arrival times for the sequence of stops

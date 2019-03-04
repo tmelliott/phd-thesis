@@ -1,4 +1,4 @@
-library(tidyverse)
+suppressPackageStartupMessages(library(tidyverse))
 sim1 <- function(n = 120, noise = 0.09, seed = 1) {
     set.seed(seed)
     x <- numeric(n+1)
@@ -197,13 +197,13 @@ doSim <- function(n, seg1, seg2, Nparticle, simnames, seed, fn) {
             model = "A3"
         )
     z <- bind_rows(S1, S2, S3) %>%
-        group_by(sim, model, segment) %>%
-        summarize(
-            tt = mean(travel_time, na.rm = TRUE),
-        ) %>%
         mutate(
             truth = ifelse(segment == "Segment 1", tt1, tt2),
-            err = tt - truth
+            err = (travel_time - truth)^2
+        ) %>%
+        group_by(sim, model, segment) %>%
+        summarize(
+            rmse = mean(err, na.rm = TRUE),
         )
     save(z, file = file)
     z
