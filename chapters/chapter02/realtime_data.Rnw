@@ -196,9 +196,9 @@ is the primary aim of this part of our work.
 % library(RSQLite)
 % library(dbplyr)
 % # protobuf ... uhg
-% dir <- setwd('../../data')
-% readProtoFiles("gtfs-realtime.proto")
-% setwd(dir)
+% #dir <- SET WD ('../../data')
+% #readProtoFiles("gtfs-realtime.proto")
+% #SET WD(dir)
 % gtfs <- file.path("..", "..", "data", "fulldata.db")
 % archive <- file.path("..", "..", "data", "archive.zip")
 % files <- unzip(archive, list = TRUE)
