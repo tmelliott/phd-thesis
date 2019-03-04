@@ -391,7 +391,7 @@ simnames <- c("Uniform (10s)", "Uniform (30s)", "Non-uniform")
 
 s00 <- lapply(1:100, function(seed) {
     if (!dir.exists("sims")) dir.create("sims")
-    mesage("\n\n * Now running simulation", seed, " ... ")
+    message(sprintf("\n* Now running simulation %d ...", seed))
     x <- NULL
     set.seed(seed)
     while(is.null(x))
