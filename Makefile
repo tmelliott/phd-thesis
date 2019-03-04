@@ -24,7 +24,7 @@ $(NAME).pdf: $(NAME).tex
 	@echo " * binding thesis"
 	@$(TEX) $(TEXOPTIONS) $<
 
-clean: $(NAME).tex
+clean: #$(NAME).tex
 	@-$(TEX) -pdf -c -f $(NAME).tex
 	@-rm -f $(NAME).tex
 	@-rm -f *.acr *.acn *.alg *.bbl *-blx.bib *.glg *.glo *.gls *.ist *.run.xml
