@@ -395,7 +395,7 @@ s00 <- lapply(1:100, function(seed) {
     x <- NULL
     set.seed(seed)
     while(is.null(x))
-        x <- doSim(n, seg1, seg2, Nparticle, simnames, seed = sample(1e9, 1))
+        x <- doSim(n, seg1, seg2, Nparticle, simnames, seed = sample(1e9, 1), fn = seed)
     x
 }) %>% bind_rows()
 

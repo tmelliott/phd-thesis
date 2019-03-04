@@ -27,8 +27,8 @@ sim1 <- function(n = 120, noise = 0.09, seed = 1) {
     )
 }
 
-doSim <- function(n, seg1, seg2, Nparticle, simnames, seed) {
-    file <- sprintf('sims/sim1_%s.rda', seed)
+doSim <- function(n, seg1, seg2, Nparticle, simnames, seed, fn) {
+    file <- sprintf('sims/sim1_%s.rda', fn)
     if (file.exists(file)) {
         load(file)
         if (!is.null(z)) return(z)
