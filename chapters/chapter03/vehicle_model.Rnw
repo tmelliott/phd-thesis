@@ -480,7 +480,11 @@ giving the dwell time $\pdwell\vi_m$ as
 
 
 
+
 \subsection{Intersections}
 \label{sec:vehicle_model_intersections}
 
-
+Unlike route paths and bus stops which are known,
+intersections are, for the most part, unknown,
+as there is no readily available, up-to-date information about
+the locations of intersections
