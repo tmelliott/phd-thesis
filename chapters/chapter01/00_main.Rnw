@@ -54,5 +54,48 @@ providing commuters with a more reliable answer to their question,
 
 
 
+\textbf{Old Stuff}
+
+
+Ever since the first use of an \gls{avl} technology in 1964, in Hamburg, Germany,
+it has become an integral part of most transit systems around the world
+\citep{TCRP_1997,TCRP_2003}.
+The first \gls{avl} systems used \emph{signpost} technology,
+in which buses are fitted with a transponder that communicates with
+sensors positioned along the route.
+Other technologies include \emph{odometers},
+which provide measurements of the distance traveled by a vehicle,
+and more commonly in recent years the \gls{gps}.
+
+
+In order to convert \gls{gps} coordinates into arrival time predictions,
+several steps need to be taken.
+The first of these is to estimate the \emph{actual state} of the bus,
+for example its speed and how far into the route it has traveled---%
+referred to as \emph{distance into trip}---%
+which is often estimated directly from the \gls{gps} coordinates
+(see \cref{sec:kalman-filter}),
+and needs to account for \gls{gps} error.
+The second step uses the estimated state
+to predict how long the bus will take to travel from its current position
+to a position farther along the route, usually a bus stop,
+referred to as \emph{travel time};
+given travel time and the current time,
+we can compute \emph{arrival time} at a stop.
+
+
+In this section, we give an overview of some of the models that have been used
+to generate real-time arrival time predictions,
+with particular focus on Kalman and particle filtering.
+We will briefly discuss some computer learning models which---%
+although we will not be using them---%
+cover important ground with respect to the important features of bus models.
+Following this, we will describe in detail some of the
+behaviours mentioned in the literature,
+and finally discuss the difficulties associated with deploying many of these methods,
+with particular mention of the type of data available.
+
+
+
 %%% the sections of this chapter
 \Sexpr{knit_child('01_literature.Rnw')}

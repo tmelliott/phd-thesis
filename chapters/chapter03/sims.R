@@ -1,4 +1,6 @@
 suppressPackageStartupMessages(library(tidyverse))
+
+source("vehicle_simulation.R")
 sim1 <- function(n = 120, noise = 0.09, seed = 1) {
     set.seed(seed)
     x <- numeric(n+1)
@@ -27,191 +29,166 @@ sim1 <- function(n = 120, noise = 0.09, seed = 1) {
     )
 }
 
-doSim <- function(n, seg1, seg2, Nparticle, simnames, seed, fn) {
+doSim <- function(Nparticle, simnames, seed, fn) {
     file <- sprintf('sims/sim1_%s.rda', fn)
     if (file.exists(file)) {
         load(file)
         if (!is.null(z)) return(z)
     }
-    s1 <- sim1(n = n, noise = 0.08, seed = seed)
-    if (max(s1$x) < max(seg2)) return(NULL)
-    tt1 <- s1 %>% filter(between(x, seg1[1], seg1[2])) %>% pluck('t') %>% range %>% diff
-    tt2 <- s1 %>% filter(between(x, seg2[1], seg2[2])) %>% pluck('t') %>% range %>% diff
-    d1 <- s1 %>% filter(t %% 10 == 0)
-    d2 <- s1 %>% filter(t %% 30 == 0)
-    delta <- cumsum(round(runif(10, 10, 40)))
-    d3 <- s1 %>% filter(t %in% delta)
+    s1 <- simulate_vehicle(seed = seed)
+    segs <- lapply(1:nrow(s1$segments),
+        function(i) s1$segments$distance[i] + c(0, s1$segments$length[i])
+    )
+    tt <- s1$segments$tt
 
-    badcount <- 0
-
-    # gp <- ggplot(s1, aes(t)) +
-    #     geom_rect(aes(xmin = 0, xmax = n, ymin = seg1[1], ymax = seg1[2]),
-    #         data = NULL, fill = 'lightgray') +
-    #     geom_rect(aes(xmin = 0, xmax = n, ymin = seg2[1], ymax = seg2[2]),
-    #         data = NULL, fill = 'lightgray') +
-    #     theme_minimal() +
-    #     theme(panel.grid = element_blank()) +
-    #     xlab('Time (s)') + ylab('Distance (m)') +
-    #     ylim(0, max(s1$x)) + xlim(0, n) +
-    #     geom_path(aes(y = x))
-    # print(gp)
-
-    sr1 <- sr2 <- sr3 <- NULL
-    while(is.null(sr1) || inherits(sr1, "try-error")) try({
-        badcount <- badcount + 1
-        if (badcount > 100) return(NULL)
-        sr1 <- pf1(d1, n = Nparticle, noise = 1, seg = list(seg1, seg2)) %>%
-            mutate(
-                s1 = ifelse(s1 > 0, s1, NA),
-                s2 = ifelse(s2 > 0, s2, NA)
+    S1 <- lapply(seq_along(s1$observations), function(i) {
+        sr <- NULL
+        badcount <- 0
+        while (is.null(sr) || inherits(sr, "try-error")) try({
+            badcount <- badcount + 1
+            if (badcount > 10) return(NULL)
+            sr <- pf1(s1$observations[[i]],
+                n = Nparticle,
+                noise = switch(i,
+                    0.2 + badcount / 100,
+                    0.1 + badcount / 100,
+                    1.0 + badcount / 20
+                ),
+                seg = segs
             ) %>%
-            select(s1, s2) %>%
-            gather(key = "segment", value = "travel_time") %>%
-            filter(!is.na(travel_time))
-    }, silent = TRUE)
-    while(is.null(sr2) || inherits(sr2, "try-error")) try({
-        badcount <- badcount + 1
-        if (badcount > 100) return(NULL)
-        sr2 <- pf1(d2, n = Nparticle, noise = 1, seg = list(seg1, seg2)) %>%
-            mutate(
-                s1 = ifelse(s1 > 0, s1, NA),
-                s2 = ifelse(s2 > 0, s2, NA)
-            ) %>%
-            select(s1, s2) %>%
-            gather(key = "segment", value = "travel_time") %>%
-            filter(!is.na(travel_time))
-    }, silent = TRUE)
-    while(is.null(sr3) || inherits(sr3, "try-error")) try({
-        badcount <- badcount + 1
-        if (badcount > 100) return(NULL)
-        sr3 <- pf1(d3, n = Nparticle, noise = 1, seg = list(seg1, seg2)) %>%
-            mutate(
-                s1 = ifelse(s1 > 0, s1, NA),
-                s2 = ifelse(s2 > 0, s2, NA)
-            ) %>%
-            select(s1, s2) %>%
-            gather(key = "segment", value = "travel_time") %>%
-            filter(!is.na(travel_time))
-    }, silent = TRUE)
-    S1 <- bind_rows(
-        sr1 %>% mutate(sim = simnames[1]),
-        sr2 %>% mutate(sim = simnames[2]),
-        sr3 %>% mutate(sim = simnames[3])
-    ) %>% mutate(
-            segment = fct_recode(segment, "Segment 1" = "s1", "Segment 2" = "s2"),
+                mutate(
+                    s1 = ifelse(s1 > 0, s1, NA),
+                    s2 = ifelse(s2 > 0, s2, NA),
+                    s3 = ifelse(s3 > 0, s3, NA),
+                    s4 = ifelse(s4 > 0, s4, NA),
+                    s5 = ifelse(s5 > 0, s5, NA),
+                ) %>%
+                select(s1, s2, s3, s4, s5) %>%
+                gather(key = "segment", value = "travel_time") %>%
+                filter(!is.na(travel_time)) %>%
+                mutate(sim = simnames[i])
+        }, silent = TRUE)
+        sr
+    }) %>%
+        bind_rows() %>%
+        mutate(
+            segment = fct_recode(segment,
+                "Segment 1" = "s1",
+                "Segment 2" = "s2",
+                "Segment 3" = "s3",
+                "Segment 4" = "s4",
+                "Segment 5" = "s5"
+            ),
             sim = fct_relevel(sim, simnames[1], simnames[2], simnames[3]),
             model = "A1"
         )
 
-    sr1 <- sr2 <- sr3 <- NULL
-    while(is.null(sr1) || inherits(sr1, "try-error")) try({
-        badcount <- badcount + 1
-        if (badcount > 100) return(NULL)
-        sr1 <- pf2(d1, n = Nparticle, noise = 0.5, seg = list(seg1, seg2)) %>%
-            mutate(
-                s1 = ifelse(s1 > 0, s1, NA),
-                s2 = ifelse(s2 > 0, s2, NA)
+    S2 <- lapply(seq_along(s1$observations), function(i) {
+        sr <- NULL
+        badcount <- 0
+        while (is.null(sr) || inherits(sr, "try-error")) try({
+            badcount <- badcount + 1
+            if (badcount > 10) return(NULL)
+            sr <- pf2(s1$observations[[i]],
+                n = Nparticle,
+                noise = switch(i,
+                    0.5 + badcount / 100,
+                    0.5 + badcount / 100,
+                    1.0 + badcount / 20
+                ),
+                seg = segs
             ) %>%
-            select(s1, s2) %>%
-            gather(key = "segment", value = "travel_time") %>%
-            filter(!is.na(travel_time))
-    }, silent = TRUE)
-    while(is.null(sr2) || inherits(sr2, "try-error")) try({
-        badcount <- badcount + 1
-        if (badcount > 100) return(NULL)
-        sr2 <- pf2(d2, n = Nparticle, noise = 0.5, seg = list(seg1, seg2)) %>%
-            mutate(
-                s1 = ifelse(s1 > 0, s1, NA),
-                s2 = ifelse(s2 > 0, s2, NA)
-            ) %>%
-            select(s1, s2) %>%
-            gather(key = "segment", value = "travel_time") %>%
-            filter(!is.na(travel_time))
-    }, silent = TRUE)
-    while(is.null(sr3) || inherits(sr3, "try-error")) try({
-        badcount <- badcount + 1
-        if (badcount > 100) return(NULL)
-        sr3 <- pf2(d3, n = Nparticle, noise = 0.5, seg = list(seg1, seg2)) %>%
-            mutate(
-                s1 = ifelse(s1 > 0, s1, NA),
-                s2 = ifelse(s2 > 0, s2, NA)
-            ) %>%
-            select(s1, s2) %>%
-            gather(key = "segment", value = "travel_time") %>%
-            filter(!is.na(travel_time))
-    }, silent = TRUE)
-    S2 <- bind_rows(
-        sr1 %>% mutate(sim = simnames[1]),
-        sr2 %>% mutate(sim = simnames[2]),
-        sr3 %>% mutate(sim = simnames[3])
-    ) %>% mutate(
-            segment = fct_recode(segment, "Segment 1" = "s1", "Segment 2" = "s2"),
+                mutate(
+                    s1 = ifelse(s1 > 0, s1, NA),
+                    s2 = ifelse(s2 > 0, s2, NA),
+                    s3 = ifelse(s3 > 0, s3, NA),
+                    s4 = ifelse(s4 > 0, s4, NA),
+                    s5 = ifelse(s5 > 0, s5, NA),
+                ) %>%
+                select(s1, s2, s3, s4, s5) %>%
+                gather(key = "segment", value = "travel_time") %>%
+                filter(!is.na(travel_time)) %>%
+                mutate(sim = simnames[i])
+        }, silent = TRUE)
+        sr
+    }) %>%
+        bind_rows() %>%
+        mutate(
+            segment = fct_recode(segment,
+                "Segment 1" = "s1",
+                "Segment 2" = "s2",
+                "Segment 3" = "s3",
+                "Segment 4" = "s4",
+                "Segment 5" = "s5"
+            ),
             sim = fct_relevel(sim, simnames[1], simnames[2], simnames[3]),
             model = "A2"
         )
 
-    sr1 <- sr2 <- sr3 <- NULL
-    while(is.null(sr1) || inherits(sr1, "try-error")) try({
-        badcount <- badcount + 1
-        if (badcount > 100) return(NULL)
-        sr1 <- pf3(d1, n = Nparticle, noise = 0.1, seg = list(seg1, seg2)) %>%
-            mutate(
-                s1 = ifelse(s1 > 0, s1, NA),
-                s2 = ifelse(s2 > 0, s2, NA)
+    S3 <- lapply(seq_along(s1$observations), function(i) {
+        sr <- NULL
+        badcount <- 0
+        while (is.null(sr) || inherits(sr, "try-error")) try({
+            badcount <- badcount + 1
+            if (badcount > 10) return(NULL)
+            sr <- pf3(s1$observations[[i]],
+                n = Nparticle,
+                noise = switch(i,
+                    0.1 + badcount / 100,
+                    0.5 + badcount / 50,
+                    0.5 + badcount / 50
+                ),
+                seg = segs
             ) %>%
-            select(s1, s2) %>%
-            gather(key = "segment", value = "travel_time") %>%
-            filter(!is.na(travel_time))
-    }, silent = TRUE)
-    while(is.null(sr2) || inherits(sr2, "try-error")) try({
-        badcount <- badcount + 1
-        if (badcount > 100) return(NULL)
-        sr2 <- pf3(d2, n = Nparticle, noise = 0.1, seg = list(seg1, seg2)) %>%
-            mutate(
-                s1 = ifelse(s1 > 0, s1, NA),
-                s2 = ifelse(s2 > 0, s2, NA)
-            ) %>%
-            select(s1, s2) %>%
-            gather(key = "segment", value = "travel_time") %>%
-            filter(!is.na(travel_time))
-    }, silent = TRUE)
-    while(is.null(sr3) || inherits(sr3, "try-error")) try({
-        badcount <- badcount + 1
-        if (badcount > 100) return(NULL)
-        sr3 <- pf3(d3, n = Nparticle, noise = 0.1, seg = list(seg1, seg2)) %>%
-            mutate(
-                s1 = ifelse(s1 > 0, s1, NA),
-                s2 = ifelse(s2 > 0, s2, NA)
-            ) %>%
-            select(s1, s2) %>%
-            gather(key = "segment", value = "travel_time") %>%
-            filter(!is.na(travel_time))
-    }, silent = TRUE)
-    S3 <- bind_rows(
-        sr1 %>% mutate(sim = simnames[1]),
-        sr2 %>% mutate(sim = simnames[2]),
-        sr3 %>% mutate(sim = simnames[3])
-    ) %>% mutate(
-            segment = fct_recode(segment, "Segment 1" = "s1", "Segment 2" = "s2"),
+                mutate(
+                    s1 = ifelse(s1 > 0, s1, NA),
+                    s2 = ifelse(s2 > 0, s2, NA),
+                    s3 = ifelse(s3 > 0, s3, NA),
+                    s4 = ifelse(s4 > 0, s4, NA),
+                    s5 = ifelse(s5 > 0, s5, NA),
+                ) %>%
+                select(s1, s2, s3, s4, s5) %>%
+                gather(key = "segment", value = "travel_time") %>%
+                filter(!is.na(travel_time)) %>%
+                mutate(sim = simnames[i])
+        }, silent = TRUE)
+        sr
+    }) %>%
+        bind_rows() %>%
+        mutate(
+            segment = fct_recode(segment,
+                "Segment 1" = "s1",
+                "Segment 2" = "s2",
+                "Segment 3" = "s3",
+                "Segment 4" = "s4",
+                "Segment 5" = "s5"
+            ),
             sim = fct_relevel(sim, simnames[1], simnames[2], simnames[3]),
             model = "A3"
         )
+
     z <- bind_rows(S1, S2, S3) %>%
         mutate(
-            truth = ifelse(segment == "Segment 1", tt1, tt2),
-            err = (travel_time - truth)^2
+            truth = tt[as.numeric(gsub("Segment ", "", segment,))]
         ) %>%
         group_by(sim, model, segment) %>%
         summarize(
-            rmse = mean(err, na.rm = TRUE),
+            estimate = mean(travel_time, na.rm = TRUE),
+            variance = var(travel_time, na.rm = TRUE),
+            rmse = mean((travel_time - truth)^2, na.rm = TRUE),
+            median = median(travel_time, na.rm = TRUE),
+            truth = first(truth)
         )
     save(z, file = file)
     z
 }
 
 
-pf1 <- function(d, n = 5000, seg, noise = 1, gps = 3) {
+pf1 <- function(d, n = 5000, seg, noise = 1, gps = 3, stops = range(start, end),
+                pi = 0.5, gamma = 6, tau = c(15, 5)) {
     nseg <- 0
+    start <- min(d$x)
+    end <- max(d$x)
     if (!missing(seg)) {
         nseg <- length(seg)
         start <- sapply(seg, function(x) x[1])
@@ -224,19 +201,43 @@ pf1 <- function(d, n = 5000, seg, noise = 1, gps = 3) {
     X[,1,1] <- 0
     X[,2,1] <- runif(n, 0, 30)
     for (i in 2:nrow(d)) {
+        curstop <- sapply(X[,1,i-1], function(x) tail(which(stops <= x), 1))
+        # initial wait time
+        wait <- pmin(round(ifelse(curstop > 1 & X[,1,i-1] == stops[curstop],
+            truncnorm::rtruncnorm(n, 0, Inf, tau[1], tau[2]),
+            0
+        )), delta[i])
+
         # distance based on prev speed (for plotting)
-        X[,1,i] <- X[,1,i-1] + delta[i] * X[,2,i-1]
+        X[,1,i] <- X[,1,i-1] + (delta[i] - wait) * X[,2,i-1]
+
+        # wait time if it passes a stop
+        wait <- pmin(wait + round(ifelse(curstop > 1 &
+                                    curstop + 1 < length(stops) &
+                                    X[,1,i] >= stops[curstop+1] &
+                                    runif(n) < pi,
+            gamma + truncnorm::rtruncnorm(n, 0, Inf, tau[1], tau[2]),
+            0
+        )), delta[i])
+        X[,1,i] <- X[,1,i-1] + (delta[i] - wait) * X[,2,i-1]
 
         if (nseg > 0) {
-            X[,2 + 1:nseg,i] <- t(apply(X[,,i-1], 1, est_tt,
-                start = start, end = end, dt = delta[i]))
+            X[,2 + 1:nseg,i] <- t(sapply(1:n, function(ii) {
+                est_tt(X[ii,,i-1],
+                    start = start, end = end, dt = delta[i] - wait[ii]
+                )
+            }))
         }
 
         # lhood
         wt <- dexp(((y[i] - X[,1,i]) / gps)^2, 0.5)
-        wt <- wt / sum(wt)
-        wi <- sample(n, replace = TRUE, prob = wt)
-        X[,,i] <- X[wi,,i]
+        if (sum(wt) > 0) {
+            wt <- wt / sum(wt)
+            wi <- sample(n, replace = TRUE, prob = wt)
+            X[,,i] <- X[wi,,i]
+        } else {
+            wt <- rep(1/n, n)
+        }
 
         # speed noise after resampling
         X[,2,i] <- truncnorm::rtruncnorm(n, 0, 30, X[wi,2,i-1], noise * delta[i])
@@ -257,8 +258,11 @@ pf1 <- function(d, n = 5000, seg, noise = 1, gps = 3) {
 }
 
 
-pf2 <- function(d, n = 5000, seg, noise = 0.01, gps = 3) {
+pf2 <- function(d, n = 5000, seg, noise = 0.01, gps = 3, stops = range(start, end),
+                pi = 0.5, gamma = 6, tau = c(15, 5)) {
     nseg <- 0
+    start <- min(d$x)
+    end <- max(d$x)
     if (!missing(seg)) {
         nseg <- length(seg)
         start <- sapply(seg, function(x) x[1])
@@ -269,27 +273,53 @@ pf2 <- function(d, n = 5000, seg, noise = 0.01, gps = 3) {
     y <- d$x
     delta <- c(0, diff(t))
     X[,1,1] <- 0
-    X[,2,1] <- runif(n, 0, 30)
+    X[,2,1] <- runif(n, 5, 25)
     for (i in 2:nrow(d)) {
+        curstop <- sapply(X[,1,i-1], function(x) tail(which(stops <= x), 1))
+        wait <- pmin(round(ifelse(curstop > 1 & X[,1,i-1] == stops[curstop],
+            truncnorm::rtruncnorm(n, 0, Inf, tau[1], tau[2]),
+            0
+        )), delta[i])
+
         # distance based on prev speed (for plotting)
         X[,,i] <- X[,,i-1]
         if (nseg > 0)
             for (j in 1:nseg)
                 X[, 2 + j, i] <- ifelse(X[, 2+j, i] > 0, NA, X[, 2+j, i])
 
-        for (j in 1:delta[i]) {
-            X[,2,i] <- truncnorm::rtruncnorm(1, 0, 30, X[,2,i], noise)
-            if (nseg > 0) {
-                X[,2 + 1:nseg,i] <- t(apply(X[,,i], 1, est_tt,
-                    start = start, end = end, dt = 1, keep = TRUE))
+        for (k in 1:n) {
+            j = 1
+            while (j <= delta[i] - wait[k]) {
+                j <- j + 1
+                X[k,2,i] <- truncnorm::rtruncnorm(1, 0, 30, X[k,2,i], noise)
+                if (nseg > 0) {
+                    X[k,2 + 1:nseg,i] <- est_tt(X[k,,i],
+                        start = start, end = end, dt = 1, keep = TRUE
+                    )
+                }
+                X[k,1,i] <- min(max(end), X[k,1,i] + X[k,2,i])
+
+                # potentially wait at stop
+                if (curstop[k] + 1 < length(stops) && X[k,1,i] >= stops[curstop[k]+1]) {
+                    curstop[k] <- curstop[k] + 1
+                    if (runif(1) < pi) {
+                        X[k,1,i] <- stops[curstop[k]]
+                        X[k,2,i] <- runif(1, 5, 25)
+                        j <- j + gamma + truncnorm::rtruncnorm(1, 0, Inf, tau[1], tau[2])
+                    }
+                }
             }
-            X[,1,i] <- X[,1,i] + X[,2,i]
         }
+
         # lhood
         wt <- dexp(((y[i] - X[,1,i]) / gps)^2, 0.5)
-        wt <- wt / sum(wt)
-        wi <- sample(n, replace = TRUE, prob = wt)
-        X[,,i] <- X[wi,,i]
+        if (sum(wt) > 0) {
+            wt <- wt / sum(wt)
+            wi <- sample(n, replace = TRUE, prob = wt)
+            X[,,i] <- X[wi,,i]
+        } else {
+            wt <- rep(1/n, n)
+        }
     }
     # reshape it ...
     segn <- NULL
@@ -308,8 +338,11 @@ pf2 <- function(d, n = 5000, seg, noise = 0.01, gps = 3) {
 }
 
 
-pf3 <- function(d, n = 5000, seg, noise = 0.5, gps = 3) {
+pf3 <- function(d, n = 5000, seg, noise = 0.5, gps = 3, stops = range(start, end),
+                pi = 0.5, gamma = 6, tau = c(15, 5)) {
     nseg <- 0
+    start <- min(d$x)
+    end <- max(d$x)
     if (!missing(seg)) {
         nseg <- length(seg)
         start <- sapply(seg, function(x) x[1])
@@ -323,29 +356,56 @@ pf3 <- function(d, n = 5000, seg, noise = 0.5, gps = 3) {
     X[,2,1] <- runif(n, 0, 30)
     X[,3,1] <- 0
     for (i in 2:nrow(d)) {
+        curstop <- sapply(X[,1,i-1], function(x) tail(which(stops <= x), 1))
+        wait <- pmin(round(ifelse(curstop > 1 & X[,1,i-1] == stops[curstop],
+            truncnorm::rtruncnorm(n, 0, Inf, tau[1], tau[2]),
+            0
+        )), delta[i])
+
         X[,,i] <- X[,,i-1]
         if (nseg > 0)
             for (j in 1:nseg)
                 X[, 3 + j, i] <-
                     ifelse(X[, 3 + j, i] > 0, NA, X[, 3 + j, i])
 
-        for (j in 1:delta[i]) {
-            # v + a < 30 & v + a > 0
-            # a < 30 - v & a > -v
-            v <- X[,2,i]
-            X[,3,i] <- truncnorm::rtruncnorm(1, -v, 30 - v, X[,3,i], noise)
-            X[,2,i] <- X[,2,i] + X[,3,i]
-            if (nseg > 0) {
-                X[, 3 + 1:nseg,i] <- t(apply(X[,,i], 1, est_tt,
-                    start = start, end = end, dt = 1, keep = TRUE, xdim = 3))
+
+        for (k in 1:n) {
+            j = 1
+            while (j <= delta[i] - wait[k]) {
+                j <- j + 1
+                # v + a < 30 & v + a > 0
+                # a < 30 - v & a > -v
+                v <- X[k,2,i]
+                X[k,3,i] <- truncnorm::rtruncnorm(1, -v, 30 - v, X[k,3,i], noise)
+                X[k,2,i] <- X[k,2,i] + X[k,3,i]
+                if (nseg > 0) {
+                    X[k, 3 + 1:nseg,i] <- est_tt(X[k,,i],
+                        start = start, end = end, dt = 1, keep = TRUE, xdim = 3
+                    )
+                }
+                X[k,1,i] <- X[k,1,i] + X[k,2,i]
+
+                # potentially wait at stop
+                if (curstop[k] + 1 < length(stops) && X[k,1,i] >= stops[curstop[k]+1]) {
+                    curstop[k] <- curstop[k] + 1
+                    if (runif(1) < pi) {
+                        X[k,1,i] <- stops[curstop[k]]
+                        X[k,2,i] <- runif(1, 5, 25)
+                        j <- j + gamma + truncnorm::rtruncnorm(1, 0, Inf, tau[1], tau[2])
+                    }
+                }
             }
-            X[,1,i] <- X[,1,i] + X[,2,i]
         }
+
         # lhood
         wt <- dexp(((y[i] - X[,1,i]) / gps)^2, 0.5)
-        wt <- wt / sum(wt)
-        wi <- sample(n, replace = TRUE, prob = wt)
-        X[,,i] <- X[wi,,i]
+        if (sum(wt) > 0) {
+            wt <- wt / sum(wt)
+            wi <- sample(n, replace = TRUE, prob = wt)
+            X[,,i] <- X[wi,,i]
+        } else {
+            wt <- rep(1/n, n)
+        }
     }
     # reshape it ...
     segn <- NULL
@@ -366,6 +426,7 @@ pf3 <- function(d, n = 5000, seg, noise = 0.5, gps = 3) {
 
 
 est_tt <- function(x, start, end, dt, keep = FALSE, xdim = 2) {
+    if (dt == 0) return(x[-(1:xdim)])
     for (i in seq_along(start)) {
         # starts after this segment, next segment
         if (x[1] >= end[i]) {
@@ -377,7 +438,7 @@ est_tt <- function(x, start, end, dt, keep = FALSE, xdim = 2) {
         if (xend < start[i]) break
         if (xend >= end[i]) {
             # ends past end of segment
-            if (x[1] < start[i]) {
+            if (x[1] <= start[i]) {
                 # starts before start of segment
                 # proportion of delta: pr.delta = pr.dist
                 # pr.dist = len(seg) / len(travelled)
@@ -389,7 +450,7 @@ est_tt <- function(x, start, end, dt, keep = FALSE, xdim = 2) {
             }
         } else {
             # ends before end of segment (so partial)
-            if (x[1] < start[i]) {
+            if (x[1] <= start[i]) {
                 # starts before start of segment
                 # pr.dist = len(tr in seg) / len(tr)
                 x[xdim + i] <- - dt * (xend - start[i]) / (xend - x[1])
@@ -400,4 +461,421 @@ est_tt <- function(x, start, end, dt, keep = FALSE, xdim = 2) {
         }
     }
     x[-(1:xdim)]
+}
+
+
+
+get_sim_1 <- function() {
+    f <- "sims/sim1.rda"
+    if (file.exists(f)) {
+        load(f)
+        return(S0)
+    }
+
+    set.seed(200)
+    Nparticle = 2000
+    sr1 <- pf1(s1$observations$high, n = Nparticle, noise = 0.2, seg = segs)
+
+    # ggplot(sr1, aes(t, x)) +
+    #     geom_point(aes(x = t + delta, y = xhat), col = "gray") +
+    #     geom_point() +
+    #     geom_point(data = s1$observations$high, col = "red", shape = 4)
+
+    sr1 <- sr1 %>%
+        mutate(
+            s1 = ifelse(s1 > 0, s1, NA),
+            s2 = ifelse(s2 > 0, s2, NA),
+            s3 = ifelse(s3 > 0, s3, NA),
+            s4 = ifelse(s4 > 0, s4, NA),
+            s5 = ifelse(s5 > 0, s5, NA),
+        ) %>%
+        select(s1, s2, s3, s4, s5) %>%
+        gather(key = "segment", value = "travel_time") %>%
+        filter(!is.na(travel_time))
+
+    sr2 <- pf1(s1$observations$low, n = Nparticle, noise = 0.1, seg = segs)
+
+    # ggplot(sr2, aes(t, x)) +
+    #     geom_point(aes(x = t + delta, y = xhat), col = "gray") +
+    #     geom_point() +
+    #     geom_point(data = s1$observations$low, col = "red", shape = 4)
+
+    sr2 <- sr2 %>%
+        mutate(
+            s1 = ifelse(s1 > 0, s1, NA),
+            s2 = ifelse(s2 > 0, s2, NA),
+            s3 = ifelse(s3 > 0, s3, NA),
+            s4 = ifelse(s4 > 0, s4, NA),
+            s5 = ifelse(s5 > 0, s5, NA),
+        ) %>%
+        select(s1, s2, s3, s4, s5) %>%
+        gather(key = "segment", value = "travel_time") %>%
+        filter(!is.na(travel_time))
+
+    sr3 <- pf1(s1$observations$waypoints, n = Nparticle, noise = 1, seg = segs)
+
+    # ggplot(sr3, aes(t, x)) +
+    #     geom_point(aes(x = t + delta, y = xhat), col = "gray") +
+    #     geom_point() +
+    #     geom_point(data = s1$observations$waypoints, col = "red", shape = 4)
+
+    sr3 <- sr3 %>%
+        mutate(
+            s1 = ifelse(s1 > 0, s1, NA),
+            s2 = ifelse(s2 > 0, s2, NA),
+            s3 = ifelse(s3 > 0, s3, NA),
+            s4 = ifelse(s4 > 0, s4, NA),
+            s5 = ifelse(s5 > 0, s5, NA),
+        ) %>%
+        select(s1, s2, s3, s4, s5) %>%
+        gather(key = "segment", value = "travel_time") %>%
+        filter(!is.na(travel_time))
+
+    S1 <- bind_rows(
+        sr1 %>% mutate(sim = simnames[1]),
+        sr2 %>% mutate(sim = simnames[2]),
+        sr3 %>% mutate(sim = simnames[3])
+    ) %>% mutate(
+            segment = fct_recode(segment,
+                "Segment 1" = "s1",
+                "Segment 2" = "s2",
+                "Segment 3" = "s3",
+                "Segment 4" = "s4",
+                "Segment 5" = "s5"
+            ),
+            sim = fct_relevel(sim, simnames[1], simnames[2], simnames[3]),
+            model = "A1"
+        )
+
+    # ggplot(S1, aes(travel_time))  +
+    #     geom_histogram(bins = 30) +
+    #     facet_grid(sim~segment, scales = "free_x")
+
+    set.seed(200)
+    sr1 <- pf2(s1$observations$high, n = Nparticle, noise = 0.5, seg = segs) %>%
+        mutate(
+            s1 = ifelse(s1 > 0, s1, NA),
+            s2 = ifelse(s2 > 0, s2, NA),
+            s3 = ifelse(s3 > 0, s3, NA),
+            s4 = ifelse(s4 > 0, s4, NA),
+            s5 = ifelse(s5 > 0, s5, NA),
+        ) %>%
+        select(s1, s2, s3, s4, s5) %>%
+        gather(key = "segment", value = "travel_time") %>%
+        filter(!is.na(travel_time))
+
+    sr2 <- pf2(s1$observations$low, n = Nparticle, noise = 1, seg = segs) %>%
+        mutate(
+            s1 = ifelse(s1 > 0, s1, NA),
+            s2 = ifelse(s2 > 0, s2, NA),
+            s3 = ifelse(s3 > 0, s3, NA),
+            s4 = ifelse(s4 > 0, s4, NA),
+            s5 = ifelse(s5 > 0, s5, NA),
+        ) %>%
+        select(s1, s2, s3, s4, s5) %>%
+        gather(key = "segment", value = "travel_time") %>%
+        filter(!is.na(travel_time))
+
+    sr3 <- pf2(s1$observations$waypoints, n = Nparticle, noise = 1, seg = segs) %>%
+        mutate(
+            s1 = ifelse(s1 > 0, s1, NA),
+            s2 = ifelse(s2 > 0, s2, NA),
+            s3 = ifelse(s3 > 0, s3, NA),
+            s4 = ifelse(s4 > 0, s4, NA),
+            s5 = ifelse(s5 > 0, s5, NA),
+        ) %>%
+        select(s1, s2, s3, s4, s5) %>%
+        gather(key = "segment", value = "travel_time") %>%
+        filter(!is.na(travel_time))
+
+    S2 <- bind_rows(
+        sr1 %>% mutate(sim = simnames[1]),
+        sr2 %>% mutate(sim = simnames[2]),
+        sr3 %>% mutate(sim = simnames[3])
+    ) %>% mutate(
+            segment = fct_recode(segment,
+                "Segment 1" = "s1",
+                "Segment 2" = "s2",
+                "Segment 3" = "s3",
+                "Segment 4" = "s4",
+                "Segment 5" = "s5"
+            ),
+            sim = fct_relevel(sim, simnames[1], simnames[2], simnames[3]),
+            model = "A2"
+        )
+    # ggplot(S2, aes(travel_time))  +
+    #     geom_histogram(bins = 30) +
+    #     facet_grid(sim~segment, scales = "free_x")
+
+    set.seed(200)
+    sr1 <- pf3(s1$observations$high, n = Nparticle, noise = 0.1, seg = segs) %>%
+        mutate(
+            s1 = ifelse(s1 > 0, s1, NA),
+            s2 = ifelse(s2 > 0, s2, NA),
+            s3 = ifelse(s3 > 0, s3, NA),
+            s4 = ifelse(s4 > 0, s4, NA),
+            s5 = ifelse(s5 > 0, s5, NA),
+        ) %>%
+        select(s1, s2, s3, s4, s5) %>%
+        gather(key = "segment", value = "travel_time") %>%
+        filter(!is.na(travel_time))
+
+    sr2 <- pf3(s1$observations$low, n = Nparticle, noise = 0.5, seg = segs) %>%
+        mutate(
+            s1 = ifelse(s1 > 0, s1, NA),
+            s2 = ifelse(s2 > 0, s2, NA),
+            s3 = ifelse(s3 > 0, s3, NA),
+            s4 = ifelse(s4 > 0, s4, NA),
+            s5 = ifelse(s5 > 0, s5, NA),
+        ) %>%
+        select(s1, s2, s3, s4, s5) %>%
+        gather(key = "segment", value = "travel_time") %>%
+        filter(!is.na(travel_time))
+
+    sr3 <- pf3(s1$observations$waypoints, n = Nparticle, noise = 0.5, seg = segs) %>%
+        mutate(
+            s1 = ifelse(s1 > 0, s1, NA),
+            s2 = ifelse(s2 > 0, s2, NA),
+            s3 = ifelse(s3 > 0, s3, NA),
+            s4 = ifelse(s4 > 0, s4, NA),
+            s5 = ifelse(s5 > 0, s5, NA),
+        ) %>%
+        select(s1, s2, s3, s4, s5) %>%
+        gather(key = "segment", value = "travel_time") %>%
+        filter(!is.na(travel_time))
+
+    S3 <- bind_rows(
+        sr1 %>% mutate(sim = simnames[1]),
+        sr2 %>% mutate(sim = simnames[2]),
+        sr3 %>% mutate(sim = simnames[3])
+    ) %>% mutate(
+            segment = fct_recode(segment,
+                "Segment 1" = "s1",
+                "Segment 2" = "s2",
+                "Segment 3" = "s3",
+                "Segment 4" = "s4",
+                "Segment 5" = "s5"
+            ),
+            sim = fct_relevel(sim, simnames[1], simnames[2], simnames[3]),
+            model = "A3"
+        )
+
+    S0 <- bind_rows(S1, S2, S3)
+
+    save(S0, file = f)
+    S0
+}
+
+
+get_sim_2 <- function() {
+    f <- "sims/sim2.rda"
+    if (file.exists(f)) {
+        load(f)
+        return(S0)
+    }
+
+    set.seed(2000)
+    Nparticle = 4000
+    sr1 <- pf1(s2$observations$high, n = Nparticle, noise = 0.5, seg = segs,
+        stops = s2$stops$distance)
+
+    # ggplot(sr1, aes(t, x)) +
+    #     geom_point() +
+    #     geom_point(data = s2$observations$high, col = "red", shape = 4)
+
+    sr1 <- sr1 %>%
+        mutate(
+            s1 = ifelse(s1 > 0, s1, NA),
+            s2 = ifelse(s2 > 0, s2, NA),
+            s3 = ifelse(s3 > 0, s3, NA),
+            s4 = ifelse(s4 > 0, s4, NA),
+            s5 = ifelse(s5 > 0, s5, NA),
+        ) %>%
+        select(s1, s2, s3, s4, s5) %>%
+        gather(key = "segment", value = "travel_time") %>%
+        filter(!is.na(travel_time))
+
+    sr2 <- pf1(s2$observations$low, n = Nparticle, noise = 0.5, seg = segs,
+        stops = s2$stops$distance)
+
+    # ggplot(sr2, aes(t, x)) +
+    #     geom_point() +
+    #     geom_point(data = s2$observations$low, col = "red", shape = 4)
+
+    sr2 <- sr2 %>%
+        mutate(
+            s1 = ifelse(s1 > 0, s1, NA),
+            s2 = ifelse(s2 > 0, s2, NA),
+            s3 = ifelse(s3 > 0, s3, NA),
+            s4 = ifelse(s4 > 0, s4, NA),
+            s5 = ifelse(s5 > 0, s5, NA),
+        ) %>%
+        select(s1, s2, s3, s4, s5) %>%
+        gather(key = "segment", value = "travel_time") %>%
+        filter(!is.na(travel_time))
+
+    sr3 <- pf1(s2$observations$waypoints, n = Nparticle, noise = 1, seg = segs,
+        stops = s2$stops$distance)
+
+    # ggplot(sr3, aes(t, x)) +
+    #     geom_point() +
+    #     geom_point(data = s2$observations$waypoints, col = "red", shape = 4)
+
+    sr3 <- sr3 %>%
+        mutate(
+            s1 = ifelse(s1 > 0, s1, NA),
+            s2 = ifelse(s2 > 0, s2, NA),
+            s3 = ifelse(s3 > 0, s3, NA),
+            s4 = ifelse(s4 > 0, s4, NA),
+            s5 = ifelse(s5 > 0, s5, NA),
+        ) %>%
+        select(s1, s2, s3, s4, s5) %>%
+        gather(key = "segment", value = "travel_time") %>%
+        filter(!is.na(travel_time))
+
+    S1 <- bind_rows(
+        sr1 %>% mutate(sim = simnames[1]),
+        sr2 %>% mutate(sim = simnames[2]),
+        sr3 %>% mutate(sim = simnames[3])
+    ) %>% mutate(
+            segment = fct_recode(segment,
+                "Segment 1" = "s1",
+                "Segment 2" = "s2",
+                "Segment 3" = "s3",
+                "Segment 4" = "s4",
+                "Segment 5" = "s5"
+            ),
+            sim = fct_relevel(sim, simnames[1], simnames[2], simnames[3]),
+            model = "A1"
+        )
+
+    # ggplot(S1, aes(travel_time))  +
+    #     geom_histogram(bins = 30) +
+    #     facet_grid(sim~segment, scales = "free_x")
+
+    set.seed(2000)
+    sr1 <- pf2(s2$observations$high, n = Nparticle, noise = 1, seg = segs,
+        stops = s2$stops$distance)
+
+    # ggplot(sr1, aes(t, x)) +
+    #     geom_point() +
+    #     geom_point(data = s2$observations$high, col = "red", shape = 4)
+
+    sr1 <- sr1 %>%
+        mutate(
+            s1 = ifelse(s1 > 0, s1, NA),
+            s2 = ifelse(s2 > 0, s2, NA),
+            s3 = ifelse(s3 > 0, s3, NA),
+            s4 = ifelse(s4 > 0, s4, NA),
+            s5 = ifelse(s5 > 0, s5, NA),
+        ) %>%
+        select(s1, s2, s3, s4, s5) %>%
+        gather(key = "segment", value = "travel_time") %>%
+        filter(!is.na(travel_time))
+
+
+    sr2 <- pf2(s2$observations$low, n = Nparticle, noise = 1, seg = segs,
+        stops = s2$stops$distance) %>%
+        mutate(
+            s1 = ifelse(s1 > 0, s1, NA),
+            s2 = ifelse(s2 > 0, s2, NA),
+            s3 = ifelse(s3 > 0, s3, NA),
+            s4 = ifelse(s4 > 0, s4, NA),
+            s5 = ifelse(s5 > 0, s5, NA),
+        ) %>%
+        select(s1, s2, s3, s4, s5) %>%
+        gather(key = "segment", value = "travel_time") %>%
+        filter(!is.na(travel_time))
+
+    sr3 <- pf2(s2$observations$waypoints, n = Nparticle, noise = 1, seg = segs,
+        stops = s2$stops$distance) %>%
+        mutate(
+            s1 = ifelse(s1 > 0, s1, NA),
+            s2 = ifelse(s2 > 0, s2, NA),
+            s3 = ifelse(s3 > 0, s3, NA),
+            s4 = ifelse(s4 > 0, s4, NA),
+            s5 = ifelse(s5 > 0, s5, NA),
+        ) %>%
+        select(s1, s2, s3, s4, s5) %>%
+        gather(key = "segment", value = "travel_time") %>%
+        filter(!is.na(travel_time))
+
+    S2 <- bind_rows(
+        sr1 %>% mutate(sim = simnames[1]),
+        sr2 %>% mutate(sim = simnames[2]),
+        sr3 %>% mutate(sim = simnames[3])
+    ) %>% mutate(
+            segment = fct_recode(segment,
+                "Segment 1" = "s1",
+                "Segment 2" = "s2",
+                "Segment 3" = "s3",
+                "Segment 4" = "s4",
+                "Segment 5" = "s5"
+            ),
+            sim = fct_relevel(sim, simnames[1], simnames[2], simnames[3]),
+            model = "A2"
+        )
+    ggplot(S2, aes(travel_time))  +
+        geom_histogram(bins = 30) +
+        facet_grid(sim~segment, scales = "free_x")
+
+    set.seed(2000)
+    sr1 <- pf3(s2$observations$high, n = Nparticle, noise = 0.1, seg = segs,
+        stops = s2$stops$distance) %>%
+        mutate(
+            s1 = ifelse(s1 > 0, s1, NA),
+            s2 = ifelse(s2 > 0, s2, NA),
+            s3 = ifelse(s3 > 0, s3, NA),
+            s4 = ifelse(s4 > 0, s4, NA),
+            s5 = ifelse(s5 > 0, s5, NA),
+        ) %>%
+        select(s1, s2, s3, s4, s5) %>%
+        gather(key = "segment", value = "travel_time") %>%
+        filter(!is.na(travel_time))
+
+    sr2 <- pf3(s2$observations$low, n = Nparticle, noise = 0.5, seg = segs,
+        stops = s2$stops$distance) %>%
+        mutate(
+            s1 = ifelse(s1 > 0, s1, NA),
+            s2 = ifelse(s2 > 0, s2, NA),
+            s3 = ifelse(s3 > 0, s3, NA),
+            s4 = ifelse(s4 > 0, s4, NA),
+            s5 = ifelse(s5 > 0, s5, NA),
+        ) %>%
+        select(s1, s2, s3, s4, s5) %>%
+        gather(key = "segment", value = "travel_time") %>%
+        filter(!is.na(travel_time))
+
+    sr3 <- pf3(s2$observations$waypoints, n = Nparticle, noise = 0.5, seg = segs,
+        stops = s2$stops$distance) %>%
+        mutate(
+            s1 = ifelse(s1 > 0, s1, NA),
+            s2 = ifelse(s2 > 0, s2, NA),
+            s3 = ifelse(s3 > 0, s3, NA),
+            s4 = ifelse(s4 > 0, s4, NA),
+            s5 = ifelse(s5 > 0, s5, NA),
+        ) %>%
+        select(s1, s2, s3, s4, s5) %>%
+        gather(key = "segment", value = "travel_time") %>%
+        filter(!is.na(travel_time))
+
+    S3 <- bind_rows(
+        sr1 %>% mutate(sim = simnames[1]),
+        sr2 %>% mutate(sim = simnames[2]),
+        sr3 %>% mutate(sim = simnames[3])
+    ) %>% mutate(
+            segment = fct_recode(segment,
+                "Segment 1" = "s1",
+                "Segment 2" = "s2",
+                "Segment 3" = "s3",
+                "Segment 4" = "s4",
+                "Segment 5" = "s5"
+            ),
+            sim = fct_relevel(sim, simnames[1], simnames[2], simnames[3]),
+            model = "A3"
+        )
+
+    S0 <- bind_rows(S1, S2, S3)
+    save(S0, file = f)
+    S0
 }
