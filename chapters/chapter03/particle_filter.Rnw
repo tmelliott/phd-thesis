@@ -1,4 +1,3 @@
-\Sexpr{set_parent('00_main.Rnw')}
 
 \section{Particle filter implementation}
 \label{sec:particle-filter}
@@ -6,4 +5,4 @@
 About how it's actually implemented using a particle filter,
 and the reasons why we chose that.
 
-\Sexpr{knit_child('pf_computation.Rnw')}
+\input{DIRNAME/pf_computation.tex}

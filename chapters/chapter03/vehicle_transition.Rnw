@@ -1,4 +1,3 @@
-\Sexpr{set_parent('particle_filter.Rnw')}
 
 \subsection{A model of vehicle dynamics}
 \label{sec:pf-transition}

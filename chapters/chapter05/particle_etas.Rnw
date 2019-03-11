@@ -1,4 +1,3 @@
-\Sexpr{set_parent('00_main.Rnw')}
 \section{Estimating the arrival time distribution}
 \label{sec:particle_etas}
 

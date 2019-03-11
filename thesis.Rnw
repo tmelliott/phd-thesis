@@ -240,13 +240,13 @@ The acknowledgments and the people to thank go here, don't forget to include you
 % Include the chapters of the thesis as separate files from the Chapters folder
 % Uncomment the lines as you write the chapters
 
-\Sexpr{knit_child('chapters/chapter01/00_main.Rnw')}
-\Sexpr{knit_child('chapters/chapter02/00_main.Rnw')}
-\Sexpr{knit_child('chapters/chapter03/00_main.Rnw')}
-\Sexpr{knit_child('chapters/chapter04/00_main.Rnw')}
-\Sexpr{knit_child('chapters/chapter05/00_main.Rnw')}
-\Sexpr{knit_child('chapters/chapter06/00_main.Rnw')}
-\Sexpr{knit_child('chapters/chapter07/00_main.Rnw')}
+\input{DIRNAME/chapters/chapter01/00_main.tex}
+\input{DIRNAME/chapters/chapter02/00_main.tex}
+\input{DIRNAME/chapters/chapter03/00_main.tex}
+\input{DIRNAME/chapters/chapter04/00_main.tex}
+\input{DIRNAME/chapters/chapter05/00_main.tex}
+\input{DIRNAME/chapters/chapter06/00_main.tex}
+\input{DIRNAME/chapters/chapter07/00_main.tex}
 
 
 %----------------------------------------------------------------------------------------

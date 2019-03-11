@@ -1,4 +1,3 @@
-\Sexpr{set_parent('00_main.Rnw')}
 
 \section{Trip arrival time distribution}
 \label{sec:trip_eta_dist}

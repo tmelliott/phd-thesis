@@ -1,4 +1,3 @@
-\Sexpr{set_parent('00_main.Rnw')}
 
 \section{Real-time vehicle data}
 \label{sec:realtime-data}

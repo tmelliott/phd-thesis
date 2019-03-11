@@ -29,7 +29,10 @@
                 "*.ist",
                 "*.synctex.gz",
                 "*.synctex.gz(busy)",
-                // "*.tex",
+                "thesis.tex",
+                "chapters/**/*.tex",
+                "endmatter/**/*.tex",
+                "frontmatter/**/*.tex",
                 "thesis.pdf",
             ],
 			"path": "."

@@ -1,4 +1,3 @@
-\Sexpr{set_parent('particle_filter.Rnw')}
 
 \section{Likelihood}
 \label{sec:pf-likelihood}
@@ -45,9 +44,10 @@ as it accounts for vehicle positions taken using a \gls{gps}.
 \subsection{GPS vehicle locations}
 \label{sec:lhood_gps}
 
-<<lhood_obs,echo=FALSE,fig.height=3,fig.width=8,fig.cap="Observations of vehicle on a simple path. The red points indicate the reported GPS positions, with circles indicating the GPS error associated with each observation. Observation Y1 is easy to map to the route, while Y2 is more complicated and has two plausible, distinct locations.">>=
+<<lhood_obs,message=FALSE,echo=FALSE,fig.height=3,fig.width=8,fig.cap="Observations of vehicle on a simple path. The red points indicate the reported GPS positions, with circles indicating the GPS error associated with each observation. Observation Y1 is easy to map to the route, while Y2 is more complicated and has two plausible, distinct locations.",cache=TRUE>>=
 # function from Y to X = h'(Y)
 library(tidyverse)
+
 # library(sf)
 path <- tibble(
     lng = c(0.0, 0.5, 2.0, 2.5, 3.0, 2.5, 3.0, 4.0, 5.0),
@@ -83,7 +83,7 @@ the inherent \gls{gps} error, $\GPSerr$,
 needs to be filtered out to get better estimates of vehicle state.
 Examples of positions are shown in \cref{fig:lhood_obs}.
 
-<<lhood_kf,echo=FALSE,fig.width=8,fig.height=2,fig.cap="Traditional \\kf{} update of the state.",fig.subcap=c("Observation is mapped to path (cross), and previous state in gray.", "Observation is projected into the state space, $Z_1 = H^{-1}Y_k$ (shown in red, width represents \"GPS error\"). The predicted state $X_{1|0}$ (in blue) calculated using the standard \\kf{} prediction step. Lower graph shows updated state $X_{1|1}$.", "The next observation is received and map matching used to find closest point on route (red cross); the updated state estimate from previous step is shown in gray.", "After projecting observation to the state space (red curve) and obtaining the predicted state (blue curve), the state can be updated.", "The final state is shown, but the state estimate is in neither of the road segments that were likely, which could be caused if the map matching was incorrect (i.e., it should have been matched to the other plausible point)."),fig.ncol=1>>=
+<<lhood_kf,echo=FALSE,fig.width=8,fig.height=2,fig.cap="Traditional \\kf{} update of the state.",fig.subcap=c("Observation is mapped to path (cross), and previous state in gray.", "Observation is projected into the state space, $Z_1 = H^{-1}Y_k$ (shown in red, width represents \"GPS error\"). The predicted state $X_{1|0}$ (in blue) calculated using the standard \\kf{} prediction step. Lower graph shows updated state $X_{1|1}$.", "The next observation is received and map matching used to find closest point on route (red cross); the updated state estimate from previous step is shown in gray.", "After projecting observation to the state space (red curve) and obtaining the predicted state (blue curve), the state can be updated.", "The final state is shown, but the state estimate is in neither of the road segments that were likely, which could be caused if the map matching was incorrect (i.e., it should have been matched to the other plausible point)."),fig.ncol=1,cache=TRUE>>=
 # the state
 X <- tibble(
     x = c(0, 20, 60),
@@ -177,8 +177,18 @@ plh +
     geom_point(aes(x = 2.97, y = 2.97),
         data = NULL, colour = "gray")
 
+@
+
+
+A particle's likelihood should represent the geographical \emph{closeness}
+of the estimated position to the vehicle's reported position.
+We therefore want the likelihood to depend on the
+\emph{distance between the observed and predicted} vehicle locations.
+
+<<gps_dist,echo=FALSE,cache=TRUE,fig.width.8,fig.height=4,fig.cap="GPS distance between two points">>=
 
 @
+
 
 \subsection{Trip updates}
 \label{sec:lhood_trip}

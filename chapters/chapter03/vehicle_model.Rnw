@@ -1,4 +1,3 @@
-\Sexpr{set_parent('particle_filter.Rnw')}
 
 \section{Real-time vehicle model}
 \label{sec:vehicle_model}

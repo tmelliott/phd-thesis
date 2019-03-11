@@ -1,4 +1,3 @@
-\Sexpr{set_parent('00_main.Rnw')}
 
 \section{GTFS}
 \label{sec:gtfs}

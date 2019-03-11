@@ -1,9 +1,8 @@
-\Sexpr{set_parent('../../thesis.Rnw')}
 
 \chapter{Transit network}
 \label{cha:network_model}
 
-\Sexpr{knit_child('network.Rnw')}
-\Sexpr{knit_child('realtime_model.Rnw')}
-\Sexpr{knit_child('parameter_estimation.Rnw')}
-\Sexpr{knit_child('historical_model.Rnw')}
+\input{DIRNAME/network.tex}
+\input{DIRNAME/realtime_model.tex}
+\input{DIRNAME/parameter_estimation.tex}
+\input{DIRNAME/historical_model.tex}

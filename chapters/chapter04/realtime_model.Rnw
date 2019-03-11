@@ -1,4 +1,3 @@
-\Sexpr{set_parent('00_main.Rnw')}
 
 \section{Real-time network model}
 \label{sec:nw_realtime}

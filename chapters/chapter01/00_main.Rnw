@@ -1,4 +1,3 @@
-\Sexpr{set_parent('../../thesis.Rnw')}
 
 \chapter{Introduction}
 \label{cha:intro}
@@ -98,4 +97,4 @@ with particular mention of the type of data available.
 
 
 %%% the sections of this chapter
-\Sexpr{knit_child('01_literature.Rnw')}
+\input{DIRNAME/01_literature.tex}

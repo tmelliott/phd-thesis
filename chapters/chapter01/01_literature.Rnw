@@ -1,4 +1,3 @@
-\Sexpr{set_parent('00_main.Rnw')}
 
 \section{On the evolution of bus prediction}
 \label{sec:literature}

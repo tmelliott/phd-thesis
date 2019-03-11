@@ -1,4 +1,3 @@
-\Sexpr{set_parent("main.Rnw")}
 
 \section{Segmentation of routes}
 \label{sec:route-segments}

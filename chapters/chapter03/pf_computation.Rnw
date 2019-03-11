@@ -1,4 +1,3 @@
-\Sexpr{set_parent('particle_filter.Rnw')}
 
 \subsection{Computational implementation}
 \label{sec:pf_implementation}

@@ -1,4 +1,3 @@
-\Sexpr{set_parent('../../thesis.Rnw')}
 
 \chapter{Modelling a transit vehicle}
 \label{cha:vehicle_model}
@@ -66,7 +65,7 @@ Finally, we discuss our implementation of the particle filter
 (section~\ref{sec:particle_flter}).
 
 
-\Sexpr{knit_child('vehicle_model.Rnw')}
-\Sexpr{knit_child('vehicle_likelihood.Rnw')}
-\Sexpr{knit_child('particle_filter.Rnw')}
+\input{DIRNAME/vehicle_model.tex}
+\input{DIRNAME/vehicle_likelihood.tex}
+\input{DIRNAME/particle_filter.tex}
 
