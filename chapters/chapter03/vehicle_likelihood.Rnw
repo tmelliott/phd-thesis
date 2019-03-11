@@ -3,8 +3,182 @@
 \section{Likelihood}
 \label{sec:pf-likelihood}
 
+In the previous section,
+the focus was the model used for the transition function $\Vtrans$,
+which is used to predict the future state of the vehicle
+given its last position update.
+This gives an estimate of
+$p(\Vstate_{k} | \Vstate_{k-1})$.
+In order to obtain the posterior distribution of
+the vehicle's state at time $\Vtime_k$,
+$p(\Vstate_k | \Vobs_{1:k})$,
+the estimate needs to be updated to account for the vehicles'
+reported position.
+In the \pf{}, as discussed in \cref{sec:pf},
+updating is performed by reweighting each of the particles
+based on their individual likelihoods, $p(\Vobs_k | \Vstate\vi_k)$,
+and then, if necessary, peforming weighted resampling with replacement
+(important resampling).
+
+
+The likelihood function is where the \pf{} shines in this application.
+In traditional models, such as the \kf{} implemented by the usual suspects
+\citep{Cathey_2003},
+it is necessary to transform the observations into the same space
+as the state;
+that is, from three dimensions (GPS coordinates are in 3D)
+to one dimension (distance, along a line, that just so happens to be in three dimensions).
+This ``map matching'' is a fundamentally difficult problem \citep{cn},
+and even more ruthlessly it completely throws away potentially important information.
+
+
+The \pf{} makes no such assumptions,
+and instead allows us to compare each particle directly to the bus,
+allowing us to ask \emph{is this particle plausible}?
+We can therefore formulate a likelihood function (two, infact)
+that are implicitely what one would describe if trying to explain things
+in the real world.
+The first likelihood function is the primary one of interest,
+as it accounts for vehicle positions taken using a \gls{gps}.
+
 
 \subsection{GPS vehicle locations}
+\label{sec:lhood_gps}
 
+<<lhood_obs,echo=FALSE,fig.height=3,fig.width=8,fig.cap="Observations of vehicle on a simple path. The red points indicate the reported GPS positions, with circles indicating the GPS error associated with each observation. Observation Y1 is easy to map to the route, while Y2 is more complicated and has two plausible, distinct locations.">>=
+# function from Y to X = h'(Y)
+library(tidyverse)
+# library(sf)
+path <- tibble(
+    lng = c(0.0, 0.5, 2.0, 2.5, 3.0, 2.5, 3.0, 4.0, 5.0),
+    lat = c(0.0, 2.0, 3.0, 3.5, 3.0, 2.5, 1.5, 2.0, 2.0)
+)
+
+Y <- tibble(
+    lng = c(0.5, 2.75),
+    lat = c(1.5, 3.05),
+    lab = paste0("Y", 1:2),
+    match.lng = c(0.39, 2.825),
+    match.lat = c(1.55, 3.175)
+)
+
+# pth <- st_linestring(path %>% as.matrix)
+# pts <- st_point()
+
+plh <- ggplot(path, aes(lng, lat)) +
+    geom_path() +
+    scale_x_continuous(breaks = NULL) + xlab("Longitude") +
+    scale_y_continuous(breaks = NULL) + ylab("Latitude") +
+    theme(panel.grid = element_blank()) +
+    theme_minimal() +
+    coord_fixed(0.5)
+plh +
+    geom_point(data = Y, col = "orangered") +
+    geom_point(data = Y, col = "orangered", pch = 21, size = 15) +
+    geom_text(aes(label = lab), data = Y, nudge_x = 0.1)
+@
+
+For the \gls{gps} location update,
+the inherent \gls{gps} error, $\GPSerr$,
+needs to be filtered out to get better estimates of vehicle state.
+Examples of positions are shown in \cref{fig:lhood_obs}.
+
+<<lhood_kf,echo=FALSE,fig.width=8,fig.height=2,fig.cap="Traditional \\kf{} update of the state.",fig.subcap=c("Observation is mapped to path (cross), and previous state in gray.", "Observation is projected into the state space, $Z_1 = H^{-1}Y_k$ (shown in red, width represents \"GPS error\"). The predicted state $X_{1|0}$ (in blue) calculated using the standard \\kf{} prediction step. Lower graph shows updated state $X_{1|1}$.", "The next observation is received and map matching used to find closest point on route (red cross); the updated state estimate from previous step is shown in gray.", "After projecting observation to the state space (red curve) and obtaining the predicted state (blue curve), the state can be updated.", "The final state is shown, but the state estimate is in neither of the road segments that were likely, which could be caused if the map matching was incorrect (i.e., it should have been matched to the other plausible point)."),fig.ncol=1>>=
+# the state
+X <- tibble(
+    x = c(0, 20, 60),
+    xhat = c(NA, 15, 50),
+    p = c(5, 6, 15),
+    phat = c(NA, 8, 20)
+)
+
+KF <- function(x, p, z, r) {
+    k <- p / (r + p)
+    c(x + k * (z - x), (1 - k)^2 * p + k^2 * r)
+}
+x0 <- c(10, 3)
+z1 <- c(50, 5)
+x1hat <- c(55, 4)
+x1 <- KF(x1hat[1], x1hat[2], z1[1], z1[2])
+z2 <- c(150, 5)
+x2hat <- c(160, 10)
+x2 <- KF(x2hat[1], x2hat[2], z2[1], z2[2])
+X <- tibble(x = seq(0, 200, length = 1001)) %>%
+    mutate(
+        y_x0 = dnorm(x, x0[1], x0[2]),
+        y_z1 = dnorm(x, z1[1], z1[2]),
+        y_x1hat = dnorm(x, x1hat[1], x1hat[2]),
+        y_x1 = dnorm(x, x1[1], x1[2]),
+        y_z2 = dnorm(x, z2[1], z2[2]),
+        y_x2hat = dnorm(x, x2hat[1], x2hat[2]),
+        y_x2 = dnorm(x, x2[1], x2[2])
+    )
+
+vs <- ggplot(X, aes(x = x)) +
+    geom_segment(aes(x = 0, xend = max(X$x), y = 0, yend = 0), lwd = 0.2) +
+    theme(panel.grid = element_blank()) +
+    theme_minimal() +
+    scale_y_continuous(breaks = NULL) + ylab("") +
+    scale_x_continuous(breaks = NULL) + xlab("Distance travelled (m)")
+
+plh + geom_point(data = Y[1,], col = "orangered") +
+    geom_point(aes(match.lng, match.lat),
+        data = Y[1,], col = "orangered", shape = 4) +
+    geom_point(aes(x = 0.5/4, y = 2/5),
+        data = NULL, colour = "gray")
+
+egg::ggarrange(
+    vs +
+        geom_area(aes(y = y_x0), fill = "gray") +
+        geom_area(aes(y = y_z1), fill = "orangered", alpha = 0.5) +
+        geom_area(aes(y = y_x1hat), fill = "steelblue", alpha = 0.5) +
+        annotate(geom = "text", x = x0[1] - 8, y = max(X$y_x0) * 0.9,
+            label = "X[0]", parse = TRUE, size = 5) +
+        annotate(geom = "text", x = z1[1] - 5, y = max(X$y_z1) * 1.1,
+            label = "Z[1]", parse = TRUE, size = 5) +
+        annotate(geom = "text", x = x1hat[1] + 7, y = max(X$y_x1hat) * 1.1,
+            label = "X[1*group('|',0,'.')]", parse = TRUE, size = 5),
+    vs +
+        geom_area(aes(y = y_x1), fill = "gray") +
+        annotate(geom = "text", x = x1[1] + 8, y = max(X$y_x1) * 0.8,
+            label = "X[1*group('|',1,'.')]", parse = TRUE, size = 5),
+    ncol = 1
+)
+
+plh +
+    geom_point(data = Y[1,], col = "orangered") +
+    geom_point(data = Y[2,], col = "orangered") +
+    geom_point(aes(match.lng, match.lat),
+        data = Y[2,], col = "orangered", shape = 4) +
+    geom_point(aes(x = 0.4, y = 1.56),
+        data = NULL, colour = "gray")
+
+egg::ggarrange(
+    vs +
+        geom_area(aes(y = y_x1), fill = "gray") +
+        geom_area(aes(y = y_z2), fill = "orangered", alpha = 0.5) +
+        geom_area(aes(y = y_x2hat), fill = "steelblue", alpha = 0.5) +
+        annotate(geom = "text", x = x1[1] - 5, y = max(X$y_x1) * 0.9,
+            label = "X[1]", parse = TRUE, size = 5) +
+        annotate(geom = "text", x = z2[1] - 5, y = max(X$y_z2) * 1.3,
+            label = "Z[2]", parse = TRUE, size = 5) +
+        annotate(geom = "text", x = x2hat[1] + 7, y = max(X$y_x2hat) * 1.4,
+            label = "X[2*group('|',1,'.')]", parse = TRUE, size = 5),
+    vs +
+        geom_area(aes(y = y_x2), fill = "gray") +
+        annotate(geom = "text", x = x2[1] + 8, y = max(X$y_x2) * 0.8,
+            label = "X[2*group('|',2,'.')]", parse = TRUE, size = 5),
+    ncol = 1
+)
+
+plh +
+    geom_point(data = Y[1,], col = "orangered") +
+    geom_point(data = Y[2,], col = "orangered") +
+    geom_point(aes(x = 2.97, y = 2.97),
+        data = NULL, colour = "gray")
+
+
+@
 
 \subsection{Trip updates}
+\label{sec:lhood_trip}

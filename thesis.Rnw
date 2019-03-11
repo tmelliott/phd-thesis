@@ -96,7 +96,7 @@ headsepline, % Uncomment to get a line under the header
 }
 
 \usepackage{hyperref}
-\usepackage{cleveref}
+\usepackage[noabbrev]{cleveref}
 
 \usepackage{subfig}
 

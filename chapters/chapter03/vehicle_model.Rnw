@@ -105,74 +105,6 @@ due to the sparsity of the observations.
 The travel time computation for this model is the same as for A2.
 
 
-% <<vtrans_general,echo=FALSE,message=FALSE,fig.width=8,fig.height=1.5,fig.cap="Vehicle transition function for the three models.",fig.ncol=1,fig.subcap=c("Model A1", "Model A2", "Model A3")>>=
-% library(tidyverse)
-% set.seed(11)
-% d <-
-%     tibble(
-%         t = 0:10,
-%         v1 = 10,
-%         v2 = cumsum(c(10, rnorm(10, 0, 1)))
-%     )
-% set.seed(30)
-% d <- d %>% mutate(
-%         v3 = cumsum(
-%             c(10, cumsum(rnorm(10, 0, 0.5)))
-%         ),
-%         d1 = cumsum(v1),
-%         d2 = cumsum(v2),
-%         d3 = cumsum(v3)
-%     )
-% px <- ggplot(d, aes(t)) +
-%     theme_minimal() +
-%     theme(panel.grid = element_blank()) +
-%     xlab("Time") +
-%     scale_x_continuous(
-%         breaks = c(0, 10),
-%         labels = c(expression(t[k-1]), expression(t[k]))
-%     )
-% egg::ggarrange(
-%     px + geom_path(aes(y = d1)) + ylab("Distance") +
-%     scale_y_continuous(
-%         breaks = range(d$d1),
-%         labels = c(expression(x[k-1]), expression(x[k]))
-%     ),
-%     px + geom_path(aes(y = v1)) + ylab("Speed") +
-%     scale_y_continuous(
-%         breaks = range(d$v1),
-%         labels = c(expression(v[k-1]), '')
-%     ),
-%     nrow = 1
-% )
-% egg::ggarrange(
-%     px + geom_path(aes(y = d2)) + ylab("Distance") +
-%     scale_y_continuous(
-%         breaks = range(d$d2),
-%         labels = c(expression(x[k-1]), expression(x[k]))
-%     ),
-%     px + geom_path(aes(y = v2)) + ylab("Speed") +
-%     scale_y_continuous(
-%         breaks = d$v2[c(1, 11)],
-%         labels = c(expression(v[k]), expression(v[k-1]))
-%     ),
-%     nrow = 1
-% )
-% egg::ggarrange(
-%     px + geom_path(aes(y = d3)) + ylab("Distance") +
-%     scale_y_continuous(
-%         breaks = range(d$d3),
-%         labels = c(expression(x[k-1]), expression(x[k]))
-%     ),
-%     px + geom_path(aes(y = v3)) + ylab("Speed") +
-%     scale_y_continuous(
-%         breaks = d$v3[c(1, 11)],
-%         labels = c(expression(v[k-1]), expression(v[k]))
-%     ),
-%     nrow = 1
-% )
-% @
-
-
 \subsubsection{Simulation}
 
 <<sim1_gen,echo=FALSE,message=FALSE>>=
@@ -190,7 +122,6 @@ fscap1 <- c(
     "Observations at bus stops and intersections."
 )
 simnames <- c("Uniform (10s)", "Uniform (30s)", "Waypoints")
-
 @
 
 
@@ -229,20 +160,33 @@ p1 + geom_point(aes(t, x), data = s1$observations$low)
 p1 + geom_point(aes(t, x), data = s1$observations$waypoints)
 @
 
-<<sim1_pf,echo=FALSE,message=FALSE,warning=FALSE,fig.height=2,fig.width=8,out.width="\\linewidth",fig.cap="Simulation results for the three models (rows) applied to the data from three sampling methods (columns), using $\\Np=2000$ particles. Model A1 tended to underestimate the travel time, whilst models A2 and A3 gave quite similar results. As expected, the uniform high-frequency sampling gives the best estimate of travel time, while the other two result in significant uncertainty in travel times.",fig.ncol=1,fig.subcap=paste("Segment", 1:5)>>=
+<<sim1_pf,echo=FALSE,message=FALSE,warning=FALSE,fig.height=5,fig.width=8,out.width="\\linewidth",fig.cap="Simulation results for the three models (rows) applied to the data from three sampling methods (columns), using $\\Np=2000$ particles. Model A1 tended to underestimate the travel time, whilst models A2 and A3 gave quite similar results. As expected, the uniform high-frequency sampling gives the best estimate of travel time, while the other two result in significant uncertainty in travel times.">>=
 S0 <- get_sim_1()
-for (i in 1:5) {
-    print(
-        S0 %>% filter(segment == sprintf("Segment %d", i)) %>%
-            ggplot(aes(travel_time, fill = model)) +
-            geom_histogram(bins = 30) +
-            facet_grid(model~sim) +
-            theme_minimal() + theme(panel.grid = element_blank()) +
-            geom_vline(xintercept = tt[i], col = "gray", lty = 2) +
-            scale_y_continuous(breaks = NULL) +
-            xlab("Travel time (s)") + ylab("Frequency")
-    )
-}
+# for (i in 1:5) {
+#     print(
+#         S0 %>% filter(segment == sprintf("Segment %d", i)) %>%
+#             ggplot(aes(travel_time, fill = model)) +
+#             geom_histogram(bins = 30) +
+#             facet_grid(model~sim) +
+#             theme_minimal() + theme(panel.grid = element_blank()) +
+#             geom_vline(xintercept = tt[i], col = "gray", lty = 2) +
+#             scale_y_continuous(breaks = NULL) +
+#             xlab("Travel time (s)") + ylab("Frequency")
+#     )
+# }
+S0 %>%
+    mutate(
+        truth = tt[as.numeric(gsub("Segment ", "", segment))]
+    ) %>%
+    ggplot(aes(model, travel_time - truth, fill = model)) +
+    geom_violin() +
+    # geom_histogram(bins = 30) +
+    facet_grid(segment ~ sim,  scales = "free_y") +
+    theme_minimal() + theme(panel.grid = element_blank()) +
+    geom_hline(yintercept = 0, col = "gray", lty = 2) +
+    # scale_y_continuous(breaks = NULL) +
+    ylab("Particle travel time - actual travel time (s)") +
+    xlab("Model")
 @
 
 <<sim1_pf_full,echo=FALSE,message=FALSE,warning=FALSE,fig.width=8,fig.height=4,fig.cap="Travel time estimation results for 100 simulations, in which each the vehicle trajectory is simulated using a different seed, and the travel time estimate is taken as the mean of the particle travel times along each segment.">>=
@@ -309,22 +253,28 @@ with mean $\mindwell + \dwell_m$ and variance $\dwellvar_m$,
 with a point mass of $1-\Prstop_m$ on zero,
 as shown in \cref{fig:eta_dwell_times}.
 
-<<eta_dwell_times, echo=FALSE, fig.height=5,fig.cap="Dwell time at bus stop $m$">>=
+<<eta_dwell_times, echo=FALSE, fig.height=3,fig.cap="Dwell time at bus stop $m$">>=
 gamma <- 10
 tau <- 20
 omega <- 10
 xx <- seq(gamma, 40, length.out = 1001)
 yy <- dnorm(xx, tau, omega)
 pi <- max(yy) * 0.8
-plot(xx, yy, type = "l", xlim = c(0, max(xx)), ylim = c(0, max(yy)),
-    xlab = "Dwell time", ylab = "Probability density",
-    xaxt = "n", yaxt = "n")
-lines(c(0, gamma), c(0, 0))
-points(gamma, yy[1], pch = 19)
-points(c(0, gamma), c(0, 0), pch = 21, bg = "white")
-points(0, pi, pch = 19)
-axis(2, at = c(0, pi), label = c(0, expression(1-pi[m])), las = 2)
-axis(1, at = c(0, gamma, tau), label = c(0, expression(gamma), expression(gamma + tau[m])))
+tibble(x = xx, y = yy) %>%
+    ggplot(aes(x, y)) +
+    geom_path() +
+    geom_segment(aes(x = 0, y = 0, xend = gamma, yend = 0), data = NULL) +
+    geom_point(data = tibble(x = c(0, gamma), y = c(0, 0)),
+        shape = 21, fill = "white") +
+    geom_point(data = tibble(x = c(0, gamma), y = c(pi, yy[1])),
+        shape = 19) +
+    xlab("Dwell time") + ylab("Probability density") +
+    scale_x_continuous(breaks = c(0, gamma, tau),
+        labels = c(0, expression(gamma), expression(gamma + tau[m]))) +
+    scale_y_continuous(breaks = c(0, pi),
+        labels = c(0, expression(1 - pi[m]))) +
+    theme_minimal() +
+    theme(panel.grid = element_blank())
 @
 
 So, for a given particle approaching stop $m$,
@@ -342,8 +292,6 @@ giving the dwell time $\pdwell\vi_m$ as
 
 
 \subsubsection{Simulation}
-
-And now we simulate some models with stopping at bus stops.
 
 <<sim2_gen,echo=FALSE,message=FALSE>>=
 s2 <- simulate_vehicle(pi = 1, seed = 1000)
@@ -366,6 +314,8 @@ fscap2 <- c(
 )
 @
 
+
+
 <<sim2_graph,echo=FALSE,fig.height=2,fig.width=4,out.width=".49\\linewidth",fig.cap=fcap2,fig.subcap=fscap2,fig.ncol=2>>=
 p2 <- ggplot(s2$path, aes(time, distance)) +
     geom_hline(yintercept = s2$segments$distance[-1],
@@ -383,25 +333,73 @@ p2 + geom_point(aes(t, x), data = s2$observations$low)
 p2 + geom_point(aes(t, x), data = s2$observations$waypoints)
 @
 
+And now we simulate some data with stopping at bus stops.
+\Cref{fig:sim2_graph} shows a similar trajectory as before,
+but instead the vehicle stops at bus stops along the route
+(denoted with a dotted red line).
+The sampling is the same as before:
+10~second and 30~second rates,
+as well as observations at waypoints
+(intersections and bus stops).
 
 
-<<sim2_pf,echo=FALSE,message=FALSE,warning=FALSE,fig.height=2,fig.width=8,out.width="\\linewidth",fig.cap="Simulation results for the three models (rows) applied to the data from three sampling methods (columns), using $\\Np=2000$ particles. Model A1 tended to underestimate the travel time, whilst models A2 and A3 gave quite similar results. As expected, the uniform high-frequency sampling gives the best estimate of travel time, while the other two result in significant uncertainty in travel times.",fig.ncol=1,fig.subcap=paste("Segment", 1:5)>>=
+<<sim2_pf,echo=FALSE,message=FALSE,warning=FALSE,fig.height=5,fig.width=8,out.width="\\linewidth",fig.cap="Simulation results for the three models (rows) applied to the data from three sampling methods (columns), using $\\Np=2000$ particles. [details].">>=
 S0 <- get_sim_2()
-for (i in 1:5) {
-    print(
-        S0 %>% filter(segment == sprintf("Segment %d", i)) %>%
-            ggplot(aes(travel_time, fill = model)) +
-            geom_histogram(bins = 30) +
-            facet_grid(model~sim) +
-            theme_minimal() + theme(panel.grid = element_blank()) +
-            geom_vline(xintercept = tt[i], col = "gray", lty = 2) +
-            scale_y_continuous(breaks = NULL) +
-            xlab("Travel time (s)") + ylab("Frequency")
-    )
-}
+# for (i in 1:5) {
+#     print(
+#         S0 %>% filter(segment == sprintf("Segment %d", i)) %>%
+#             ggplot(aes(travel_time - tt[i], fill = model)) +
+#             geom_histogram(bins = 30) +
+#             facet_grid(model~sim) +
+#             theme_minimal() + theme(panel.grid = element_blank()) +
+#             geom_vline(xintercept = 0, col = "gray", lty = 2) +
+#             scale_y_continuous(breaks = NULL) +
+#             xlab("Particle travel time - actual travel time (s)") +
+#             ylab("Frequency")
+#     )
+# }
+S0 %>%
+    mutate(
+        truth = tt[as.numeric(gsub("Segment ", "", segment))]
+    ) %>%
+    ggplot(aes(model, travel_time - truth, fill = model)) +
+    geom_violin() +
+    # geom_histogram(bins = 30) +
+    facet_grid(segment ~ sim,  scales = "free_y") +
+    theme_minimal() + theme(panel.grid = element_blank()) +
+    geom_hline(yintercept = 0, col = "gray", lty = 2) +
+    # scale_y_continuous(breaks = NULL) +
+    ylab("Particle travel time - actual travel time (s)") +
+    xlab("Model")
 @
 
+The results, shown in \cref{fig:sim2_pf},
+show less accuracy in travel time estimation.
+The uniform sampling observations give the best results as expected,
+while the other two result in a lot of uncertainty.
 
+Comparing the models,
+we see that model A1 is generally the worst,
+except in segments 1--2 which contain no bus stops.
+The changes in vehicle speed at bus stops
+cannot be captured by A1,
+whereas, particularly in the 10~s simulation,
+models A2 and A3 can.
+However, in segments 3--5 with bus stops,
+we begin to see a lot of uncertainty in the travel time.
+
+
+The only faesible way to improve travel time estimation
+is by reducing the noise in the speed component,
+which limits the set of possible trajectories the particles can take.
+This works well when all obstacles (intersections) are accounted for,
+but less so when there are unknown obstacles,
+for example a pedestrian crossing,
+or where the bus route turns into a side street
+we no knowledge of this intersection is known.
+In these situations,
+reducing the noise can result in poor performance of the \pf{},
+so there is a trade off between performance and precision.
 
 
 \subsection{Intersections}
@@ -410,4 +408,39 @@ for (i in 1:5) {
 Unlike route paths and bus stops which are known,
 intersections are, for the most part, unknown,
 as there is no readily available, up-to-date information about
-the locations of intersections
+the locations of intersections.
+We can, however, develop our model to allow for intersections,
+which can then be created by
+\begin{itemize}
+\item importing from an external source,
+\item detecting intersections using shape files (\cref{sec:route-segments}), or
+\item using historical GPS data to find locations of high bus density.
+\end{itemize}
+Each of these methods have their benefits and downfalls,
+but this is not the topic of this thesis.
+
+
+To model intersections,
+we use a similar approach as for bus stops,
+however we remove the minimum dwell time
+and simply use an exponential distribution for the wait times,
+\begin{equation*}
+\Iint\vi_\ell \sim \Bern{\rho_\ell}\quad\text{and}\quad
+\pcwait\vi_\ell \sim \Exp{\intwait_\ell^{-1}}
+\end{equation*}
+giving the wait time $\pwait\vi_\ell$ as
+\begin{equation}
+\label{eq:intersection_wait_time}
+\pwait\vi_\ell = \Iint\vi_\ell \pcwait\vi_\ell.
+\end{equation}
+
+Another complication with intersections is that
+it is possible for a vehicle to be stuck in a queue
+and need to wait multiple light phases before getting through the intersection.
+While it should be sufficient to simply include this
+in the segment's travel time,
+due to the issues discussed in \cref{sec:vp_data},
+it is possible for a vehicle to be queuing up
+and report its location as \emph{at the intersection},
+rather than in the queue.
+
