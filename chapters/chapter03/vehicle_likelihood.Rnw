@@ -83,7 +83,7 @@ the inherent \gls{gps} error, $\GPSerr$,
 needs to be filtered out to get better estimates of vehicle state.
 Examples of positions are shown in \cref{fig:lhood_obs}.
 
-<<lhood_kf,echo=FALSE,fig.width=8,fig.height=2,fig.cap="Traditional \\kf{} update of the state.",fig.subcap=c("Observation is mapped to path (cross), and previous state in gray.", "Observation is projected into the state space, $Z_1 = H^{-1}Y_k$ (shown in red, width represents \"GPS error\"). The predicted state $X_{1|0}$ (in blue) calculated using the standard \\kf{} prediction step. Lower graph shows updated state $X_{1|1}$.", "The next observation is received and map matching used to find closest point on route (red cross); the updated state estimate from previous step is shown in gray.", "After projecting observation to the state space (red curve) and obtaining the predicted state (blue curve), the state can be updated.", "The final state is shown, but the state estimate is in neither of the road segments that were likely, which could be caused if the map matching was incorrect (i.e., it should have been matched to the other plausible point)."),fig.ncol=1,cache=TRUE>>=
+<<lhood_kf,eval=FALSE,echo=FALSE,fig.width=8,fig.height=2,fig.cap="Traditional \\kf{} update of the state.",fig.subcap=c("Observation is mapped to path (cross), and previous state in gray.", "Observation is projected into the state space, $Z_1 = H^{-1}Y_k$ (shown in red, width represents \"GPS error\"). The predicted state $X_{1|0}$ (in blue) calculated using the standard \\kf{} prediction step. Lower graph shows updated state $X_{1|1}$.", "The next observation is received and map matching used to find closest point on route (red cross); the updated state estimate from previous step is shown in gray.", "After projecting observation to the state space (red curve) and obtaining the predicted state (blue curve), the state can be updated.", "The final state is shown, but the state estimate is in neither of the road segments that were likely, which could be caused if the map matching was incorrect (i.e., it should have been matched to the other plausible point)."),fig.ncol=1,cache=TRUE>>=
 # the state
 X <- tibble(
     x = c(0, 20, 60),
@@ -184,9 +184,234 @@ A particle's likelihood should represent the geographical \emph{closeness}
 of the estimated position to the vehicle's reported position.
 We therefore want the likelihood to depend on the
 \emph{distance between the observed and predicted} vehicle locations.
+The first step in computing the likelihood is therefore
+to calculate the GPS position of the \emph{particle}, $\Ppos\vi_k$.
+By definition, this is the \emph{measurement function}
+introduced in \cref{sec:recursive-bayes},
+so we have
+\begin{equation}
+\label{eq:pf_measurement_fun}
+\Ppos\vi_k = \Vmeas(\Vstate\vi_k)
+\end{equation}
+which is simply a deterministic function given the route's path,
+which is a sequence of latitude-longitude pairs
+and the cumulative distance along the line.
+Once the geographical position of the particle's is obtained,
+we can compare them directly to the observed location,
+as shown in \cref{fig:gps_dist}.
 
-<<gps_dist,echo=FALSE,cache=TRUE,fig.width.8,fig.height=4,fig.cap="GPS distance between two points">>=
+<<gps_dist,echo=FALSE,message=FALSE,cache=TRUE,fig.width=8,fig.height=4,out.width="0.8\\textwidth",fig.align="center",fig.cap="GPS distance between two points. The vehicle's reported location is shown in orange; one particle estimate of it's location is in black. The desired distance is denoted by the red line.">>=
+library(ggmap)
 
+Yx <- tibble(
+    lat = c(-36.853634, -36.852870),
+    lng = c(174.768615, 174.769481)
+)
+
+xr <- extendrange(range(Yx$lng), f = 2)
+yr <- extendrange(range(Yx$lat), f = 0.6)
+bbox <- c(xr[1], yr[1], xr[2], yr[2])
+get_stamenmap(bbox, zoom = 18, maptype = "toner-background") %>%
+    ggmap() +
+    geom_point(aes(lng, lat), data = Yx,
+        colour = c("black", "orangered"), size = 5) +
+    geom_segment(aes(lng, lat, xend = Yx$lng[1], yend = Yx$lat[1]),
+        data = Yx[2,], position = position_nudge(x = 0.00008, y = -0.00006),
+        colour = "red",
+        arrow = arrow(angle = 90, length = unit(0.01, 'native'), ends = "both")) +
+    theme_nothing()
+@
+
+Computing the distance between two GPS coordinates can be done in many ways,
+each with varying levels of accuracy.
+Since all of our distance are going to be (very) small,
+we can safely use the \emph{Equirectangular projection},
+$\Vproj{\Vobs_1}{\Vobs_0}$,
+which transforms the point $\Vobs_1 = \tvec{\Vlon_1, \Vlat_1}$,
+where latitude $\Vlat$ and longitude $\Vlon$ are in radians
+(the width of one longitudinal radian depends on latitude)
+onto a surface with meters on both axes,
+centered on the point $\Vobs_0 = \tvec{\Vlon_0, \Vlat_0}$
+and using the Earth's radius $R = 6.371 \times 10^6$m,
+\begin{equation}
+\label{eq:equirectangular_projection}
+\Vproj{\Vobs_1}{\Vobs_0} =
+\begin{bmatrix} x \\ y \end{bmatrix} =
+R \begin{bmatrix}
+(\Vlon_1 - \Vlon_0) \cos \Vlat_0 \\
+(\Vlat_1 - \Vlat_0)
+\end{bmatrix}
+\end{equation}
+so that the distance between the points can easily be computed
+using their \emph{euclidean distance}
+\begin{equation*}
+\dist{\Vobs_0, \Vobs_1} = \sqrt{x^2 + y^2}.
+\end{equation*}
+This is shown visually in \cref{fig:gps_projection}.
+
+<<gps_projection,echo=FALSE,message=FALSE,cache=TRUE,fig.width=4,fig.height=3.5,out.width="0.49\\textwidth",fig.align="center",fig.cap="Equirectangular projection of GPS coordinates onto flat surface, allowing the distance from each particle to the observed location to easily be calculated.",fig.subcap=c("GPS coordinates","Projected points")>>=
+xr <- extendrange(range(Yx$lng), f = 0.2)
+
+ggplot(Yx, aes(lng, lat)) +
+    geom_point(colour = c("black", "orangered"), size = 2) +
+    coord_fixed(cos(Yx$lat[2] * pi / 180)) +
+    theme_minimal() + theme(panel.grid = element_blank()) +
+    xlab("Longitude (radians)") + ylab("Latitude (radians)") +
+    xlim(xr[1], xr[2]) + ylim(yr[1], yr[2])
+
+R <- 6371000
+Lng <- Yx$lng * pi / 180
+Lat <- Yx$lat * pi / 180
+Yx <- Yx %>%
+    mutate(
+        x = (Lng - Lng[1]) * cos(Lat[1]) * R,
+        y = (Lat - Lat[1]) * R
+    )
+
+
+xr <- c(-50, 100)
+yr <- c(-50, 100)
+ggplot(Yx, aes(x, y)) +
+    geom_hline(yintercept = 0, lty = 3) +
+    geom_vline(xintercept = 0, lty = 3) +
+    geom_segment(aes(xend = 0, yend = y),
+        data = Yx[2, ], col = "red", lty = 2) +
+    geom_segment(aes(xend = x, yend = 0),
+        data = Yx[2, ], col = "red", lty = 2) +
+    geom_point(colour = c("black", "orangered"), size = 2) +
+    coord_fixed(1) +
+    theme_minimal() + theme(panel.grid = element_blank()) +
+    xlab("North-South (meters)") + ylab("West-East (meters)") +
+    xlim(xr[1], xr[2]) + ylim(yr[1], yr[2])
+@
+
+Now to develop the actual likelihood.
+Here we are assuming that GPS observations are made with symmetrical error
+on the ground;
+that is, the GPS error $\GPSerr$ is measured in meters
+and has no directional bias.
+The model for the likelihood using bivariate normal error
+$\vec{r}\vi_k \sim \Normal{\vec{0}}{\GPSerr \mat{I}}$,
+with measurements
+\begin{equation*}
+\Vproj{\Vobs_k}{\Vmeas(\Vstate\vi_k)} =
+    \Vproj{\Vmeas(\Vstate\vi_k)}{\Vmeas(\Vstate\vi_k)} + \vec{r}\vi_k
+\end{equation*}
+where it is obvious from \cref{fig:gps_error2}
+that the first term on the right hand side is zero, so
+\begin{equation}
+\label{eq:gps_error_model}
+\Vobs_k = \Viproj{\vec{r}\vi_k}{\Vmeas(\Vstate\vi_k)}.
+\end{equation}
+
+<<gps_error,echo=FALSE,message=FALSE,cache=TRUE,fig.width=4,fig.height=4,out.width="0.49\\textwidth",fig.align="center",fig.cap="GPS error is assumed to be circular on a map.",fig.subcap=c("GPS map error", "Projected error")>>=
+xr <- Yx$lng[1] + 0.002 * c(-1, 1)
+yr <- Yx$lat[1] + 0.001 * c(-1, 1)
+bbox <- c(xr[1], yr[1], xr[2], yr[2])
+get_stamenmap(bbox, zoom = 18, maptype = "toner-background") %>%
+    ggmap() +
+    geom_point(aes(lng, lat), data = Yx,
+        colour = c("black", "orangered"), size = 5) +
+    geom_point(aes(lng, lat), data = Yx[1,],
+        colour = "black", size = 45, shape = 21, fill = "transparent") +
+    theme_nothing()
+
+
+xr <- c(-50, 120)
+yr <- c(-50, 120)
+ggplot(Yx, aes(x, y)) +
+    geom_hline(yintercept = 0, lty = 3) +
+    geom_vline(xintercept = 0, lty = 3) +
+    geom_point(colour = c("black", "orangered"), size = 5) +
+    geom_point(data = Yx[1,], colour = "black", size = 65,
+        shape = 21, fill = "transparent") +
+    coord_fixed(1) +
+    theme_minimal() + theme(panel.grid = element_blank()) +
+    xlab("North-South (meters)") + ylab("West-East (meters)") +
+    xlim(xr[1], xr[2]) + ylim(yr[1], yr[2])
+@
+
+
+Now we are assuming a bivariate likelihood on the projected data,
+however we can reformulate things to get a much simpler expression for the likelihood.
+First, note that the distance is simply the magnitude of the error $\vec{r}\vi_k$,
+\begin{equation*}
+\dist{\Vobs_k, \Vmeas(\Vstate\vi_k)} = ||\vec{r}\vi_k|| =
+    \sqrt{r_{k1}^2 + r_{k2}^2}
+\end{equation*}
+However, this error can also be expressed in terms of two independent,
+standard normal random variables $z_1, z_2 \sim \Normal{0}{1}$,
+such that $r_{jk} = \GPSerrSD z_j$ for $j = 1, 2$,
+resulting in
+\begin{equation*}
+\dist{\Vobs_k, \Vmeas(\Vstate\vi_k)} =
+    \sqrt{(\GPSerrSD z_1)^2 + (\GPSerrSD z_2)^2} =
+    \GPSerrSD \sqrt{z_1^2 + z_2^2}
+\end{equation*}
+Since the distribution of two squared standard normal random variables is known
+to be $\chi^2$ distributed with 2~degrees of freedom,
+which is itself exponential with rate 0.5,
+and since the GPS error is a fixed parameter,
+then we can transform the distance to obtain
+\begin{equation}
+\label{eq:distance_distrib}
+\frac{\dist{\Vobs_k, \Vmeas(\Vstate\vi_k)}^2}{\GPSerr}
+     = z_1^2 + z_2^2 \sim \Exp{\frac{1}{2}}
+\end{equation}
+
+So now, given a particle state estimate,
+we can compute the liklihood of a GPS observation using only
+the distance between two coordinates,
+\begin{equation}
+\label{eq:particle_lh_fun}
+p(\Vobs_k | \Vstate\vi_k) =
+    \frac{1}{2} \exp\left\{
+        - \frac{\dist{\Vobs_k, \Vmeas(\Vstate\vi_k)}^2}{2\GPSerr}
+    \right\}
+\end{equation}
+
+
+Now that we have shown how the likelihood is computed,
+we can demonstrate the \pf{} update step.
+To update the particles,
+we simply \emph{reweight} each particle using the following formula:
+\begin{equation}
+\label{eq:particle_weights}
+\Pwt_k =
+\frac{
+    \Pwt_{k-1} p(\Vobs_k | \Vstate\vi_k)
+}{
+    \sum_{j=1}^\Np \Pwt[j]_{k-1} p(\Vobs_k | \Vstate^{(j)}_k)
+}
+\end{equation}
+
+<<pf_wts,echo=FALSE,message=FALSE,cache=TRUE,fig.width=8,fig.height=3,fig.align="center",fig.cap="Goobie.">>=
+proj <- function(x, path) {
+    d <- c(0, path %>% as.matrix %>%
+        apply(2, diff) %>%
+        apply(1, "^", 2) %>%
+        colSums %>% sqrt %>% cumsum)
+    if (x <= 0) return(path[1, ] %>% as.numeric)
+    if (x >= max(d)) return(path[nrow(path), ] %>% as.numeric)
+    i <- which(d > x)[1]
+    # from i-1:i
+    if (x == d[i]) return(path[i, ])
+    p1 <- path[i, ] %>% as.numeric
+    p2 <- path[i-1, ] %>% as.numeric
+    b <- geosphere::bearing(p1, p2, a = 0, f = 0) * pi / 180
+    h <- d[i] - x
+    p1 + c(sin(b) * h, cos(b) * h)
+}
+
+set.seed(5)
+dx <- runif(10, 1.2, 2.1)
+dy <- t(sapply(dx, proj, path = path))
+colnames(dy) <- c("x", "y")
+dy <- as_tibble(dy)
+
+plh +
+    geom_point(data = Y[1,], col = "orangered") +
+    geom_point(aes(x, y), data = dy, col = "black")
 @
 
 

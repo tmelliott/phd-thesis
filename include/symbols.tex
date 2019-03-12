@@ -29,12 +29,16 @@
 \newcommand{\Vaccel}{\ddot x}
 \newcommand{\Vtt}{z}
 \newcommand{\Np}{N}
-\newcommand{\Pwt}{W^{(i)}}
+\newcommand{\Pwt}[1][i]{W^{(#1)}}
 \newcommand{\Vtrans}{f}
 \newcommand{\Vmeas}{h}
-\newcommand{\Vproj}{g}
+\newcommand{\Vprojf}{g}
+\newcommand{\Vproj}[2]{g\left(#1\,|\,#2\right)}
+\newcommand{\Viproj}[2]{g^{-1}\left(#1\,|\,#2\right)}
 \newcommand{\Vnoise}{\sigma^2}
-\newcommand{\GPSerr}{\varepsilon^2}
+\newcommand{\GPSerrSD}{\varepsilon}
+\newcommand{\GPSerr}{\GPSerrSD^2}
+\newcommand{\Ppos}{\vec{\tilde Y}}
 
 \newcommand{\vi}{^{(i)}}
 
@@ -76,6 +80,8 @@
 \newcommand{\Teta}{\boldsymbol{\alpha}}
 \newcommand{\Tdwell}{\boldsymbol{\Delta}}
 
+\newcommand{\dist}[1]{d\left(#1\right)}
+
 % distributions
 \newcommand{\Normal}[2]{\mathcal{N}\left(#1,\, #2\right)}
 \newcommand{\TNormal}[4]{\mathcal{N}_T\left(#1,\, #2,\, #3,\, #4\right)}
@@ -106,9 +112,10 @@ $\Np$         & number of particles per vehicle & \\
 $\Pwt_k$      & weight of particle $i$ given observation at time $\Vtime_k$ & \\
 $\Vtrans$     & vehicle transition function & \\
 $\Vmeas$      & vehicle measurement function & \\
-$\Vproj$      & equirectangular projection function & \\
+$\Vprojf$     & equirectangular projection function & \\
 $\Vnoise$     & vehicle model system noise & m/s \\
 $\GPSerr$     & GPS error & meters \\
+$\Ppos\vi_k$  & Particle GPS position & \\
 \addlinespace
 
 % trip symbols

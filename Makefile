@@ -5,6 +5,7 @@ NAME=thesis
 TEX:=latexmk
 TEXOPTIONS := -pdf -f
 
+default: all
 all: $(NAME).pdf
 
 FRONTFILES := $(shell find frontmatter -name '*.Rnw')
