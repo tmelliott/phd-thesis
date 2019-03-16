@@ -24,3 +24,19 @@ will do so at a physical intersection and follow the same path
 until the diverge at another intersection.
 Alternatively, one of the routes may begin or terminate
 between intersections at a bus stop.
+
+
+In this work,
+we used segmentation at bus stops due to its simplicity,
+but have developed with the possibility to add
+any types of obstacles into the route in future.
+The algorithm is as follows:
+\begin{enumerate}
+\item for each route shape, compute distance into trip of each stop
+\item at each stop, ``split'' the route and identify the road segment
+    by the bus stops at each end,
+    recording the initial distance trip of the segment
+\item if a segment between the two stops doesn't already exist,
+    create a new road segment and compute its length
+    (using distances computed in step 1)
+\end{enumerate}
