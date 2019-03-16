@@ -29,10 +29,10 @@ denoted $L_m = \{\ell, \ldots, \ell + k\}$ for $k\in \mathbb{Z}^+$.
 \tilde B_{m} = \sum_{\ell \in L_m} \beta_\ell
 \end{equation}
 where $\beta_\ell$ was estimated in section~\ref{sec:nw_realtime},
-\begin{equation*}
+\begin{equation}
 \mathbb{E}(\beta_\ell) = \hat B_\ell\quad\text{and}\quad
 \mathrm{Var}(\beta_\ell) = E_{\ell\ell}
-\end{equation*}
+\end{equation}
 
 For dwell times,
 we do not yet have any real-time model,
@@ -57,7 +57,7 @@ This is shown in figure~\ref{fig:eta_dwell_times}.
 
 If dwell time and stopping probability are independent,
 it is trivial to show that
-\begin{equation*}
+\begin{equation}
 \begin{split}
 \mathbb{E}(D_m) &= \gamma\pi_m + \pi_m\tau_m \\
 \mathrm{Var}(D_m) &=
@@ -68,7 +68,7 @@ it is trivial to show that
         (1-\pi_m)(\gamma^2 + \tau_m^2) + \omega_m^2
     \right)
 \end{split}
-\end{equation*}
+\end{equation}
 
 <<prove_varDm,echo=FALSE,eval=FALSE>>=
 N <- 1e6

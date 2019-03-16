@@ -44,6 +44,7 @@ headsepline, % Uncomment to get a line under the header
 
 % \usepackage{mathpazo} % Use the Palatino font by default
 
+\cslet{blx@noerroretextools}\empty
 \usepackage[backend=bibtex,style=authoryear,natbib=true]{biblatex} % Use the bibtex backend with the authoryear citation style (which resembles APA)
 
 \addbibresource{reflist.bib} % The filename of the bibliography
@@ -97,8 +98,13 @@ headsepline, % Uncomment to get a line under the header
 
 \usepackage{hyperref}
 \usepackage[noabbrev]{cleveref}
+% \usepackage{autonum}
 
 \usepackage{subfig}
+
+\usepackage{showlabels}
+\renewcommand{\showlabelfont}{\tiny}
+% \usepackage{showkeys}
 
 \begin{document}
 

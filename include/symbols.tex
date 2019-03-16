@@ -22,6 +22,7 @@
 \newcommand{\Vlon}{\lambda}
 \newcommand{\Varr}{A}
 \newcommand{\Vdep}{D}
+\newcommand{\Vdwell}{\tilde\Vdep}
 
 \newcommand{\Vstate}{\boldsymbol{X}}
 \newcommand{\Vdist}{x}
@@ -38,6 +39,8 @@
 \newcommand{\Vnoise}{\sigma^2}
 \newcommand{\GPSerrSD}{\varepsilon}
 \newcommand{\GPSerr}{\GPSerrSD^2}
+\newcommand{\TUerrSD}{\xi}
+\newcommand{\TUerr}{\TUerrSD^2}
 \newcommand{\Ppos}{\vec{\tilde Y}}
 
 \newcommand{\vi}{^{(i)}}
@@ -77,8 +80,10 @@
 
 \newcommand{\Linktt}{\boldsymbol{\eta}}
 \newcommand{\Nodedwell}{\kappa}
-\newcommand{\Teta}{\boldsymbol{\alpha}}
-\newcommand{\Tdwell}{\boldsymbol{\Delta}}
+\newcommand{\Tarr}{\alpha}
+\newcommand{\TTarr}{\boldsymbol{\Tarr}}
+\newcommand{\Tdwell}{\Delta}
+\newcommand{\TTdwell}{\boldsymbol{Tdwell}}
 
 \newcommand{\dist}[1]{d\left(#1\right)}
 
@@ -101,6 +106,7 @@ $\Vlat_k$     & vehicle latitude & degrees \\
 $\Vlon_k$     & vehicle longitude & degrees \\
 $\Varr_m$     & vehicle arrival time at stop $m$ & Unix timestamp \\
 $\Vdep_m$     & vehicle departure time from stop $m$ & Unix timestamp \\
+$\Vdwell_m$   & vehicle dwell time at stop $m$ & seconds \\
 \addlinespace
 
 % vehicle state symbols
@@ -115,6 +121,7 @@ $\Vmeas$      & vehicle measurement function & \\
 $\Vprojf$     & equirectangular projection function & \\
 $\Vnoise$     & vehicle model system noise & m/s \\
 $\GPSerr$     & GPS error & meters \\
+$\TUerr$      & Trip update arrival/departure error & seconds \\
 $\Ppos\vi_k$  & Particle GPS position & \\
 \addlinespace
 
@@ -151,7 +158,7 @@ $\NWhistvar_\ell(t_c)$  & historical variance of travel time & seconds \\
 
 % ETA symbols
 $\Linktt_r$      & vector of inter-stop (link) travel times for trip $r$ & seconds \\
-$\Teta_r$        & vector of times until arrival for trip $r$ & seconds \\
-$\Tdwell_r$      & vector of node dwell times for trip $r$ & seconds \\
+$\TTarr_r$       & vector of arrival times for trip $r$ & seconds \\
+$\TTdwell_r$      & vector of node dwell times for trip $r$ & seconds \\
 
 \end{symbols}

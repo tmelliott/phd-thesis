@@ -25,8 +25,9 @@ test:
 
 %.tex: %.Rnw
 	@echo " * knitting $@"
-	@sed -i '/set_parent/d' $<
-	@sed -i "s/\\Sexpr{knit_child('\(.*\).Rnw')}/\\input{DIRNAME\/\1.tex}/g" $<
+	@sed -i'.original' -e '/set_parent/d' $<
+	@sed -i'.original' -e "s/\\Sexpr{knit_child('\(.*\).Rnw')}/\\input{DIRNAME\/\1.tex}/g" $<
+	@rm $<.original
 	@R --slave -e "library(knitr); knit(input='$<', output='$@')" > /dev/null
 	@R --slave -e "f <- commandArgs(TRUE)[1]; x <- gsub('DIRNAME', dirname(f), readLines(f)); writeLines(x, f)" --args $@
 

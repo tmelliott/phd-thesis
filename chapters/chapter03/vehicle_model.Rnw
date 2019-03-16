@@ -37,9 +37,9 @@ after travelling for $\Vtdiff_k$ seconds.
 
 In the first model, A1, we assume a constant speed $\Vspeed_k$
 in the interval $(\Vtime_{k-1}, \Vtime_k)$,
-\begin{equation*}
+\begin{equation}
 \Vspeed\vi_k \sim \TNormal{\Vspeed\vi_{k-1}}{\Vnoise}{0}{30}
-\end{equation*}
+\end{equation}
 where $\TNormal{\mu}{\sigma}{a}{b}$ is the normal distribution
 truncated to the interval $(a, b)$.
 In this case, we truncate the vehicle's speed to ensure it is
@@ -50,9 +50,9 @@ Having sampled a new speed (to ensure system variability, see \cref{sec:pf}),
 the particle can be transitioned forward,
 % as shown in \cref{fig:vtrans_general1},
 using the equation
-\begin{equation*}
+\begin{equation}
 \Vdist\vi_k = \Vdist\vi_{k-1} + \Vtdiff_k\Vspeed\vi_k.
-\end{equation*}
+\end{equation}
 
 To compute the travel time along segments,
 blah blah blah.
@@ -62,14 +62,14 @@ In the second model, A2, we allow the vehicle speed to follow a random walk
 between observations rather than remaining constant,
 % as shown in \cref{fig:vtrans_general2}.
 That is,
-\begin{equation*}
+\begin{equation}
 \Vspeed\vi_s \sim \TNormal{\Vspeed\vi_{s-1}}{\Vnoise}{0}{30},\quad
 \Vtime_s \in (\Vtime_{k-1}, \Vtime_k]
-\end{equation*}
+\end{equation}
 Now, the distance is updated iteratively at the same time as the speed,
-\begin{equation*}
+\begin{equation}
 \Vdist\vi_s = \Vdist\vi_{s-1} + \Vspeed\vi_s.
-\end{equation*}
+\end{equation}
 which also makes travel time computation easier:
 once the particle enters segment $\ell$ ($\Vdist\vi_s \geq \Tsegd_\ell$),
 the travel time $\Vtt\vi_\ell$ is incremented by one second each
@@ -82,19 +82,19 @@ the acceleration $\Vaccel_k$ at time $\Vtime_k$.
 This allows us to more realistically model the vehicle's behaviour,
 and it is this model we use to generate the simulated data below.
 Given an acceleration, we can update the vehicle's speed using
-\begin{equation*}
+\begin{equation}
 \Vspeed\vi_s = \Vspeed\vi_{s-1} + \Vaccel\vi_{s}
-\end{equation*}
+\end{equation}
 We must truncate the acceleration distribution to ensure
 the vehicle's speed remains positive and under 30~m/s,
 which given the above equation yields the inequality
-\begin{equation*}
+\begin{equation}
 0 \leq \Vspeed\vi_{s-1} + \Vaccel\vi_s \leq 30
-\end{equation*}
+\end{equation}
 so the acceleration distribution is
-\begin{equation*}
+\begin{equation}
 \Vaccel\vi_s \sim \TNormal{\Vaccel\vi_{s-1}}{\Vnoise}{-\Vspeed\vi_{s-1}}{30 - \Vspeed\vi_{s-1}}
-\end{equation*}
+\end{equation}
 This model would be improved by placing additional constraints on the acceleration,
 for example to model acceleration and deceleration phases
 differently.
@@ -279,10 +279,10 @@ tibble(x = xx, y = yy) %>%
 So, for a given particle approaching stop $m$,
 the dwell time associated with that stop
 can be expressed as a function of
-\begin{equation*}
+\begin{equation}
 \Istop\vi_m \sim \Bern{\Prstop_m}\quad\text{and}\quad
 \pserve\vi_m \sim \TNormal{\dwell_m}{\dwellvar_m}{\gamma}{\infty}
-\end{equation*}
+\end{equation}
 giving the dwell time $\pdwell\vi_m$ as
 \begin{equation}
 \label{eq:stop_dwell_time}
@@ -423,10 +423,10 @@ To model intersections,
 we use a similar approach as for bus stops,
 however we remove the minimum dwell time
 and simply use an exponential distribution for the wait times,
-\begin{equation*}
+\begin{equation}
 \Iint\vi_\ell \sim \Bern{\rho_\ell}\quad\text{and}\quad
 \pcwait\vi_\ell \sim \Exp{\intwait_\ell^{-1}}
-\end{equation*}
+\end{equation}
 giving the wait time $\pwait\vi_\ell$ as
 \begin{equation}
 \label{eq:intersection_wait_time}

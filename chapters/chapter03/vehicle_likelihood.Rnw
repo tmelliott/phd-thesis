@@ -244,9 +244,10 @@ R \begin{bmatrix}
 \end{equation}
 so that the distance between the points can easily be computed
 using their \emph{euclidean distance}
-\begin{equation*}
+\begin{equation}
+\label{eq:obs_dist}
 \dist{\Vobs_0, \Vobs_1} = \sqrt{x^2 + y^2}.
-\end{equation*}
+\end{equation}
 This is shown visually in \cref{fig:gps_projection}.
 
 <<gps_projection,echo=FALSE,message=FALSE,cache=TRUE,fig.width=4,fig.height=3.5,out.width="0.49\\textwidth",fig.align="center",fig.cap="Equirectangular projection of GPS coordinates onto flat surface, allowing the distance from each particle to the observed location to easily be calculated.",fig.subcap=c("GPS coordinates","Projected points")>>=
@@ -293,10 +294,10 @@ and has no directional bias.
 The model for the likelihood using bivariate normal error
 $\vec{r}\vi_k \sim \Normal{\vec{0}}{\GPSerr \mat{I}}$,
 with measurements
-\begin{equation*}
+\begin{equation}
 \Vproj{\Vobs_k}{\Vmeas(\Vstate\vi_k)} =
     \Vproj{\Vmeas(\Vstate\vi_k)}{\Vmeas(\Vstate\vi_k)} + \vec{r}\vi_k
-\end{equation*}
+\end{equation}
 where it is obvious from \cref{fig:gps_error2}
 that the first term on the right hand side is zero, so
 \begin{equation}
@@ -334,20 +335,21 @@ ggplot(Yx, aes(x, y)) +
 
 Now we are assuming a bivariate likelihood on the projected data,
 however we can reformulate things to get a much simpler expression for the likelihood.
-First, note that the distance is simply the magnitude of the error $\vec{r}\vi_k$,
-\begin{equation*}
+From \cref{eq:equirectangular_projection,eq:obs_dist,eq:gps_error_model}
+we get that the distance is simply the magnitude of the error $\vec{r}\vi_k$,
+\begin{equation}
 \dist{\Vobs_k, \Vmeas(\Vstate\vi_k)} = ||\vec{r}\vi_k|| =
     \sqrt{r_{k1}^2 + r_{k2}^2}
-\end{equation*}
+\end{equation}
 However, this error can also be expressed in terms of two independent,
 standard normal random variables $z_1, z_2 \sim \Normal{0}{1}$,
 such that $r_{jk} = \GPSerrSD z_j$ for $j = 1, 2$,
 resulting in
-\begin{equation*}
+\begin{equation}
 \dist{\Vobs_k, \Vmeas(\Vstate\vi_k)} =
     \sqrt{(\GPSerrSD z_1)^2 + (\GPSerrSD z_2)^2} =
     \GPSerrSD \sqrt{z_1^2 + z_2^2}
-\end{equation*}
+\end{equation}
 Since the distribution of two squared standard normal random variables is known
 to be $\chi^2$ distributed with 2~degrees of freedom,
 which is itself exponential with rate 0.5,
@@ -374,7 +376,8 @@ p(\Vobs_k | \Vstate\vi_k) =
 Now that we have shown how the likelihood is computed,
 we can demonstrate the \pf{} update step.
 To update the particles,
-we simply \emph{reweight} each particle using the following formula:
+we simply \emph{reweight} each particle using the following formula
+(where $\Pwt_0 = \Np^{-1}$):
 \begin{equation}
 \label{eq:particle_weights}
 \Pwt_k =
@@ -385,7 +388,7 @@ we simply \emph{reweight} each particle using the following formula:
 }
 \end{equation}
 
-<<pf_wts,echo=FALSE,message=FALSE,cache=TRUE,fig.width=8,fig.height=3,fig.align="center",fig.cap="Goobie.">>=
+<<pf_wts,echo=FALSE,message=FALSE,cache=TRUE,fig.width=8,fig.height=3,fig.align="center",fig.cap="The particle filter estimate of vehicle state after reweighting particles based on the likelihood, or distance from the observed location.",fig.ncol=1>>=
 proj <- function(x, path) {
     d <- c(0, path %>% as.matrix %>%
         apply(2, diff) %>%
@@ -403,17 +406,72 @@ proj <- function(x, path) {
     p1 + c(sin(b) * h, cos(b) * h)
 }
 
-set.seed(5)
+set.seed(10)
 dx <- runif(10, 1.2, 2.1)
 dy <- t(sapply(dx, proj, path = path))
 colnames(dy) <- c("x", "y")
 dy <- as_tibble(dy)
 
+# plh +
+#     geom_point(data = Y[1,], col = "orangered") +
+#     geom_point(aes(x, y), data = dy, col = "black")
+
+wt <- rep(1 / length(dx), length(dx))
+dxY <- apply(dy, 1, function(x) sqrt(sum((x - Y[1,c('lng', 'lat')])^2)))
+wt <- wt * dexp(dxY, 5)
+wt <- wt / sum(wt)
+
 plh +
     geom_point(data = Y[1,], col = "orangered") +
-    geom_point(aes(x, y), data = dy, col = "black")
+    geom_point(aes(x, y), data = dy, col = "black",
+        size = wt * length(wt) * 2)
+
 @
 
 
 \subsection{Trip updates}
 \label{sec:lhood_trip}
+
+\gls{gtfs} does not only provide vehicle locations,
+but also \emph{trip updates} (see \cref{sec:tu_data}).
+In Auckland, these trip updates are provided along with
+a \emph{separate} vehicle position update;
+however, as we discussed,
+these are not of the vehicle's true location,
+but rather of \emph{waypoints} (the stop's exact location).
+Therefore, treating these as vehicle position updates
+can cause issues with the particle filter when
+the vehicle hasn't quite arrived yet.
+
+
+To overcome most of the situations where trip updates are problematic,
+we implement a separate likelihood for them.
+The likelhood on arrival time $\Varr_m$ at stop $m$ is a
+normal random variable with mean $\Tarr_m$ and variance $\TUerr$,
+\begin{equation}
+\label{eq:tu_arr_lhood}
+\Varr_m \sim \Normal{\Tarr_{mr}}{\TUerr}
+\end{equation}
+
+The departure time $\Vdep_m$ is a little more difficult,
+as it depends on whether there was an observed arrival time or not.
+In the case where there was,
+we wish to place a likelihood on the \emph{dwell time} at stop $m$,
+$\Vdwell_m = \Vdep_m - \Varr_m \geq 0$,
+which is exponential with mean $\Tdwell_m$,
+otherwise the departure time is a normal random variable
+with mean $\Tarr_m + \Tdwell_m$ and  variance $\TUerr$,
+\begin{equation}
+\label{eq:tu_dep_lhood}
+\Vdep_m \sim
+\begin{cases}
+\Exp{\Tdwell_m} & \text{if arrival time reported,} \\
+\Normal{\Tarr_m + \Tdwell_m}{\TUerr} & \text{otherwise.}
+\end{cases}
+\end{equation}
+
+In our particle filter implementation,
+each observation will be processed individually;
+in situations where more than one type of observation is recieved,
+they are processed in chronological order
+and the particles reweighted between each.

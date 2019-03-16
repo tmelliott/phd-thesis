@@ -18,9 +18,9 @@ The unknown or \emph{hidden state} $\bX = \{X_0, X_1, X_2, \ldots\}$
 is assumed to be a Markov process,
 in that the state at time $t_k$ depends only on its previous state
 at time $t_{k-1}$,
-\begin{equation*}
+\begin{equation}
 p(X_k | X_{k-1}, X_{k-2}, \cdots, X_0) = p(X_k | X_{k-1})
-\end{equation*}
+\end{equation}
 We also assume that the observation at time $t_k$ depends only
 on the state at time $t_{k-1}$.
 The two types of models we will look at are the Kalman filter,
