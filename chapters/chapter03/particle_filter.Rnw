@@ -2,7 +2,49 @@
 \section{Particle filter implementation}
 \label{sec:particle-filter}
 
-About how it's actually implemented using a particle filter,
-and the reasons why we chose that.
+The implementation of the particle filter in a way that is both
+generalised---%
+to allow distribution to other transit networks
+around the world---%
+and fast was challenging.
+We made several attempts in C++,
+the first which used automatic database systems,
+but this turned out to be too slow;
+instead, we opted for a manual approach,
+in which \gls{oop} was used to describe the \gls{gtfs} data,
+which included trips containing a vector of pointers to the sequence
+of road segments making up the trip's shape,
+and similarly a vector of pointers for the stops.
+The, objects were used to represent each trip and each vehicle,
+which were associated with each other where possible.
+
+
+The vehicle objects are each given a sample of particles,
+stored in a vector,
+which represented our best estimate of that vehicle's state.
+The trip objects each have \glspl{eta} for each stop,
+with the \emph{a priori} estimates being from the schedule or,
+where available, historical data.
+When vehicle positions and trip updates are observed,
+the vehicle position is updated.
+
+
+After the updates of vehicle position,
+the road network states could be updated through the
+trip shape segment associations,
+providing an updated estimate of the road network state.
+
+
+After updating the network state,
+each trip is cycled and the road segment travel time estimates updated,
+so that the \glspl{eta} are in turn updated
+to reflect the \rt{} state of the road network.
+
+Finally, the trip \glspl{eta} are summarised and written
+to a protobuf feed,
+which can then be distributed efficiently to users.
+Alternatively, these could be written to a database and accessed from apps
+if the infrastructure is available at some time in the future.
+
 
 \input{DIRNAME/pf_computation.tex}

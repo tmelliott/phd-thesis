@@ -1,38 +1,206 @@
-
 \section{Recursive Bayesian estimation}
 \label{sec:recursive-bayes}
 
-In many real-time tracking applications,
-\gls{rbe} is used to model the state of the object
-and updating it each time a new observation is obtained.
-Before we can develop our specific model
-(using both vehicle locations and trip updates),
-we need first take a detour to describe what \gls{rbe} is,
-and why it is useful.
+The nature of \rt{} transit data is that,
+rather than recieving an entire dataset $\VobsMat$,
+which would permit a single model to be fitted once
+(e.g., using \gls{mcmc}),
+each observation is recieved incrementally.
+One possibility would be to fit the full model
+to estimate $p(\Vstate_{0:k} | \Vobs_{0:k})$
+for every $k\in 0, \ldots, K$;
+however, that would be highly inefficient as
+\gls{mcmc} algorithm typically take more than a few seconds to fit,
+and we have up to 1000~vehicles at peak hour to model simultaneously.
+Instead, we realise that the state at time $\Vtime_k$
+depends only on the state at time $\Vtime_{k-1}$.
+That is, $p(\Vstate_k | \Vstate_{0:k-1}) = p(\Vstate_k | \Vstate_{k-1})$.
+This means we can implement a \emph{recursive Bayesian model}
+on the state.
 
+\textbf{Not sure the above is in the right place, but hey \ldots}
+\vspace{1em}
 
-In its simplest form, an \gls{rbe} provides a way of infering
-some unknown state of an object from a sequence of observations,
-$\bY = \{Y_1, Y_2, \ldots\}$.
-The unknown or \emph{hidden state} $\bX = \{X_0, X_1, X_2, \ldots\}$
-is assumed to be a Markov process,
-in that the state at time $t_k$ depends only on its previous state
-at time $t_{k-1}$,
+The general principal behind recursive Bayesian estimation,
+or \emph{sequential Bayes},
+is that there exists some underlying Markov process
+$\mathcal{X}$ with transition function $\mathcal{F}$
+and system noise $\mathcal{Q}$,
 \begin{equation}
-p(X_k | X_{k-1}, X_{k-2}, \cdots, X_0) = p(X_k | X_{k-1})
+\label{eq:markov_state}
+\mathcal{X}_k = \mathcal{F}(\mathcal{X}_{k-1}, \mathcal{Q}_k).
 \end{equation}
-We also assume that the observation at time $t_k$ depends only
-on the state at time $t_{k-1}$.
-The two types of models we will look at are the Kalman filter,
-which is a simple model assuming Gaussian distributions for all parameters,
-and the particle filter,
-which makes no assumptions besides those specified by us.
+The important aspect of this is that the current state
+depends only on the previous state,
+\begin{equation}
+\label{eq:state_dist}
+p(\mathcal{X}_k | \mathcal{X}_0, \ldots, \mathcal{X}_{k-1}) =
+p(\mathcal{X}_k | \mathcal{X}_{k-1})
+\end{equation}
+which allows us to model the current state using only the previous one,
+which speeds up processing time.
+How this is done depends on the estimator being used.
 
+
+The second part of recursive Bayes regards how the object is observed.
+In many cases, it is impossible to measure the desired state directly,
+so instead a related, \emph{observable} state is measured,
+$\mathcal{Y}$, which is related to the underlying state through
+the measurement function $\mathcal{H}$
+and measurement error $\mathcal{R}$,
+\begin{equation}
+\label{eq:state_measure}
+\mathcal{Y}_k = \mathcal{H}(\mathcal{X}_k, \mathcal{R})
+\end{equation}
+It is of interest to estimate the current state
+based on all of the observations so far,
+\begin{equation}
+\label{eq:state_dist_obs}
+p(\mathcal{X}_k | \mathcal{Y}_{1:k})
+\end{equation}
+which can be done recursively each time a new observation is recieved.
+
+The general formula for recusive Bayes models is
+to first \emph{predict} the next state,
+$p(\mathcal{X}_k | \mathcal{X}_{k-1})$,
+and then to update the prediction using the likelihood
+$p(\mathcal{Y}_k | \mathcal{X}_k)$
+to obtain a posterior estimate of the state
+given all previous observations,
+$p(\mathcal{X}_k | \mathcal{Y}_{1:k})$.
+
+
+There are several different estimation techniques,
+from emperical ones such as the \emph{\kf{}}
+and it's variants (Extendend \kf{}, etc.),
+to numerical ones such as the \pf{}.
+Here we will discuss the \kf{} and the \pf{},
+which we will be using in later sections.
 
 
 \subsection{Kalman filter}
 \label{sec:kf}
 
+Commonly used in vehilce tracking applications,
+the \kf{} is a very fast, simple estimation method
+that assumes Gaussian noise and approximates the state
+by a normal random variable with mean and variance
+\begin{equation}
+\label{eq:kf_estimators}
+\begin{split}
+\mathcal{\hat X}_{k|k} &= \E{\mathcal{X}_k | \mathcal{Y}_{1:k}} \\
+\mathcal{P}_{k|k} &= \Var{\mathcal{X}_k | \mathcal{Y}_{1:k}}
+\end{split}.
+\end{equation}
+The transition and measurement functions
+at time $t_k$ are expressed as matrices
+$\mat{F}_k$ and $\mat{H}_k$, respectively.
+The system noise $\vec{q}_k$ and measurement error $\vec{r}_k$
+at time $t_k$ are both random normal variables
+with mean vector $\vec{0}$ and covariance matrices
+$\mat{Q}_k$ and $\mat{R}_k$, respectively.
+Therefore, the \kf{} prediction step is
+\begin{equation}
+\label{eq:kf_predict}
+\begin{split}
+\mathcal{\hat X}_{k|k-1} = \E{\mathcal{X}_k | \mathcal{X}_{k-1}}
+    &= \mat{F}_k \mathcal{\hat X}_{k-1|k-1} + \vec{q}_k \\
+\mathcal{P}_{k|k-1} = \Var{\mathcal{X}_k | \mathcal{X}_{k-1}}
+    &= \mat{F}_k \mathcal{P}_{k-1|k-1} \mat{F}_k^\top + \mat{Q}_k
+\end{split}
+\end{equation}
+
+The update step is also simple,
+and expressed as a series of equations:
+\begin{equation}
+\label{eq:kf_update}
+\begin{split}
+\mathcal{\tilde Z}_k &= \mathcal{Y}_k - \mat{H}_k \mathcal{\hat X}_{k|k-1} \\
+\mat{S}_k &= \mat{R}_k + \mat{H}_k \mathcal{P}_{k|k-1} \mat{H}_k^\top \\
+\mat{K}_k &= \mathcal{P}_{k|k-1} \mat{H}_k^\top \mat{S}_k^{-1} \\
+\mathcal{\hat X}_{k|k} &= \mathcal{\hat X}_{k|k-1} + \mat{K}_k \mathcal{\tilde Z}_k \\
+\mathcal{P}_{k|k} &= (\mat{I} - \mat{K}_k \mat{H}_k) \mathcal{P}_{k|k-1}
+    (\mat{I} - \mat{K}_k \mat{H}_k)^\top + \mat{K}_k \mat{R}_k \mat{K}_k^\top
+\end{split}
+\end{equation}
+The main point to make here is that the measurement matrix,
+blah blah blah thing about the thing goes here.
+
+
 
 \subsection{Particle filter}
 \label{sec:pf}
+
+The other framework we use is the \pf{},
+a more generalised, numerical approach to recursive Bayesian modelling.
+The state is approximated by a sample of $\Np$ particles,
+each of which is an independent point estimate of the state with a weight $\Pwt$
+such that $\Pwt\geq 0$ and $\sum_i \Pwt = 1$.
+The state estimate is expressed using the Dirac delta function $\dirac$ \citep{cn},
+such that
+\begin{equation}
+\label{eq:pf_state}
+p(\mathcal{X}_{k-1} | \mathcal{Y}_{1:k-1}) \approx
+\sum_{i=1}^\Np \Pwt_{k-1} \dirac(\mathcal{X}_{k-1} - \mathcal{X}\vi_{k-1})
+\end{equation}
+
+The predict and updates steps,
+also referred to by \emph{mutate} and \emph{select},
+are as follows.
+
+The prediction step applies the transition function $\mathcal{F}_k$
+to each particle independently,
+diversifying of ``mutating'' the sample.
+For each particle, this is
+\begin{equation}
+\label{eq:pf_predict}
+\mathcal{X}\vi_k = \mathcal{F}\left(\mathcal{X}\vi_{k-1}, q\vi_k\right),
+\quad
+q\vi_k \sim \Normal{0}{\mathcal{Q}_k}
+\end{equation}
+where the noise can be incorporated in any logical way.
+
+The state estimate is now
+\begin{equation}
+\label{eq:pf_predict}
+p(\mathcal{X}_k | \mathcal{X}_{k-1}) \approx
+\sum_{i=1}^\Np \Pwt_{k-1} \dirac(\mathcal{X}_k - \mathcal{X}\vi_k)
+\end{equation}
+
+
+The next step is to update the state
+to account for the observation
+by using the likelihood function directly.
+This is simply done by reweighting each particle
+using the likleihood,
+and dividing by the sum to ensure they sum to 1:
+\begin{equation}
+\label{eq:pf_reweight}
+\Pwt_k =
+\frac{
+    \Pwt_{k-1} p(\mathcal{Y}_k | \mathcal{X}\vi_k)
+}{
+    \sum_{j=1}^\Np \Pwt[j]_{k-1} p(\mathcal{Y}_k | \mathcal{X}\vi[j]_k)
+}
+\end{equation}
+
+
+Over time, the mutation step will diversity the particles
+to the point where very few of the particles contribute all of the weight.
+To prevent the \pf{} from degenerating like this,
+importance resampling (weighted bootstrap)
+is performed to \emph{select} the best approximation of the state.
+Afterwards, the particles are all reweighted with weight $\Pwt_k = \Np^{-1}$.
+
+
+The advantage of the \pf{} is that it is general,
+at as we will see in \cref{sec:vehicle_model},
+we can easily create a transition function to describe a complex system,
+and the likelihood is intuitive and does not require map matching.
+
+The disadvantage is, of course,
+that the computational demand is high,
+as each particle is translated independently,
+and then resampling can be slow for large $\Np$,
+having order $\mathcal{O}(\Np\log\Np)$ in the C++ algorithm we use.
+However, the tradeoffs are massive as we will discuss in the next chapter.
