@@ -13,9 +13,9 @@ any intersections along the route.
 
 In this chapter, we develop a model of the observed data $\Vobs$ for each vehicle,
 using the GTFS network developed in section~\ref{sec:route-segments}.
-We have chosen to implement it in \rt{} using a particle filter,
+We have chosen to implement it in \rt{} using a \pf{},
 which allows much more flexibility in the model.
-The design and implementation of the particle filter is discussed later in
+The design and implementation of the \pf{} is discussed later in
 section~\ref{sec:particle-filter}
 
 
@@ -35,7 +35,7 @@ Therefore, the underlying, unknown, and \emph{unobservable} state of each vehicl
 \end{equation}
 
 As discussed, we chose to implement a Bayes' filter model,
-implemented using a particle filter,
+implemented using a \pf{},
 to estimate the \rt{} state of each vehicle.
 To do so, we need a transition function to predict the future state,
 and a likelihood and measurement function to update the state given an observation.
@@ -48,20 +48,20 @@ The vehicle model is, in it's simplest form,
 \end{split}
 \end{equation}
 
-Since we are using the particle filter to implement the model,
+Since we are using the \pf{} to implement the model,
 we have a lot of flexibility in how each of these components are specified.
 The transition function $\Vtrans$, for example,
 can implement a complex simulation of bus behaviour,
 while the measurement function $\Vmeas$ can be constructed to deal with \emph{points},
 which are easy to map between one and two dimensions,
-unlike distributions (as in the case of the Kalman filter).
+unlike distributions (as in the case of the \kf{}).
 
 In this chapter,
 we develop the transition function based on a model of bus behaviour
 (section~\ref{sec:vehicle_model}),
 and construct the likleihood using both vehicle positions and trip updates
 (section~\ref{sec:vehicle_likelihood}).
-Finally, we discuss our implementation of the particle filter
+Finally, we discuss our implementation of the \pf{}
 (section~\ref{sec:particle_flter}).
 
 

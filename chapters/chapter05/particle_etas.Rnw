@@ -10,7 +10,7 @@ there is uncertainty in the forecasted state,
 particularly around peak hour when traffic state can change quickly.
 
 
-As we already have developed a particle filter based estimation method
+As we already have developed a \pf{} based estimation method
 for vehicle state,
 it makes sense to use this to obtain the
 \emph{posterior predictive distribution} of arrival times at each stop.
@@ -22,12 +22,12 @@ the arrival times at later stops.
 
 
 To overcome this,
-we tried implementing a Kalman filter on the travel time between stops
+we tried implementing a \kf{} on the travel time between stops
 for a given vehicle.
 In the simple case when segments are defined by stops,
 this will essentially be the same distribution as segment travel time;
 however, it permits more advanced models which allow for intermediate intersections.
-For the Kalman filter, we need a measurement,
+For the \kf{}, we need a measurement,
 so we need to estimate the particles' travel times between stops
 (accounting for lights, etc).
 

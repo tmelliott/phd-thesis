@@ -388,7 +388,7 @@ we simply \emph{reweight} each particle using the following formula
 }
 \end{equation}
 
-<<pf_wts,echo=FALSE,message=FALSE,cache=TRUE,fig.width=8,fig.height=3,fig.align="center",fig.cap="The particle filter estimate of vehicle state after reweighting particles based on the likelihood, or distance from the observed location.",fig.ncol=1>>=
+<<pf_wts,echo=FALSE,message=FALSE,cache=TRUE,fig.width=8,fig.height=3,fig.align="center",fig.cap="The \pf{} estimate of vehicle state after reweighting particles based on the likelihood, or distance from the observed location.",fig.ncol=1>>=
 proj <- function(x, path) {
     d <- c(0, path %>% as.matrix %>%
         apply(2, diff) %>%
@@ -440,7 +440,7 @@ however, as we discussed,
 these are not of the vehicle's true location,
 but rather of \emph{waypoints} (the stop's exact location).
 Therefore, treating these as vehicle position updates
-can cause issues with the particle filter when
+can cause issues with the \pf{} when
 the vehicle hasn't quite arrived yet.
 
 
@@ -470,7 +470,7 @@ with mean $\Tarr_m + \Tdwell_m$ and  variance $\TUerr$,
 \end{cases}
 \end{equation}
 
-In our particle filter implementation,
+In our \pf{} implementation,
 each observation will be processed individually;
 in situations where more than one type of observation is recieved,
 they are processed in chronological order

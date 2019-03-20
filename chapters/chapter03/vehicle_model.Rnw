@@ -28,7 +28,7 @@ for this part,
 where $\Vtdiff_k = \Vtime_k - \Vtime_{k-1}$
 and the system noise $\Vnoise$ is constant over time.
 
-We use a particle filter so we do not need to talk in terms of a distributions.
+We use a \pf{} so we do not need to talk in terms of a distributions.
 Instead, in the section, we describe the motion of a particle, a unique ``imaginary'' vehicle.
 So, given a particle with state $\Vstate\vi_{k-1}$ at time $\Vtime_{k-1}$,
 we use Newton's Laws of Motion \cite{cn}
@@ -245,7 +245,7 @@ which represents the \emph{minimum dwell time} at a stop.
 The second step is modelled as the service time of the stop,
 that is the time to allow passengers to alight and board.
 As we have no \rt{} data on passenger counts available in Auckland,
-we rely on the flexibility of the particle filter to estimate
+we rely on the flexibility of the \pf{} to estimate
 dwell time in \rt{}.
 We are using a truncated normal distribution
 with mean $\mindwell + \dwell_m$ and variance $\dwellvar_m$,

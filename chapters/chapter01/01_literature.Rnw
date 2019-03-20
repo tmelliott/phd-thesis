@@ -8,7 +8,7 @@ there has been an enormous advance in both the technologies available and the mo
 to track buses in \rt{} and simultaneously make arrival-time predictions for the upcoming stops.
 Of particular interest are the recursive Bayesian filters,
 namely the Kalman Filter, which has been used in transit models since the late 1990's,
-and the particle filter, which has only recently shown up in the transit literature,
+and the \pf{}, which has only recently shown up in the transit literature,
 but has several unique characteristics we wish to exploit in our work.
 In addition to these models,
 there has also been a lot of progress in the field using data-oriented and machine learning models

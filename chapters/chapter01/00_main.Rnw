@@ -85,7 +85,7 @@ we can compute \emph{arrival time} at a stop.
 
 In this section, we give an overview of some of the models that have been used
 to generate \rt{} arrival time predictions,
-with particular focus on Kalman and particle filtering.
+with particular focus on Kalman and \pf{}ing.
 We will briefly discuss some computer learning models which---%
 although we will not be using them---%
 cover important ground with respect to the important features of bus models.

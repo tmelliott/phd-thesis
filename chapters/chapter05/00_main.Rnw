@@ -7,7 +7,7 @@ the travel time along roads between where the vehicle is now,
 and the bus stop,
 accounting for additional delay due to intermediate stops,
 traffic lights, etc.
-It is therefore reasonable to return to the particle filter
+It is therefore reasonable to return to the \pf{}
 estimates of vehicle state,
 which will allow us to account for multiple sources of variability with ease.
 Also note that this section focuses on obtaining an
@@ -18,7 +18,7 @@ chapter~\ref{cha:etas} will explore how these are presented to commuters.
 The main issue for this part is that, due to all of the many variables,
 travel times can change dramatically at some times.
 However, we do not want these to cause the \glspl{eta} to jump around,
-so we have developed a Kalman filter to smooth the \glspl{eta} over time.
+so we have developed a \kf{} to smooth the \glspl{eta} over time.
 
 
 The overall procedure will be as follows:
@@ -29,7 +29,7 @@ The overall procedure will be as follows:
     (along with measurement error matrix)
     by summarizing the particle travel times---%
     mean, variance, covariance between segment travel times, etc.
-\item update the travel time state vector using a Kalman filter update
+\item update the travel time state vector using a \kf{} update
     to obtain distributions for the travel times along each segment,
     account for correlations between sequential segments
 \item add the distributions together to obtain a final distribution

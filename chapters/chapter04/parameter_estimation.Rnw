@@ -10,7 +10,7 @@ and between-vehicle variability, $E_{\ell}$,
 which describes the variability of speeds of vehicles
 traveling along a road simultaneously.
 The additional measurement error for each individual vehicle
-will be estimated from the particle filter.
+will be estimated from the \pf{}.
 
 
 The system noise parameter for each segment is assumed to come
@@ -21,7 +21,7 @@ Similarly the between-vehicle variability has hyperparameters $\mu_E$ and $\sigm
 To reduce model complexity,
 we decided to discretise the observation times into 15~minute intervals.
 To obtain the travel time observations,
-we ran the particle filter model over one day's historical data,
+we ran the \pf{} model over one day's historical data,
 and stored all of the individual vehicle travel times along each segment.
 
 

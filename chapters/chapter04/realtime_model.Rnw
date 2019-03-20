@@ -2,7 +2,7 @@
 \section{\Rt{} network model}
 \label{sec:nw_realtime}
 
-%The modified Kalman filter approach to modeling
+%The modified \kf{} approach to modeling
 %travel times as vehicles travel along each
 %road segment.
 
@@ -24,7 +24,7 @@ given the posterior state estimate at time $c-1$.
 
 % \subsection{Transition function}
 
-% Based on an extended Kalman filter,
+% Based on an extended \kf{},
 % the transition function $f$ defines the state at time $c$
 % as a deterministic function of the state at time $c-1$
 % and system noise, $u_c \sim \mathcal{N}(0, Q)$.
@@ -117,7 +117,7 @@ given the posterior state estimate at time $c-1$.
 % of all $K_m$ vehicles completing travel along the segment
 % during the current iteration.
 % For each vehicle, we can obtain the mean and uncertainty
-% of travel time from the particle filter,
+% of travel time from the \pf{},
 % $b_{v,\ell}$ and $e_{v\ell}$, respectively.
 % These can then be combined to obtain a single observation for the EKF,
 % along with an estimate to use as measurement error:

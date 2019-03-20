@@ -78,7 +78,7 @@ Here we will discuss the \kf{} and the \pf{},
 which we will be using in later sections.
 
 
-\subsection{Kalman filter}
+\subsection{\kf{}}
 \label{sec:kf}
 
 Commonly used in vehilce tracking applications,
