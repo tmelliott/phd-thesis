@@ -1,5 +1,10 @@
-
 \subsection{Computational implementation}
 \label{sec:pf_implementation}
 
 
+We decided to ue Rcpp \citep{Rcpp}
+to implement the software,
+as it gave us the power of R \citep{rcore} for data manipulation
+(importing \gls{gtfs} data and processing routes, etc.)
+and C++ \citep{cpp} for speed
+(for the \rt{} components).
