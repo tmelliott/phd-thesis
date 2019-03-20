@@ -22,3 +22,37 @@ of points around the route,
 since we assume there is no directional bias,
 so the distance from an observation to the route is an approximate estimate
 of measurement error.
+
+
+\subsubsection{Estimating GPS error}
+\label{sec:pf_params_data}
+
+The measurement error for the model is arguably one of the more important parameters,
+as it is indeed the entire purpose of the model to filter noisy observations
+in order to infer things about the state of the vehicle.
+In a full Bayesian model,
+the GPS error could simply be given a prior and estimated using \gls{mcmc}.
+However it turns out trying to for a Bayesian model to the data
+is a very difficult process,
+particularly the question of
+\emph{how to map observations to the route},
+so while it would have been nice to implement such a model
+(and indeed we have plans to, time allowing),
+we use a far more primitive method.
+
+
+Buses travel along a route which has a known path.
+Although the line will not always lie exactly on the path of the vehicle,
+it gives us a close enough approximation.
+If we therefore compute the shortest distance
+from each observation to the route,
+we can get a distribution of the GPS error.
+
+First, we need to extract the data \ldots
+
+<<pf_param_gps>>=
+suppressPackageStartupMessages(library(tidyverse))
+# load("vps.rda")
+# vps
+@
+
