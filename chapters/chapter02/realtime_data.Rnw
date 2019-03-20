@@ -1,5 +1,5 @@
 
-\section{Real-time vehicle data}
+\section{\Rt{} vehicle data}
 \label{sec:realtime-data}
 
 There are several ways in which transit vehicles can report their location.
@@ -12,7 +12,7 @@ This server then combines the locations of all the buses in the fleet
 and makes them available via an \gls{api}.
 
 
-The other component of the real-time data available to us
+The other component of the \rt{} data available to us
 is arrival and departure information at bus stops.
 In this situation,
 when a vehicle arrives at or departs from a stop,
@@ -31,7 +31,7 @@ allowing them to see where the bus was when it last reported its location.
 The trip update can also be displayed on the app,
 in which the \emph{current delay} is typically added to the scheduled arrival time
 at the passenger's stop;
-of course, this information is often also displayed on a real-time board at the stop itself.
+of course, this information is often also displayed on a \rt{} board at the stop itself.
 
 
 What we have just described is in fact the entirety of
@@ -59,10 +59,10 @@ Object tracking has been well studied,
 and many algorithms exist for tracking an object through space using
 \gls{gps} observations.
 However, these usually take high-frequency observations (seconds or milliseconds)
-which can generate an almost exact real-time estimate of the objects actual location.
+which can generate an almost exact \rt{} estimate of the objects actual location.
 
 
-Many examples of real-time object tracking exist,
+Many examples of \rt{} object tracking exist,
 however the most relatable to most readers will be in their pocket.
 When getting directions from your phone,
 the maps application requests the user's phone's location continuously,
@@ -72,7 +72,7 @@ when you've suddenly missed the turn off?
 Often, the maps application will show you as \emph{on course} for several seconds
 until it realises that you well and truly have gone off track
 and reroutes your route.
-This is an example of a real-time position tracking algorithm
+This is an example of a \rt{} position tracking algorithm
 that is attempting to follow the device's location
 whilst simultaneously accounting for inherent noise in the measurements.
 When the driver first goes off track,
@@ -82,7 +82,7 @@ Eventually the error becomes large enough and the model stops assuming
 the driver is following the planned route.
 
 
-With real-time transit data,
+With \rt{} transit data,
 the frequency of observations is vastly reduced,
 with observations obtained anywhere from 10~seconds to a minute (or more!) between.
 This makes it very difficult to estimate the vehicle's exact location,
@@ -109,9 +109,9 @@ This then triggers a trip update (section~\ref{sec:tu_data}),
 which itself produces a vehicle position update
 \emph{exactly at the bus stop}.
 However, our passenger will be standing and looking at the bus sitting at the lights,
-while the real-time board displays the bus as having arrived.
+while the \rt{} board displays the bus as having arrived.
 For the passenger waiting at this stop,
-this is of no concern, as now they can see the bus and have no need to real-time data.
+this is of no concern, as now they can see the bus and have no need to \rt{} data.
 For the passengers at stops down the line, however,
 this can have some frustrating implications.
 
@@ -134,7 +134,7 @@ sadly, however, Auckland Transport implemented a similar behaviour for
 some major intersections,
 of which we do not know the locations (yet) and cannot therefore filter them out.
 Thus it was necessary when developing the model to allow these ``pre-emptive''
-observations to be filtered out in real-time (i.e., as the bus is seen to jump backwards).
+observations to be filtered out in \rt{} (i.e., as the bus is seen to jump backwards).
 
 
 
@@ -166,7 +166,7 @@ The reverse can also occur, for example if for some reason the bus reports
 its arrival or departure late.
 However, what is more common is that the update is skipped altogether,
 and so a bus that was 5~minutes behind schedule has made up several minutes
-and arrives at the bus stop while the real-time board still shows it
+and arrives at the bus stop while the \rt{} board still shows it
 as being 2~minutes away.
 While this may seem like a good thing---our passenger doesn't have to wait
 quite so long---the other passenger making their timely way to the bus may have to sprint

@@ -41,7 +41,7 @@ and using this to improve the reliability of \glspl{eta}.
 In this thesis, we present an approach to bus modelling that
 uses one of the most widely available transit data formats
 (GTFS, chapter~\ref{cha:data})
-to not only track the real-time locations of vehicles
+to not only track the \rt{} locations of vehicles
 (chapter~\ref{cha:vehicle_model}),
 but also to model the congestion along roads within the transport network
 (chapter~\ref{cha:network_model}).
@@ -84,7 +84,7 @@ we can compute \emph{arrival time} at a stop.
 
 
 In this section, we give an overview of some of the models that have been used
-to generate real-time arrival time predictions,
+to generate \rt{} arrival time predictions,
 with particular focus on Kalman and particle filtering.
 We will briefly discuss some computer learning models which---%
 although we will not be using them---%

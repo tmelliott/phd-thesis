@@ -1,5 +1,5 @@
 
-\section{Real-time network model}
+\section{\Rt{} network model}
 \label{sec:nw_realtime}
 
 %The modified Kalman filter approach to modeling

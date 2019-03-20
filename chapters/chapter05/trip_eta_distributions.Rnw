@@ -2,7 +2,7 @@
 \section{Trip arrival time distribution}
 \label{sec:trip_eta_dist}
 
-Due to the real-time nature of the application,
+Due to the \rt{} nature of the application,
 and the computational demand of estimating arrival times for thousands of particles,
 it was soon clear that using the method described above is not viable.
 Instead, we decided to use the travel time distributions for road segments directly,
@@ -35,7 +35,7 @@ where $\beta_\ell$ was estimated in section~\ref{sec:nw_realtime},
 \end{equation}
 
 For dwell times,
-we do not yet have any real-time model,
+we do not yet have any \rt{} model,
 however we will be using fixed values for their distribution
 that can be estimated in future work.
 For each stop, the dwell time distribution at stop $m$ is defined by

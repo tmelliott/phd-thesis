@@ -1,5 +1,5 @@
 
-\chapter{Working with real-time transit data}
+\chapter{Working with \rt{} transit data}
 \label{cha:data}
 
 One of the main goals of this work was to develop a generalised approach to

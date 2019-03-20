@@ -4,7 +4,7 @@
 As we have have seen throughtout,
 there are many sources of uncertainty that need to be accounted for
 when make predictions.
-Not only is there uncertainty in the real-time state of vehicles,
+Not only is there uncertainty in the \rt{} state of vehicles,
 and the network,
 there is uncertainty in the forecasted state,
 particularly around peak hour when traffic state can change quickly.

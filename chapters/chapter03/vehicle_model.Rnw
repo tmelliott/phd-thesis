@@ -1,5 +1,5 @@
 
-\section{Real-time vehicle model}
+\section{\Rt{} vehicle model}
 \label{sec:vehicle_model}
 
 Transit vehicle behaviour is both predictable and volatile.
@@ -224,7 +224,7 @@ The main feature of transit vehicle behaviour that distinguishes it from
 other vehicle tracking applications is the presense of known stopping locations,
 or \emph{bus stops}.
 It is therefore an integral component of our model;
-however, modelling stopping behaviour in real-time is a difficult problem,
+however, modelling stopping behaviour in \rt{} is a difficult problem,
 particularly when the observations are sparse,
 or frequently observed (only) at bus stops (\cref{sec:realtime-data}).
 
@@ -244,9 +244,9 @@ which represents the \emph{minimum dwell time} at a stop.
 
 The second step is modelled as the service time of the stop,
 that is the time to allow passengers to alight and board.
-As we have no real-time data on passenger counts available in Auckland,
+As we have no \rt{} data on passenger counts available in Auckland,
 we rely on the flexibility of the particle filter to estimate
-dwell time in real-time.
+dwell time in \rt{}.
 We are using a truncated normal distribution
 with mean $\mindwell + \dwell_m$ and variance $\dwellvar_m$,
 with a point mass of $1-\Prstop_m$ on zero,

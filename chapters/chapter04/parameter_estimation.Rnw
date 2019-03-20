@@ -32,8 +32,8 @@ In the test set,
 we used three approaches
 \begin{itemize}
 \item historical model only,
-\item real-time model only, and
-\item historical and real-time model combined.
+\item \rt{} model only, and
+\item historical and \rt{} model combined.
 \end{itemize}
 
 

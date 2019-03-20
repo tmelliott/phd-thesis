@@ -2,7 +2,7 @@
 \chapter{Modelling a transit vehicle}
 \label{cha:vehicle_model}
 
-The real-time position data of vehicles is only a small piece
+The \rt{} position data of vehicles is only a small piece
 of the information required to model network travel times.
 The main purpose of this section is to develop a model
 that can interpolate the trajectory of a vehicle between observations,
@@ -13,7 +13,7 @@ any intersections along the route.
 
 In this chapter, we develop a model of the observed data $\Vobs$ for each vehicle,
 using the GTFS network developed in section~\ref{sec:route-segments}.
-We have chosen to implement it in real-time using a particle filter,
+We have chosen to implement it in \rt{} using a particle filter,
 which allows much more flexibility in the model.
 The design and implementation of the particle filter is discussed later in
 section~\ref{sec:particle-filter}
@@ -36,7 +36,7 @@ Therefore, the underlying, unknown, and \emph{unobservable} state of each vehicl
 
 As discussed, we chose to implement a Bayes' filter model,
 implemented using a particle filter,
-to estimate the real-time state of each vehicle.
+to estimate the \rt{} state of each vehicle.
 To do so, we need a transition function to predict the future state,
 and a likelihood and measurement function to update the state given an observation.
 The vehicle model is, in it's simplest form,

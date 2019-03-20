@@ -5,7 +5,7 @@
 
 Over the last two decades,
 there has been an enormous advance in both the technologies available and the models used
-to track buses in real-time and simultaneously make arrival-time predictions for the upcoming stops.
+to track buses in \rt{} and simultaneously make arrival-time predictions for the upcoming stops.
 Of particular interest are the recursive Bayesian filters,
 namely the Kalman Filter, which has been used in transit models since the late 1990's,
 and the particle filter, which has only recently shown up in the transit literature,
@@ -94,12 +94,12 @@ or in some cases the test data was collected manually
 In Auckland's transport system, the only publicly available data is provided
 by \gls{gps}, which is updated approximately every 30~seconds,
 so arrival times must be estimated as latency variables and,
-in a real-time deployment, will remain unknown.
+in a \rt{} deployment, will remain unknown.
 Another issue specifically with Auckland Transport is that,
 over the next few years,
 the route structure is being completely redesigned
 and rolled out slowly across the city.
-Therefore, focus will be on using real-time and recent data (same day, week) to predict arrival times,
+Therefore, focus will be on using \rt{} and recent data (same day, week) to predict arrival times,
 rather than relying on historical data collected over months or years.
 
 
