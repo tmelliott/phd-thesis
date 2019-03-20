@@ -1,0 +1,24 @@
+\subsection{Parameter selection}
+\label{sec:pf_params}
+
+Once the inherent data issues have been dealt with,
+we can begin determining the values of the model parameters.
+Some of these are fixed and constant across all vehicles, routes, and stops,
+for example,
+GPS error, $\GPSerr$,
+system noise, $\Vnoise$,
+and minimum dwell time, $\mindwell$.
+Others will inevitably vary between routes, stops, and time of day,
+such as stopping probability, $\Prstop$,
+and dwell time, $\dwell$.
+
+
+We explore these by modelling a subset of routes throughout Auckland over several days,
+using historical data to allow us to vary parameters and compare their effects.
+Some parameters, notably $\GPSerr$ and $\dwell$
+can be determined from the data:
+the value $\GPSerr$ can be approximated by looking at the variability
+of points around the route,
+since we assume there is no directional bias,
+so the distance from an observation to the route is an approximate estimate
+of measurement error.

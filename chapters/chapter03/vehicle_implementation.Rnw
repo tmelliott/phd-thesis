@@ -1,6 +1,8 @@
-
-\section{Particle filter implementation}
+\section{\Rt{} model implementation}
 \label{sec:particle-filter}
+
+\textbf{This should only be about the specifics of the particle filter's C++ implementation,
+not the program itself (which should be introduced in Ch2).}
 
 The implementation of the particle filter in a way that is both
 generalised---%
@@ -48,3 +50,5 @@ if the infrastructure is available at some time in the future.
 
 
 \input{DIRNAME/pf_computation.tex}
+\input{DIRNAME/pf_issues.tex}
+\input{DIRNAME/parameter_selection.tex}

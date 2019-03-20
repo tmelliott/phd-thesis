@@ -1,0 +1,125 @@
+\subsection{Issues}
+\label{sec:pf_issues}
+
+The main issue with the \pf{} is, of course,
+the computational demand of processing thousands of particles \emph{per vehicle}.
+The two ways of working around this are:
+\begin{enumerate}
+\item reducing computational demand, for example by reducing the frequency of resampling,
+    and simulating as little as possible;
+\item increasing computational output by parallelising processing (which is easy as we can simply
+    parallise over vehicles which are independent),
+    for which we used a \gls{vm} with 8-cores and 32GB of memory.
+\end{enumerate}
+
+Beyond these general issues,
+there were others that were particular to the \pf{},
+or the data itself.
+Regarding the \pf{},
+we have already mentioned \emph{degeneration},
+which is where the particle cloud becomes an inaccurate summarisation of vehicle state,
+or in some cases loses the vehicle altogether (i.e., no particles near the observation).
+This is controlled by
+\begin{itemize}
+\item increasing GPS error;
+\item tuning system noise---too small and the vehicle is lost,
+    too large and there's too much uncertainty; or
+\item increasing the number of particles.
+\end{itemize}
+These are controlled by parameter selection,
+discussed in \cref{sec:pf_params}.
+However, there are other causes of degeneration caused by the data itself.
+
+
+On of the major causes of \emph{vehicle loss}
+is when the vehicle does not move for a long time.
+This can be at a bus stop (although the model allows for this),
+or, more commonly, at an unknown intersection.
+However, it can also occur at choke points,
+such as blocked bus lane in \emph{really really bad traffic},
+so that the bus may be unable to move for several minutes.
+In this situation,
+we may get $\Vobs_k \approx \Vobs_{k-1}$ with large $\Vtdiff_k$,
+so all possible trajectories from the model will place the vehicle
+much farther down the route,
+resulting in tiny likelihoods for all particles and
+degeneration of the \pf{}.
+
+
+Initially, we placed a tiny probability (0.01)
+on the vehicle remaining stopped at its previous location,
+so that a few particles remain stopped.
+However,
+this also led to poor estimation of travel times,
+as inevitably all of the weight lands on a few particles.
+Also, in some cases the bus \emph{will} move a little,
+but far less than expected under the model.
+An alternative would be to allow some of the particles to wait
+for \emph{part of $\Vtdiff_k$}, and then travel,
+but this led to different issues again.
+It turns out that it is \emph{very hard to model a vehicle}
+when the observations are sparse.
+
+
+Before we discuss our solution,
+we will refer back to \cref{sec:vp_data},
+in which we mentioned the issue of \emph{preemtive} observations,
+particularly at intersection waypoints,
+and subsequent observations in the queue,
+resulting in what appear to be a bus traveling backwards.
+This has even more severe implications on the \pf{},
+as our model explicitely states that
+\emph{vehicles cannot travel backwards along the route}.
+It would, therefore, seem that inspecting the data before modelling
+would be advantageous.
+
+
+True, the entire point of Bayes' filtering models is
+to first predict the future state,
+and \emph{then} update it using the observation.
+However, in our case, there is so much variability in
+where the future state might be,
+that we have no choice but to examine the observation first,
+and the decide best on how to model it.
+
+
+So, we set up some checks of the observation to determine
+if there are issues with the data we need to compensate for.
+The simplest check is to compute the distance between consecutive observations
+and check if it is below some threshold (e.g., 10~m)
+$\dist{\Vobs_{k-1}, \Vobs_k} < \distThreshold$,
+in which case we assume the vehicle hasn't moved.
+Of course, this doesn't deal with reversing buses \ldots
+
+
+To do this, we first need to detect if the observation is potentially
+\emph{behind} the previous one.
+That is,
+\begin{equation}
+\label{eq:vehicle_rev_check}
+\Vmeas^{-1}(\Vobs_k) < \Vmeas^{-1}(\Vobs_{k-1}).
+\end{equation}
+If this occurs, we have several options:
+\begin{itemize}
+\item ignore the current observation,
+    which is not favourable as, from observation of the data,
+    it is more common for the first observation to be false
+    (i.e., exactly at an intersection),
+    followed by a more accurate one (in the queue approaching the intersection);
+\item remove the previous observation and a backup of the previous state
+    (i.e., we keep a backup of the vehicle's state before predicting and updating);
+\item backup only each particle's weight,
+    so that we can reset the weights prior to the previous observation,
+    and allow only this new one to affect the reweighting.
+    This means that we do not need to retransition all of the particles
+    and store an entire state.
+\end{itemize}
+
+So now we briefly describe how these are implemented,
+and show comparisons of how they handle!
+Which involves finding a route where this happens every now and then,
+and then run the (real) \pf{} on that data
+to demonstrate the models.
+Gosh, this will be finicky \ldots
+
+
