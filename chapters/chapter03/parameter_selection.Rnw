@@ -49,10 +49,75 @@ from each observation to the route,
 we can get a distribution of the GPS error.
 
 First, we need to extract the data \ldots
+Then, the route itself can be extracted from the database \ldots
 
-<<pf_param_gps>>=
+<<pf_param_gps,cache=TRUE,message=FALSE,echo=FALSE,fig.width=8,fig.height=3,fig.cap="Distribution of distance from observation to nearest point on the route, truncated to 10~m.">>=
 suppressPackageStartupMessages(library(tidyverse))
-# load("vps.rda")
-# vps
+load("vps.rda")
+vps <- vps %>% distinct
+
+library(RSQLite)
+suppressPackageStartupMessages(library(dbplyr))
+con <- dbConnect(SQLite(), "fulldata.db")
+# for each ROUTE, fetch the shape
+rids <- unique(vps$route_id)
+routeshape <- con %>% tbl('trips') %>%
+    select(route_id, shape_id) %>%
+    filter(route_id %in% rids) %>%
+    distinct()
+shapes <- con %>% tbl('shapes') %>%
+    inner_join(routeshape) %>%
+    collect() %>%
+    group_by(route_id)
+tids <- unique(vps$trip_id)
+date <- format(
+    as.POSIXct(median(vps$timestamp), origin = "1970-01-01"),
+    "%Y-%m-%d"
+)
+triptimes <- con %>% tbl('stop_times') %>%
+    filter(trip_id %in% tids & stop_sequence ==1 ) %>%
+    select(trip_id, departure_time) %>%
+    collect()
+dbDisconnect(con)
+
+date <- as.POSIXct(paste(date, "00:00:00"))
+triptimes <- triptimes %>%
+    mutate(t = date + sapply(departure_time, function(x) {
+        sum(c(60*60, 60, 1) * as.numeric(strsplit(x, ":")[[1]]))
+    }))
+
+# trip time - start time
+vps <- vps %>% right_join(triptimes) %>%
+    filter(timestamp >= t & timestamp < t + 60*60*1)
+
+# filter out single obs
+vps <- vps %>% group_by(vehicle_id, trip_id) %>%
+    do({
+        zz <- (.)
+        if (nrow(zz) < 5) zz <- zz %>% filter(FALSE)
+        zz
+    })
+
+dist_to_line <- function(x, s) {
+    s <- sf::st_linestring(s %>% ungroup %>% select(shape_pt_lon, shape_pt_lat) %>% as.matrix)
+    geosphere::dist2Line(x %>% select('lon', 'lat') %>% as.matrix, s)[, 1]
+}
+vpsd <- vps[sample(nrow(vps), 20000),] %>% group_by(route_id) %>%
+    do({
+        zz <- (.)
+        sh <- shapes %>% filter(route_id == zz$route_id[1])
+        zz %>% mutate(dist2r = dist_to_line(., sh))
+    })
+
+ggplot(vpsd %>% filter(dist2r < 10 & dist2r > -1) %>% arrange(dist2r)) +
+    geom_histogram(aes(dist2r, stat(density)), bins = 50) +
+    theme_minimal() + theme(panel.grid = element_blank()) +
+    xlab("Distance (m)") + ylab("Distribution")
+    # scale_y_continuous(breaks = NULL)
+    # geom_point(aes(lon, lat, colour = dist2r)) +
+    # scale_colour_viridis_c("D")
+    # geom_point(aes(lon, lat))
 @
 
+
+The results are shown in \cref{fig:pf_param_gps}
