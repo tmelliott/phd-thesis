@@ -112,7 +112,8 @@ vpsd <- vps[sample(nrow(vps), 20000),] %>% group_by(route_id) %>%
 ggplot(vpsd %>% filter(dist2r < 10 & dist2r > -1) %>% arrange(dist2r)) +
     geom_histogram(aes(dist2r, stat(density)), bins = 50) +
     theme_minimal() + theme(panel.grid = element_blank()) +
-    xlab("Distance (m)") + ylab("Distribution")
+    xlab("Distance (m)") + ylab("Distribution") +
+    scale_x_continuous(breaks = seq(0, 10, by = 2))
     # scale_y_continuous(breaks = NULL)
     # geom_point(aes(lon, lat, colour = dist2r)) +
     # scale_colour_viridis_c("D")
@@ -120,4 +121,14 @@ ggplot(vpsd %>% filter(dist2r < 10 & dist2r > -1) %>% arrange(dist2r)) +
 @
 
 
-The results are shown in \cref{fig:pf_param_gps}
+The results are shown in \cref{fig:pf_param_gps},
+which shows one peak at about 0.5~m,
+and another at 2.5~m.
+This gives us a vague idea of what the GPS error should be,
+although it is very artificial
+(and demonstrates how bad our assumption is that the observations
+are normally distributed, but eh \ldots)
+
+
+From here, we choose a range of GPS error values:
+2~m, 3~m, and 5~m.
