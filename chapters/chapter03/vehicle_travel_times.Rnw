@@ -1,0 +1,7 @@
+\subsection{Estimating travel times}
+\label{sec:vehicle_travel_times}
+
+The entire point of the vehicle model
+is to estimate the travel time of a vehicle along road segments.
+In \cref{eq:vehicle_state} we see the travel time parameter $\vec\Vtt$
+which is estimated easily by the \pf{}.
