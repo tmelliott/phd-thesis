@@ -2,169 +2,119 @@
 \section{\Rt{} network model}
 \label{sec:nw_realtime}
 
-%The modified \kf{} approach to modeling
-%travel times as vehicles travel along each
-%road segment.
+The state of the network, $\NWstate_c$, at time $t_c$
+is the average travel time of transit vehicles along
+each segment $\ell \in \{1, \ldots, L\}$.
+There are two things we want from the model:
+to update the \rt{} state as vehicles traverse the network,
+and forecast ahead for improving arrival time prediction,
+particularly going into and coming out of peak times.
+
+Each individual measurement of travel time is typically very noisy,
+due to many sources of uncertainty with observations.
+We did some exploration of travel time from historical data,
+using $\Varr_{rm} - \Vdep_{rm-1}$ as the estimate.
+
+Therefore we are using another Bayes' filter model,
+this time using a \kf{} (\cref{sec:kf}) to estimate the state.
+In this model, the transition matrix $F_c = I$ for all $c$,
+indicating that travel times do not change on average.
+Similarly, the measurement matrix $H_c = I$,
+as the measurements are, in the case, of the state directly.
+So the model is
+\begin{equation}
+\label{eq:nw_model}
+\begin{split}
+\NWstate_\ell_c = \NWstate_\ell_{c-1} + v_\ell_c,
+    \quad v_\ell_c \sim \Normal{0}{\NWnoise_\ell} \\
+\NWobs_\ell_c = \NWstate_\ell_c + w_\ell_c,
+    \quad w_\ell_c \sim \Normal{0}{\NWerr_\ell}
+\end{split}
+\end{equation}
+
+It is possible to modify \cref{eq:nw_model} to include
+a rate parameter,
+which would be positive going into peak periods
+(increase in travel time),
+and negative coming out of them;
+however, this doubles the size of the state.
 
 
-The \emph{network state} is denoted by $\bbeta$,
-a vector of length $L$, the number of segments in the network.
-Each $\beta_\ell$ represents the \emph{mean travel time} of buses
-in segment $\ell$.
-To denote time, we add a $c$ subscript to the state, $\bbeta_c$
-and $\beta_{c\ell}$.
-
-The \emph{state estimate} will be denoted as $\bbetahat$.
-
-\section{Predict step}
-
-The first step in the EKF process is to predict the state at time $c$.
-Here we wish to estimate $\bbetahat_{c|c-1}$, the network state at time $c$,
-given the posterior state estimate at time $c-1$.
-
-% \subsection{Transition function}
-
-% Based on an extended \kf{},
-% the transition function $f$ defines the state at time $c$
-% as a deterministic function of the state at time $c-1$
-% and system noise, $u_c \sim \mathcal{N}(0, Q)$.
-% That is,
-% \begin{equation}
-%     \label{eq:kf_transition_basic}
-%     \bbetahat_{c|c-1} = f(\bbetahat_{c-1|c-1}, u_c).
-% \end{equation}
-
-% The next step is to define $f$ so that it meets the criteria for
-% the EKF (it must be differentiable), and has the properties we desire:
-% that the state will regress to the prior in the absense of any observations.
-
-% To bring the state towards the prior mean travel time for segment $\ell$,
-% $\nu_\ell$, we define the transition function for a single second, $f$, as
-% \begin{equation}
-%     \label{eq:kf_transition_def}
-%     f(\beta_{\ell,c}, \nu_\ell, \lambda) = \beta_{\ell,c-1} + \lambda (\nu_\ell - \beta_{\ell,c-1})
-% \end{equation}
-% where $\lambda \in (0,1)$ is a tuning parameter that determines the rate at which
-% the state converges.
-% We can easily calculate the derivative of $f$, too, which is a requirement for the EKF.
-% \begin{equation}
-%     \label{eq:kf_transition_fderiv}
-%     f'(\beta_{\ell,c}, \nu_\ell, \lambda) = 1 - \lambda
-% \end{equation}
-
-% Next we need to be able to define the a transition for $\Delta$ seconds,
-% which by recursion of \ref{eq:kf_transition_def} is
-% \begin{equation}
-%     \label{eq:kf_transition_n}
-%     f_n(\beta_{\ell,c-1}, \nu_\ell, \lambda) =
-%     (f^1 \circ \cdots \circ f^n)(\beta_{\ell,c=1}, \nu_\ell, \lambda), \quad\text{where } f^j\equiv f\quad \forall j.
-% \end{equation}
-
-% The derivative of \ref{eq:kf_transition_n} is obtained used the chain rule,
-% $f(g(x))' = f'(g(x)) g'(x)$.
-% We will use $f(\beta) \equiv f(\beta_{\ell,c-1},\nu_\ell,\lambda)$ to simplify notation
-% (the other parameters are constant).
-% \begin{align}
-%     \label{eq:kf_transition_F}
-%     F_n = f'_n(\beta) &=
-%     f'\left((f^1\circ\cdots\circ f^{n-1})(\beta)\right)(f^1\circ\cdots\circ f^{n-1})'(\beta) \nonumber \\
-%     &= f'\left(f_{n-1}(\beta)\right) F_{n-1} \nonumber \\
-%     &= f'\left(f_{n-1}(\beta)\right) f'\left(f_{n-2}(\beta)\right) \cdots f'\left(f_1(\beta)\right) f'(\beta) \nonumber \\
-%     &= f'(\beta) \prod_{i=1}^{n-1} f'\left(f_i(\beta)\right) \nonumber \\
-% \intertext{Substituting \ref{eq:kf_transition_fderiv}, we get}
-%     F_n &= (1-\lambda) \prod_{i=1}^{n-1}(1-\lambda) = (1-\lambda)^n
-% \end{align}
-
-
-% Next we need to ensure the entire state, and not just the mean,
-% converges to the prior,
-% i.e., the state variance $P_{\ell,c}$ converges to the prior variance, $\xi_{\ell} = \xi_\ell$.
-
-% The system noise, $Q$, is used to predict the state variance,
-% \begin{equation}
-%     \label{eq:kf_transition_predvar}
-%     P_{\ell,c|c-1} = F_n^2 P_{\ell,c-1|c-1} + L_c Q
-% \end{equation}
-% At convergence, we want $P_{\ell,c|c-1} = P_{\ell,c-1|c-1} = \xi_\ell$, and
-% $L_{c-1} = \left.\frac{\partial f_n}{\partial u}\right|_{\hat\beta_{\ell,c|c-1}} = 1$.
-% Substituting into \ref{eq:kf_transition_predvar} and solving for $Q$:
-% \begin{align}
-%     \label{eq:kf_transition_Q}
-%     \xi_\ell &= F^2_n\xi_\ell + Q \nonumber \\
-%     &= (1-\lambda)^{2n}\xi_\ell + Q \nonumber \\
-%     Q &= \xi_\ell(1 - (1 - \lambda)^{2n})
-% \end{align}
-
-% Now that the state will converge to the prior,
-% the last thing we have to do is determine how fast it does so.
-% This is controlled by $\lambda$;
-% however, we want the rate of convergence to be slow
-% after an observation, and speed up the longer we go without seeing any buses.
-% That is, we want to use a ratio of $P_\ell$ and $\xi_\ell$,
-% \begin{equation}
-%     \label{eq:kf_transition_lambda}
-%     \lambda = \phi \frac{P_{\ell,c-1|c-1}}{P_{\ell,c-1|c-1} + \xi_\ell}
-% \end{equation}
-% where $\phi$ is a tuning parameter.
+It is also possible to include a control vector,
+and associated control matrix,
+which would be used to improve the model.
+For example,
+we could use the change in state of adjacent road segments
+to model changes in the current segment.
 
 
 
-\section{Update step}
+\subsection{Predict step}
+\label{eq:kf_predict}
 
-% Having predicted the state at time $t_c$,
-% we can now update our estimate based on the observed data,
-% $\bB_c$, which consists of the combined travel times
-% of all $K_m$ vehicles completing travel along the segment
-% during the current iteration.
-% For each vehicle, we can obtain the mean and uncertainty
-% of travel time from the \pf{},
-% $b_{v,\ell}$ and $e_{v\ell}$, respectively.
-% These can then be combined to obtain a single observation for the EKF,
-% along with an estimate to use as measurement error:
-% \begin{align}
-%     \label{eq:kf_update_B}
-%     B_{\ell,c} &= \frac{1}{K_m} \sum_{v=1}^{K_m} b_{v,\ell} \\
-%     \label{eq:kf_update_E}
-%     \hat E_{\ell,c} &= \frac{1}{K_m} \sum_{v=1}^{K_m}
-%         \left(b_{v,\ell}^2 + e_{v,\ell}^2\right) - B_{\ell,c}
-% \end{align}
+The state prediction is straightforward if we stick with
+\cref{eq:nw_model}.
+The estimated state has mean $\hat\NWstate_{c|c-1} = \E{\NWstate_c | X_{0:c-1}}$
+and variance $\NWvar_{c|c-1} = \Var{\NWstate_c | X_{0:c-1}}$,
+which are predicted using
+\begin{equation}
+\label{eq:nw_kf_predict}
+\begin{split}
+\hat\NWstate_{c|c-1} &=
+    \hat\NWstate_{c-1|c-1} \\
+\NWvar_{c|c-1} &= \NWvar_{c-1|c-1} + \NWnoise_c
+\end{split}
+\end{equation}
+What this looks like is shown in \cref{fig:nw_kf1}.
 
-% Now the EKF proceeds as normal,
-% so we only need to define the measurement function, $h$,
-% which defines how the true state $\nu_{\ell,c}$ is related to the observed state, $\beta_{\ell,c}$.
-% \begin{equation}
-%     \label{eq:kf_measure}
-%     \nu_{\ell,c} = h(\beta_{\ell,c}, e_{\ell,c}) = \beta_{\ell,c} + e_{\ell,c},
-%     \quad e_{\ell,c}\sim \mathcal{N}(0, \hat E_{\ell,c})
-% \end{equation}
+<<nw_kf,message=FALSE,echo=FALSE,fig.height=3,fig.width=8,fig.cap="Network state prediction assuming constant speed.",cache=TRUE>>=
+suppressPackageStartupMessages(library(tidyverse))
+set.seed(345)
+d <- tibble(
+    t = 1:30,
+    x = 30 + cumsum(c(
+        rnorm(15, 0, 1),
+        rnorm(15, c(-0.5, 0), 1)
+    )),
+    err = runif(30, 3, 4)
+)
+d2 <- d[30, ] %>%
+    bind_rows(tibble(
+        t = 35,
+        x = d$x[30],
+        err = d$err[30] + 3
+    ))
+p <- ggplot(d, aes(t, x)) +
+    geom_ribbon(aes(ymin = x - err, ymax = x + err),
+        fill = "#eeeeee") +
+    geom_path() +
+    geom_point(data = d[30, ]) +
+    theme_minimal() +
+    theme(panel.grid = element_blank()) +
+    scale_x_continuous(breaks = NULL) +
+    scale_y_continuous(breaks = NULL) +
+    xlab("Time (s)") + ylab("Travel time (s)")
 
-% Before we can complete the update step of the EKF algorithm, we need to calculate two more derivatives:
-% \begin{align}
-%     \label{eq:kf_update_H}
-%     H_c = \left.\frac{\partial h}{\partial \nu}\right|_{\hat\beta_{\ell,c|c-1}} &= 1 \\
-%     M_c = \left.\frac{\partial h}{\partial e}\right|_{\hat\beta_{\ell,c|c-1}} &= 1
-% \end{align}
-% As we are using additive effects, these are both 1;
-% however, setting it out this way allows us to switch to using multiplicative
-% noise terms in future.
+p + geom_ribbon(aes(ymin = x - err, ymax = x + err),
+        data = d2, fill = "red", alpha = 0.1) +
+    geom_path(data = d2, color = "red", lty = 2) +
+    geom_point(data = d2[2,], colour = "red")
 
-% Now we can update the state estimates
-% \begin{align}
-%     \label{eq:kf_update_resid}
-%     \tilde y_c &= B_{\ell,c} - h(\hat\beta_{\ell,c|c-1}) \\
-%     \label{eq:kf_update_Sk}
-%     S_c &= H^T P_{\ell,c|c-1} H + M^T \hat E_{\ell,c} M \\
-%     \label{eq:kf_update_gain}
-%     K_c &= P_{\ell,c|c-1} H_c S_c^{-1} \\
-%     \label{eq:kf_update_statemean}
-%     \hat\beta_{\ell,c|c} &= \hat\beta_{\ell,c|c-1} + K_c\tilde y_c \\
-%     \label{eq:kf_update_statevar}
-%     P_{\ell,c|c} &= (I - K_c H) P_{\ell,c|c-1}
-% \end{align}
+d2$x[2] <- d2$x[1] - 2
+p + geom_ribbon(aes(ymin = x - err, ymax = x + err),
+        data = d2, fill = "red", alpha = 0.1) +
+    geom_path(data = d2, color = "red", lty = 2) +
+    geom_point(data = d2[2,], colour = "red")
 
-% And here's what that looks like when implemented for a single segment.
-% <<kf_eg>>=
-% x <- 1:10
-% plot(x)
-% @
+@
 
+
+The main downside of this is that it really does depend heavily on the data,
+and twice per day we get peak times which
+temporarily increase travel times.
+So, if we have historical data saying that, at this time,
+there is usually an increase in travel time of $\psi$ seconds.
+
+
+\subsection{Update step}
+\label{eq:kf_update}

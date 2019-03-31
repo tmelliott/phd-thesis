@@ -2,7 +2,33 @@
 \chapter{Transit network}
 \label{cha:network_model}
 
-\input{DIRNAME/network.tex}
+Buses travel along fixed routes,
+navigating bus stops, intersections, and general congestion.
+How the vehicles move through the network is quite chaotic:
+each vehicle is, to an extend, independent,
+unless they are spatially and temporally near
+(e.g., travelling one behind the other).
+
+In general, however, we can imagine that there is a constant
+flow of traffic through the network
+such that the travel time along a road $\ell$ at time $t_c$.
+is represented by $\NWstate^\ell_c$,
+and is a Markov process,
+\begin{equation}
+\label{eq:nw_model_state}
+\NWstate_\ell_c = \NWstate_\ell_{c-1} + v_\ell_c,
+\quad v_\ell_c \sim \Normal{0}{\NWnoise_\ell}
+\end{equation}
+and that buses pass through the network
+while dealing with obstacles (stops, lights, etc).
+Each bus is a (very) noisy observation of the actual travel time,
+\begin{equation}
+\label{eq:nw_model_obs}
+\NWobs_\ell_c = \NWstate_\ell_c + w_\ell_c,
+\quad w_\ell_c \sim \Normal{0}{\NWerr_\ell}
+\end{equation}
+
+% \input{DIRNAME/network.tex}
 \input{DIRNAME/realtime_model.tex}
 \input{DIRNAME/parameter_estimation.tex}
 \input{DIRNAME/historical_model.tex}
