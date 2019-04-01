@@ -17,9 +17,9 @@ using $\Varr_{rm} - \Vdep_{rm-1}$ as the estimate.
 
 Therefore we are using another Bayes' filter model,
 this time using a \kf{} (\cref{sec:kf}) to estimate the state.
-In this model, the transition matrix $F_c = I$ for all $c$,
+In this model, the transition matrix $F_c = \mat{I}$ for all $c$,
 indicating that travel times do not change on average.
-Similarly, the measurement matrix $H_c = I$,
+Similarly, the measurement matrix $H_c = \mat{I}$,
 as the measurements are, in the case, of the state directly.
 So the model is
 \begin{equation}
@@ -67,7 +67,7 @@ which are predicted using
 \end{equation}
 What this looks like is shown in \cref{fig:nw_kf1}.
 
-<<nw_kf,message=FALSE,echo=FALSE,fig.height=3,fig.width=8,fig.cap="Network state prediction assuming constant speed.",cache=TRUE>>=
+<<nw_kf,message=FALSE,echo=FALSE,fig.height=3,fig.width=8,fig.cap="Network state prediction, with the state history mean and variance shown by the black line and shaded gray region, respectively. The predicted mean is shown by a red dot, and the shaded pink region represents predicted state variance. The dashed blue line in the bottom plot represents the historical mean travel time as a function of time.",fig.subcap=c("Constant travel time model", "Historical change based model"),cache=TRUE,fig.ncol=1>>=
 suppressPackageStartupMessages(library(tidyverse))
 set.seed(345)
 d <- tibble(
@@ -100,21 +100,175 @@ p + geom_ribbon(aes(ymin = x - err, ymax = x + err),
     geom_path(data = d2, color = "red", lty = 2) +
     geom_point(data = d2[2,], colour = "red")
 
-d2$x[2] <- d2$x[1] - 2
+dd <- tibble(t = seq(1, 35, by = 0.1)) %>%
+    mutate(x = dnorm(t, 38, 6)) %>%
+    mutate(x = 32 - 10 * x / max(x))
+dx <- dd %>% filter(t %in% c(30, 35)) %>%
+    pluck("x") %>% diff
+d2$x[2] <- d2$x[1] + dx
 p + geom_ribbon(aes(ymin = x - err, ymax = x + err),
         data = d2, fill = "red", alpha = 0.1) +
     geom_path(data = d2, color = "red", lty = 2) +
-    geom_point(data = d2[2,], colour = "red")
-
+    geom_point(data = d2[2,], colour = "red") +
+    geom_path(data = dd, lty = 2, lwd = 1.5, col = "steelblue")
 @
 
 
 The main downside of this is that it really does depend heavily on the data,
 and twice per day we get peak times which
 temporarily increase travel times.
-So, if we have historical data saying that, at this time,
-there is usually an increase in travel time of $\psi$ seconds.
-
+So, if we have historical data saying that, at time $t_c$,
+the average speed along road segment $\ell$ is $\NWhistmean{\ell}{t_c}$,
+then in the interval $(t_{c-1}, t_c]$ there is a change in speed of
+\begin{equation}
+\label{eq:nw_kf_histchange}
+\NWctrl_\ell_c = \NWhistmean{\ell}{t_c} - \NWhistmean{\ell}{t_{c-1}}
+\end{equation}
+which we can include in the state prediction using
+the \emph{control vector} $\NWctrlvec_c = \tvec{\NWctrl_1_c, \cdots, \NWctrl_L_c}$,
+leading us to an updated state prediction equation
+\begin{equation}
+\label{eq:nw_kf_control}
+\hat\NWstate_{c|c-1} =
+    \hat\NWstate_{c-1|c-1} +
+    \vec{\NWctrlvec}_c
+\end{equation}
+This is demonstrated in \cref{fig:nw_kf2}.
+Since the control vector does not appear in any of the other
+\kf{} equations,
+it is easy to proceed from here.
 
 \subsection{Update step}
 \label{eq:kf_update}
+
+Updating the \kf{} involves taking the predicted state
+and updating it using ``observations'' of travel time
+along road segments.
+These we have obtained from the \pf{} in \cref{sec:vehicle_travel_times}.
+However, it is possible to have multiple observations per road segment
+in one update period,
+as it is common for buses to travel one behind the other,
+particularly where there are bus lanes.
+Therefore, for each individual road segment,
+we have a vector of observations,
+one for each vehicle $v \in V_{\ell c}$ passing through that segment
+in the time interval $(t_{c-1}, t_c]$,
+\begin{equation}
+\label{eq:nw_seg_obs}
+\NWobss_\ell_c = \bigcup_{v\in V_{\ell c}} \NWobss_{\ell c}^v
+\end{equation}
+which can be the empty set $\NWobss_\ell_c = \emptyset$
+if no vehicles travel through a segment in the interval.
+
+
+In order to update the network,
+we need to account for each observation.
+One way of doing this would be to combine the observations
+into a single estimate and use that;
+alternatively,
+we could use the \emph{\infil{}} \citep{cn},
+which has the advantage of letting us sum up the information
+from multiple observations easily,
+at the cost of requiring the inversion of $\NWvar_c$.
+
+To employ the \infil{},
+we need to complete four steps:
+\begin{enumerate}
+\item transform the state space into information space,
+\item transform the observations into information,
+\item update the information space using the observation information, and
+\item back-transform the updated information space to the original state space.
+\end{enumerate}
+
+
+The first step involves converting the
+predicted state vector and covariance matrix into information space.
+This involves the inversion of the covariance matrix $\NWvar_{c|c-1}^{-1}$,
+which can be computationally demanding as $L$ increases:
+\begin{equation}
+\label{eq:nw_if_infspace}
+\begin{split}
+\NWinfmat_{c|c-1} &= \NWvar_{c|c-1}^{-1} \\
+\hat\NWinfvec_{c|c-1} &= \NWvar_{c|c-1}^{-1} \hat\NWstate_{c|c-1}
+\end{split}
+\end{equation}
+
+
+Converting the observations into information takes the same form,
+and requires inverting the measurement error covariance matrix $\NWerr_{\ell c}$
+of segment $\ell$ and time $t_c$.
+If we assume that the measurement errors are independent across segments,
+then this step is further simplified to
+\begin{equation}
+\label{eq:nw_if_infobs}
+\begin{split}
+\NWobsinfmat_{\ell c}^v &= (\NWerr_{\ell c})^{-1} \\
+\hat\NWobsinfvec_{\ell c}^v &= (\NWerr_{\ell c})^{-1} \hat\NWobs_{\ell c}^v
+\end{split}
+\end{equation}
+These can then be recombined to obtain the complete information matrix and vector
+by summing up over vehicles,
+\begin{equation}
+\label{eq:nw_if_obsupdate}
+\begin{split}
+\NWobsinfmat_{\ell c} &= \sum_{v\in V} \NWobsinfmat_{\ell c}^v \\
+\NWobsinfvec_{\ell c} &= \sum_{v \in V} \NWobsinfvec_{\ell c}^v
+\end{split}
+\end{equation}
+
+
+
+Next, we update the information by simply
+adding the on the observation information matrix and vectors
+\begin{equation}
+\label{eq:nw_if_obsinf}
+\NWobsinfmat_c =
+    \begin{bmatrix}
+        \NWobsinfmat_{1c} & 0 & \cdots & 0 \\
+        0 & \NWobsinfmat_{2c} & \ddots & \vdots \\
+        \vdots & \ddots & \ddots & 0 \\
+        0 & \cdots & 0 & \NWobsinfmat_{L c}
+    \end{bmatrix}
+\quad\text{and}\quad
+\NWobsinfvec_c =
+    \begin{bmatrix}
+        \NWobsinfvec_{1c} \\ \NWobsinfvec_{2c} \\ \vdots \\ \NWobsinfvec_{Lc}
+    \end{bmatrix}
+\end{equation}
+to get
+\begin{equation}
+\label{eq:nw_if_update}
+\begin{split}
+\NWinfmat_{c|c} &= \NWinfmat_{c|c-1} + \NWobsinfmat_c \\
+\hat\NWinfvec_{c|c} &= \hat\NWinfvec_{c|c-1} + \NWobsinfvec_c
+\end{split}
+\end{equation}
+Note that, in situations where no data is observed for a given segment,
+the information for that segment is zero,
+so we remain with the predicted state.
+
+
+Finally, we need to back-transform the updated information
+back into the state space,
+\begin{equation}
+\label{eq:nw_if_statespace}
+\begin{split}
+\NWvar_{c|c} &= \NWinfmat_{c|c}^{-1} \\
+\hat\NWstate_{c|c} &= \NWinfmat_{c|c}^{-1} \hat\NWinfvec_{c|c}
+\end{split}
+\end{equation}
+
+Fini.
+
+Now updating the network is simply a case of
+\begin{enumerate}
+\item estimating travel time for each vehicle along segments,
+\item collect observations from all buses into collections for each segment
+    and convert to information
+\item sum up information for all observations (0 if no observations),
+\item update state by adding the information observation to the state information,
+\end{enumerate}
+which is easy to implement using the \pf{} framework
+developed in \cref{cha:vehicle_model}.
+
+

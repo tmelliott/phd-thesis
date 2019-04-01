@@ -64,7 +64,7 @@
 \newcommand{\pwait}{w}
 \newcommand{\pcwait}{\tilde w}
 
-\newcommand{\NWstate}{\boldsymbol{\beta}}
+\newcommand{\NWstate}{\boldsymbol{B}}
 \newcommand{\NWvar}{\mat{V}}
 \newcommand{\Rstate}{b}
 \newcommand{\Rvar}{v}
@@ -72,12 +72,19 @@
 \newcommand{\NWerr}{\mat{E}}
 \newcommand{\NWtrans}{\mat{F}}
 \newcommand{\NWmeas}{\mat{H}}
-\newcommand{\NWobs}{\boldsymbol{Z}}
+\newcommand{\NWobss}{Z}
+\newcommand{\NWobs}{\boldsymbol{\NWobss}}
 \newcommand{\NWinfmat}{\mat{U}}
 \newcommand{\NWinfvec}{\boldsymbol{u}}
+\newcommand{\NWobsinfmat}{\mat{I}}
+\newcommand{\NWobsinfvec}{\boldsymbol{i}}
+\newcommand{\NWctrl}{\xi}
+\newcommand{\NWctrlvec}{\vec\NWctrl}
 
-\newcommand{\NWhistmean}{\beta}
-\newcommand{\NWhistvar}{\phi}
+\newcommand{\NWhistmean}[2]{\beta_{#1}\left(#2\right)}
+\newcommand{\NWhistvar}[2]{\phi_{#1}\left(#2\right)}
+\newcommand{\NWmeantt}{\theta}
+\newcommand{\NWvartt}{\omega^2}
 
 \newcommand{\Linktt}{\boldsymbol{\eta}}
 \newcommand{\Nodedwell}{\kappa}
@@ -99,6 +106,11 @@
 \newcommand{\E}[1]{\mathbb{E}\left[#1\right]}
 \newcommand{\Var}[1]{\mathrm{Var}\left[#1\right]}
 \newcommand{\dirac}{\dot\delta}
+
+\newcommand{\cond}{\,\big|\,}
+
+\let\oldemptyset\emptyset
+\let\emptyset\varnothing
 
 \begin{symbols}{lll} % Include a list of Symbols (a three column table)
 
@@ -154,14 +166,14 @@ $\NWvar_c$          & road network state (travel time) variance & seconds \\
 % $\Rstate_{\ell c}$  & travel time along road segment $\ell$ & seconds \\
 % $\Rvar_{\ell c}$    & travel time variance along road segment $\ell$ & seconds \\
 $\NWnoise_c$        & road network system noise matrix & seconds \\
-$\NWmeas_c$         & road network measurement error matrix & seconds \\
+%$\NWmeas_c$         & road network measurement error matrix & seconds \\
 $\NWobs_c$          & road network observation vector & seconds \\
 $\NWinfmat_c$       & road network information matrix & \\
 $\NWinfvec_c$       & road network information vector & \\
 \addlinespace
 
-$\NWhistmean_\ell(t_c)$ & historical mean travel time (along segment $\ell$ at time $t_c$) & seconds \\
-$\NWhistvar_\ell(t_c)$  & historical variance of travel time & seconds \\
+$\NWhistmean{\ell}{t_c}$ & historical mean travel time (along segment $\ell$ at time $t_c$) & seconds \\
+$\NWhistvar{\ell}{t_c}$  & historical variance of travel time & seconds \\
 
 % ETA symbols
 $\Linktt_r$      & vector of inter-stop (link) travel times for trip $r$ & seconds \\

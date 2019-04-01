@@ -2,6 +2,28 @@
 \chapter{Predicting arrival time}
 \label{cha:prediction}
 
+Predicting the arrival time of a transit vehicle at a stop
+is the primary purpose of the current work.
+In \cref{cha:vehicle_model} we developed a model
+which allows us to estimate the state of a vehicle
+in order to determine the \rt{} state of the road network;
+that is, travel times along roads.
+In \cref{cha:network_model} we used this \rt{} information
+to update the state of the network to incorporate these noisy estimates,
+giving us our best guess as to the average travel time
+of transit vehicles along each road within the road network.
+
+
+In order to convert the travel time state
+into arrival time estimates,
+we need to describe the temporal and spatial relation
+between road segments,
+and how these are combined to estimate arrival time.
+
+
+
+***
+
 The prediction of arrival time is equivalent to predicting
 the travel time along roads between where the vehicle is now,
 and the bus stop,

@@ -1,7 +1,19 @@
-
 \section{Historical data based priors}
+\label{sec:nw_hist_prior}
+
+In order to improve short-term predictions for the \kf{},
+and also longer-term forecasts for arrival time prediction
+(\cref{cha:prediction}),
+we need to be model patterns in travel times over time.
+This is particularly obvious around peak times,
+where there is a general trend of increased travel time
+along roads,
+particularly those city-bound in morning peak,
+and out-bound in evening peak,
+although many roads experience congestion during both peaks.
 
 
-How we use Bayesian heirarchical models to
-estimate the typical speed along roads in the
-network, based on historical data.
+The aim of this section is to estimate $\NWhistmean{}{t}$ and $\NWhistvar{}{t}$.
+The first step to doing this is estimating the traffic speed
+$\NWstate_{\ell,0:C}$,
+which we did in \cref{sec:nw_par_est}.

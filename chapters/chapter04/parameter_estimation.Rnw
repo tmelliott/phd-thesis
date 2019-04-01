@@ -4,68 +4,26 @@
 
 In order to get the most reliable forecasts as possible,
 it is necessary to estimate the main parameters in the network model.
-These are the system noise, $Q_\ell$,
-which describes how volatile speeds along the road are over time,
-and between-vehicle variability, $E_{\ell}$,
-which describes the variability of speeds of vehicles
-traveling along a road simultaneously.
-The additional measurement error for each individual vehicle
-will be estimated from the \pf{}.
+These are the system noise, $\NWnoise_\ell$,
+which describes how volatile travel times throughout the network
+are over time,
+and the measurement error $\NWerr_{\ell c}$,
+which is effectively the between-vehicle variability.
+These are distributed as shown in \cref{eq:nw_model}.
+
+In order to estimate values for $\NWnoise$ and $\NWerr$,
+we need some data.
+We then fit a full Bayesian model to these data,
+using the same model from \cref{eq:nw_model}
+but fitting it using \gls{mcmc} instead of using the \kf{}.
+We do, however, need to place some restraints on the values.
+First, it would make sense for system noise and
+measurement error to have heirarchical distributions,
+with a global mean noise/error and associated variance.
 
 
-The system noise parameter for each segment is assumed to come
-from a population distribution with hyperparameters $\mu_Q$ and $\sigma_Q$.
-Similarly the between-vehicle variability has hyperparameters $\mu_E$ and $\sigma_E$.
-
-
-To reduce model complexity,
-we decided to discretise the observation times into 15~minute intervals.
-To obtain the travel time observations,
-we ran the \pf{} model over one day's historical data,
-and stored all of the individual vehicle travel times along each segment.
-
-
-In order to select the best historical model,
-we used one week of data to train the model,
-and a second week of data to test the model.
-In the test set,
-we used three approaches
-\begin{itemize}
-\item historical model only,
-\item \rt{} model only, and
-\item historical and \rt{} model combined.
-\end{itemize}
-
-
-
-<<nw_dag, echo=FALSE, message=FALSE>>=
-library(ggdag)
-dag <- dagify(
-    Yk ~ Xk + R,
-    Xk ~ Xdotk,
-    Xdotk ~ Xkm1 + Q,
-    Q ~ muQ + sigmaQ,
-    R ~ muR + sigmaR,
-    outcome = "Yk",
-    latent = c("Xk", "Xdotk"),
-    labels = c(
-        Xk = "X[mk]",
-        Xdotk = "dot(X)[mk]",
-        Xkm1 = "X[mk-1]",
-        Yk = "Y[mk]",
-        Q = "Q[m]",
-        muQ = "mu[Q]",
-        sigmaQ = "sigma[Q]",
-        R = "R[mk]",
-        muR = "mu[R]",
-        sigmaR = "sigma[R]"
-    )
-) %>% tidy_dagitty()
-dag %>%
-    ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
-    geom_dag_node() +
-    geom_dag_edges() +
-    geom_dag_text(aes(label = label), parse = TRUE) +
-    theme_dag() +
-    scale_dag()
+<<stuff>>=
+# here's some code that will fit a model to a bunch of data
+# and estimate Q and E,
+# and then use the posterior estimates of the Bs to estimate beta
 @
