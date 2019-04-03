@@ -1,0 +1,132 @@
+\section{Current trip state}
+\label{sec:pred_trip_state}
+
+Each trip $r$ in the network is associated with parameter vectors
+\begin{itemize}
+\item inter-stop (remaining) travel times, $\Linktt_r$, and
+\item stop (remaining) dwell times, $\TTdwell_r$.
+\end{itemize}
+as well as the time of the last update, $\TripTime$.
+In this section, we assume these values are known,
+and all we need to do is combine them in an approapriate way
+to obtain arrival time estimates.
+The key point to note is \emph{remaining}:
+that is, the values are zero once the vehicle has passed that stop,
+and decrease as the vehicle traverses the link,
+or waits at the stop.
+Therefore, the arrival time at stop $j\leq J_r$ can be expressed as
+\begin{equation}
+\label{eq:trip_eta}
+\Tarr_{rj} = \TripTime + \sum_{k=1}^{j-1} \Linkt_{rk} + \Tdwell_{rk}
+\end{equation}
+
+However, we need to know where the bus is
+in order to begin estimating values for the parameters.
+There are three scenarios, listed here in order of difficulty:
+\begin{enumerate}
+\item trip update for stop $j$ was the last observation,
+\item GPS position was the last observation,
+\item no data available for the trip.
+\end{enumerate}
+
+
+The first scenario,
+where we last saw the bus arrive at or depart from a stop,
+is simple.
+On arrival at stop $j$,
+we set $\Linkt_{rk} = 0$ and $\Tdwell_{rk} = 0$ for $k = 1, \ldots, j-1$,
+$\TripTime = \Varr_{j}$,
+and compute arrival times using all subsequent stops
+using \cref{eq:trip_eta}.
+For a departure observation,
+we do the same but also set $\Tdwell_{rj} = 0$ and $\TripTime = \Vdep_{j}$.
+
+
+In those situations where we see a vehicle position observation,
+things are a little trickier.
+Now, partial segments will be used and we shall need to compute
+the \emph{remaining travel time} along the current segment.
+From the \pf{} in \cref{cha:vehicle_model}
+the segment along which the vehicle is currently travelling is known,
+call it $\ell$.
+We can compute what percentage of the segment has been traversed
+in two ways:
+\begin{itemize}
+\item using distance along segment, or
+\item using travel time so far along segment.
+\end{itemize}
+
+Distance along segment is always knowable
+given the vehicle's current state.
+We know the vehicle has travelled $\Vdist$~meters,
+and the segment begins $\Tsegd_\ell$~meters into the trip
+and has a length of $\Tseglen_\ell$~meters.
+Therefore, the proportion of the segment remaining is easy to compute,
+\begin{equation}
+\label{eq:trip_percent_dist}
+\zeta_{\ell} = 1 - \frac{\Vdist - \Tsegd_\ell}{\Tseglen_\ell}
+\end{equation}
+
+Of course, the method used in \cref{eq:trip_percent_dist}
+assumes constant speed along each segment,
+which is likely true on short segments,
+but on longer ones it is very unlikely to be the case.
+The other way is to use the travel time so far, $\Vtt_\ell$, of the vehicle
+along the segment to compute the proportion of travel time,
+however this is only available when the travel time is known;
+if the \pf{} has degenerated, or observations are missing,
+we cannot use this approach.
+Assuming we can, then we compute the remaining travel time to be
+\begin{equation}
+\label{eq:trip_percent_time}
+\zeta_{\ell} = 1 - \frac{\Vtt_\ell}{(\hat\NWstate_{c})_\ell}}
+\end{equation}
+
+
+The last scenario is that where no vehicle observation is available
+for a scheduled trip.
+There are two reasons for this:
+\begin{enumerate}
+\item the trip has been cancelled, and no vehicle is servicing the trip,
+    or the vehicle is late and hasn't started the trip (yet);
+\item there is a vehicle servicing the trip, but it's \gls{avl} system
+    is not working, or it is registered with the wrong trip.
+\end{enumerate}
+Given there is no way to tell the difference between these two situations,
+we must assume there is a bus travelling the route,
+but display a warning to passengers that it hasn't been heard from
+and may not actually show up (so if there is an alternative bus, take that one).
+
+
+However, it is a common occurence at the beginning of trips
+for the bus not to be seen until a few minutes before it arrives.
+This is obviously because the bus doesn't start the trip
+until it is scheduled to, or perhaps it may start late if it is
+held up on a previous route.
+Therefore, passengers waiting at any of the first stops
+will only see the default scheduled arrival time for the bus
+until it finally begins the trip and checks in with the \gls{gtfs} system.
+If it is late, this can be frustrating for passengers.
+Thus, we need to display to passengers that
+the bus hasn't been heard from, so it may be running late,
+or the \rt{} service isn't working.
+Next, we use historical data to obtain a distribution of departure times
+from the first stop for this trip,
+allowing us to estimate $\Tdwell_{r1}$,
+the ``dwell'' time at the first stop.
+Now, for stops that are often late,
+we can build this in to the uncertainty of arrival time estimates
+(see later section UPDATE THIS YOU LAZY TURD).
+
+
+Since it is impossible to know where the bus is,
+the estimates will not be updated each time the network state is;
+instead, we make one single estimate of arrival times
+at the beginning of the trip and leave them until
+we hear from the bus,
+or until the trip has been scheduled to end.
+The goal of this is not to predict arrival times for all the stops accurately,
+but more to smooth the arrival time estimates
+at the beginning of a trip's schedule.
+
+

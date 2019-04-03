@@ -86,12 +86,14 @@
 \newcommand{\NWmeantt}{\theta}
 \newcommand{\NWvartt}{\omega^2}
 
-\newcommand{\Linktt}{\boldsymbol{\eta}}
+\newcommand{\Linkt}{\eta}
+\newcommand{\Linktt}{\boldsymbol{\Linkt}}
 \newcommand{\Nodedwell}{\kappa}
 \newcommand{\Tarr}{\alpha}
 \newcommand{\TTarr}{\boldsymbol{\Tarr}}
 \newcommand{\Tdwell}{\Delta}
 \newcommand{\TTdwell}{\boldsymbol{\Tdwell}}
+\newcommand{\TripTime}{t_r}
 
 \newcommand{\dist}[1]{d\left(#1\right)}
 \newcommand{\distThreshold}{D_\text{thres}}
@@ -105,6 +107,7 @@
 % other stuff
 \newcommand{\E}[1]{\mathbb{E}\left[#1\right]}
 \newcommand{\Var}[1]{\mathrm{Var}\left[#1\right]}
+\newcommand{\Cov}[2]{\mathrm{Cov}\left[#1,\,#2\right]}
 \newcommand{\dirac}{\dot\delta}
 
 \newcommand{\cond}{\,\big|\,}
@@ -179,5 +182,6 @@ $\NWhistvar{\ell}{t_c}$  & historical variance of travel time & seconds \\
 $\Linktt_r$      & vector of inter-stop (link) travel times for trip $r$ & seconds \\
 $\TTarr_r$       & vector of arrival times for trip $r$ & seconds \\
 $\TTdwell_r$      & vector of node dwell times for trip $r$ & seconds \\
+$\TripTime_r$    & the time trip $r$ was last updated \\
 
 \end{symbols}

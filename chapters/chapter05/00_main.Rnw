@@ -14,14 +14,27 @@ giving us our best guess as to the average travel time
 of transit vehicles along each road within the road network.
 
 
-In order to convert the travel time state
-into arrival time estimates,
-we need to describe the temporal and spatial relation
-between road segments,
-and how these are combined to estimate arrival time.
+In this chapter,
+we take the estimated network state,
+along with the vehicle state where available,
+to predict the arrival time of all buses at all stops,
+for every scheduled trip.
+To do this,
+we first extract the necessary information from the network state,
+and combine it to obtain an estimate of the
+travel time between each stop along the route.
+By adding these together,
+along with their associated uncertainties,
+we can obtain a distribution of the arrival time
+at each stop along the route.
+
+
+\input{DIRNAME/trip_state.tex}
+\input{DIRNAME/travel_times.tex}
 
 
 
+\vspace{2em}
 ***
 
 The prediction of arrival time is equivalent to predicting
