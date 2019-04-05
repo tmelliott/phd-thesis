@@ -40,9 +40,9 @@ however we will be using fixed values for their distribution
 that can be estimated in future work.
 For each stop, the dwell time distribution at stop $m$ is defined by
 \begin{equation}
-\label{eq:stop_dwell_times}
+% \label{eq:stop_dwell_times}
 D_m = p_m (\gamma + \dot D_m),\quad
-\dot D_m \sim \mathcal{N}(\tau_m, \omega_m^2) T(0,),\quad
+\dot D_m \sim \TruncNorm(\tau_m, \omega_m^2) T(0,),\quad
 p_m \sim \mathcal{B}(\pi_m)
 \end{equation}
 where $\gamma$ is the minimum dwell time

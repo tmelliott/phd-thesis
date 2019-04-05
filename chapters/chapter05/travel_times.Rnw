@@ -1,4 +1,4 @@
-\section{Estimating link travel times}
+\subsection{Link travel times}
 \label{sec:trip_tt_est}
 
 Link travel times are the important factor of bus prediction
@@ -74,8 +74,8 @@ and for the variance, substituting into \cref{eq:link_tt_var} we get
 
 
 
-\subsection{Combining link times}
-\label{sec:trip_tt_links}
+% \subsection{Combining link times}
+% \label{sec:trip_tt_links}
 
 However, simply including the covariance between segments is not enough.
 Later, we will need to compute the distribution of the sum of links,
@@ -107,3 +107,119 @@ and we can compute each individual covariance component using
 
 
 And that, my friends, is almost all we need.
+
+
+
+\subsection{Stop dwell times}
+\label{eq:trip_stop_dwell}
+
+The dwell time at stops is also an unknown parameter
+that accounts for a lot of the variability.
+At peak times, buses can spend a lot of time picking up
+and dropping off passengers at all stops between
+where it is now, and the target bus stop,
+all of which can add up.
+However, it is also possible that,
+for one reason or another,
+no passengers embark or disembark the bus,
+and it needn't stop at all.
+We need to be able to account for this in the arrival time estimates.
+
+NOTE TO SELF: Eq (3.11) on page 15 needs to be fixed - p (gamma + tau) is wrong ... truncation point should be 0
+
+We described bus stop dwell time in \cref{sec:vehicle_model_stops},
+and the distribution is shown in
+\cref{fig:eta_dwell_times} on \cpageref{fig:eta_dwell_times}.
+The model for dwell time is
+\begin{gather}
+\label{eq:stop_dwell_times}
+\Tdwell_{rj} = \Istop_{rj} (\mindwell + \dot D_{rj}) \\
+\dot D_{rj} \sim \TNormal{\dwell_{rj}}{\dwellvar_{rj}}{0}{\infty} \nonumber \\
+\Istop_{rj} \sim \Bern{\Prstop_{rj}} \nonumber
+\end{gather}
+
+So we can compute the expectation and variance of this thing.
+First, we assume that dwell time and stopping probability are independent,
+which is likely not far from the truth.
+There is, of course, relationship between the two,
+but it is very complicated and depends more so on other buses
+that the parameters themselves.
+So, we can trivially show that the expected dwell time is
+\begin{align}
+\label{eq:trip_dwell_mean}
+\E{\Tdwell_{rj}}
+&= \E{\Istop_{rj} (\mindwell + \dot D_{rj})} \nonumber \\
+&= \E{\Istop_{rj} \mindwell} + \E{\Istop_{rj}\dot D_{rj}} \nonumber \\
+&= \Prstop_{rj}\mindwell + \Prstop_{rj}\dwell_{rj}
+\end{align}
+with variance
+\begin{align}
+\label{eq:trip_dwell_var}
+\Var{\Tdwell_{rj}}
+&= \Var{\Istop_{rj} (\mindwell + \dot D_{rj})} \nonumber \\
+&= \Big(\Var{\Istop_{rj}} + \E{\Istop_{rj}}^2\Big)
+    \Big(\Var{\mindwell + \dot D_{rj}} + \E{\mindwell + \dot D_{rj}}^2\Big)
+    \nonumber \\
+    &\phantom{=} - \E{\Istop\vphantom{\dot D_{rj}}}^2 \E{\mindwell + \dot D_{rj}}^2 \nonumber \\
+&= \left(\Prstop_{rj}(1-\Prstop_{rj}) + \Prstop_{rj}^2\right)
+    \left(\dwellvar_{rj} + (\mindwell + \dwell_{rk})^2\right) -
+    \Prstop_{rj}^2 (\mindwell + \dwell_{rj})^2 \nonumber  \\
+&= \Prstop_{rj}(\dwellvar + (\mindwell + \dwell_{rj})^2) -
+    \Prstop_{rj}^2(\mindwell + \dwell_{rj})^2  \nonumber \\
+&= \Prstop_{rj} \left(
+    \dwellvar_{rj} + (1-\Prstop_{rj})(\mindwell + \dwell_{rj})^2
+\right)
+\end{equation}
+
+<<prove_varDm,echo=FALSE,eval=FALSE>>=
+N <- 1e6
+pi <- 0.5
+gamma <- 6
+tau <- 10
+omega <- 5
+ED <- gamma * pi + pi * tau
+VarD1 <- pi * ((1 - pi) * (gamma^2 + tau^2) + omega^2)
+VarD2 <- pi * omega^2 + (pi - pi^2) * (gamma + tau)^2
+Ddot <- truncnorm::rtruncnorm(N, 0, Inf, tau, omega)
+p <- rbinom(N, 1, pi)
+D <- p * (gamma + Ddot)
+hist(D, freq=F)
+curve(dnorm(x, ED, sqrt(VarD1)), 0, 80, 1001, col='red', add=TRUE)
+curve(dnorm(x, ED, sqrt(VarD2)), 0, 80, 1001, col='blue', add=TRUE, lty = 2)
+@
+
+While this is certainly not a good approximation of dwell time distributions,
+it makes it easy to combine to travel times and other stop dwell times
+to obtain a final arrival time distribution.
+
+
+\subsection{\Pf{} approximation}
+\label{sec:trip_eta_pf}
+
+An alternative to using a \kf{} estimate of travel times and dwell times,
+which assumes Gaussian parameters,
+we could instead use the current state of the vehicle,
+as approximated by the \pf{},
+to obtain a sample of arrival times for each stop.
+This would involve the same distributions as shown above,
+however needn't summarise them using the expectation and variance.
+
+
+It then becomes a trival case of simulating
+a travel time $\NWstate_\ell\vi$ for each particle
+along each segment $\ell$ using \cref{eq:seg_tt_dist},
+and similarly a dwell time $\Tdwell_j\vi$
+at each stop $j$ using \cref{eq:stop_dwell_times}.
+Then the arrival time for each particle at stop $j$ is given by
+\begin{equation}
+\label{eq:pf_eta_estimate}
+\Tarr\vi_j = t_r + \sum_{k=1}^{j-1} \sum_{\ell\in\mathcal{L}_k} \NWstate\vi_\ell
+    + \Tdwell\vi_k
+\end{equation}
+Then, using the particles' posterior weights after the last update,
+the arrival time becomes
+\begin{equation}
+\label{eq:pf_eta_dist}
+p(\Tarr_j | \Vobs_{1:k}) \approx
+    \sum_{i=1}^\Np \Pwt_k \dirac (\Tarr_j - \Tarr\vi_j)
+\end{equation}

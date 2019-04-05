@@ -1,34 +1,3 @@
-\section{Estimating the arrival time distribution}
-\label{sec:particle_etas}
+\section{Estimating the arrival time}
+\label{sec:trip_eta_est}
 
-As we have have seen throughtout,
-there are many sources of uncertainty that need to be accounted for
-when make predictions.
-Not only is there uncertainty in the \rt{} state of vehicles,
-and the network,
-there is uncertainty in the forecasted state,
-particularly around peak hour when traffic state can change quickly.
-
-
-As we already have developed a \pf{} based estimation method
-for vehicle state,
-it makes sense to use this to obtain the
-\emph{posterior predictive distribution} of arrival times at each stop.
-The straightforward approach would be to simply compute the arrival time,
-$ETA_j^{(i)}$ of the $i$th particle to stop $j$;
-however, this resulted in volatile estimates:
-a small change in travel times along a nearby road can significanly affect
-the arrival times at later stops.
-
-
-To overcome this,
-we tried implementing a \kf{} on the travel time between stops
-for a given vehicle.
-In the simple case when segments are defined by stops,
-this will essentially be the same distribution as segment travel time;
-however, it permits more advanced models which allow for intermediate intersections.
-For the \kf{}, we need a measurement,
-so we need to estimate the particles' travel times between stops
-(accounting for lights, etc).
-
-I don't really know what I'm trying to say.
