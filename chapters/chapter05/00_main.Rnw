@@ -2,6 +2,23 @@
 \chapter{Predicting arrival time}
 \label{cha:prediction}
 
+\noindent\fbox{%
+\parbox{\textwidth}{%
+\begin{itemize}
+\item various methods of prediction arrival time
+\item using Gaussian state estimates, expectation rules, etc
+\item \pf{} estimate, mathematically simpler, but computationally hard
+\item those two in separate sections (5.2.1 and 5.2.2, respectively)
+\item in both cases, however, we need link travel times
+    and the covariance matrices between them -> 5.1
+\item a final section, 5.3, on which method is best
+    (perhaps a simulation study to compare results: ETAs + timings)
+\end{itemize}
+}%
+}
+\vspace{1em}
+
+
 Predicting the arrival time of a transit vehicle at a stop
 is the primary purpose of the current work.
 In \cref{cha:vehicle_model} we developed a model
@@ -29,67 +46,42 @@ we can obtain a distribution of the arrival time
 at each stop along the route.
 
 
+Arrival time predictions for stops along a particular route
+require three things:
+\begin{enumerate}
+\item knowledge of the vehicle's current state, $\Vstate_k$;
+\item current and short-term forecasts of travel time between stops,
+    which we will refer to as \emph{link times},
+    $\Linktt$; and
+\item estimates of dwell time at stops, $\TTdwell$.
+\end{enumerate}
+Knowing these allows us to express the arrival time at stop $j$,
+of a vehicle last observed at time $\Vtime_k$, as
+\begin{equation}
+\label{eq:trip_eta}
+\Tarr_j = \Vtime_k + \sum_{m=1}^{j-1} \Linkt_m + \Tdwell_m
+\end{equation}
+Estimation of each of these will be discussed in \cref{sec:trip_state}.
+Note that for the remainder of this section,
+we speak of each route independently of all others,
+and do not include any route-specific subscripts
+to avoid complicating notation.
+
+Once these parameters have been estimated,
+arrival times can be predicted using them.
+There are several methods of doing so,
+which we will discuss in \cref{sec:trip_etas}.
+Finally, the results from these methods will be compared
+and discussed in \cref{sec:trip_results}.
+
+
 \input{DIRNAME/trip_state.tex}
-\input{DIRNAME/travel_times.tex}
+\input{DIRNAME/trip_etas.tex}
+\input{DIRNAME/trip_results.tex}
+
+
+% \input{DIRNAME/travel_times.tex}
 
 
 
 \vspace{2em}
-***
-
-The prediction of arrival time is equivalent to predicting
-the travel time along roads between where the vehicle is now,
-and the bus stop,
-accounting for additional delay due to intermediate stops,
-traffic lights, etc.
-It is therefore reasonable to return to the \pf{}
-estimates of vehicle state,
-which will allow us to account for multiple sources of variability with ease.
-Also note that this section focuses on obtaining an
-arrival time predictive distribution;
-chapter~\ref{cha:etas} will explore how these are presented to commuters.
-
-
-The main issue for this part is that, due to all of the many variables,
-travel times can change dramatically at some times.
-However, we do not want these to cause the \glspl{eta} to jump around,
-so we have developed a \kf{} to smooth the \glspl{eta} over time.
-
-
-The overall procedure will be as follows:
-\begin{enumerate}
-\item predict travel/arrival times for each particle,
-    accounting for all sources of uncertainty
-\item determine the \emph{travel time observation vector} for the \emph{vehicle}
-    (along with measurement error matrix)
-    by summarizing the particle travel times---%
-    mean, variance, covariance between segment travel times, etc.
-\item update the travel time state vector using a \kf{} update
-    to obtain distributions for the travel times along each segment,
-    account for correlations between sequential segments
-\item add the distributions together to obtain a final distribution
-    for the \gls{eta} at each stop
-\end{enumerate}
-
-
-If we assume we know the historical matrix $F_k$ such that
-$B_k = F_kB_{k-1}$ (i.e., road travel times).
-Then when predicting the travel times for each particle,
-we can use the conditional distribution of time to get a
-numerical estimate of variance and covariance.
-That is,
-$p(b_k^{(i)} | b_{k-1}^{(i)})$,
-so if two adjacent segments have highly correlated travel times,
-the particle swarm will follow the correlations correctly
-(i.e., we don't need to make any assuption of independence of segments
-for the travel time prediction part).
-
-Now, we can calculate the sum of travel times easily,
-since $E(\sum_\ell B_\ell) = \sum_\ell E(B_\ell)$ and
-$Var(\sum_\ell B_\ell) = \sum_i \sum_j Cov(B_i, B_j)$,
-where $Cov(B_k, B_\ell) = \frac{\sum_i(b_k^{i} - \bar b_k)(b_\ell^{(i)} - \bar b_\ell)}{n-1}$.
-
-
-
-\input{DIRNAME/particle_etas.tex}
-\input{DIRNAME/trip_eta_distributions.tex}

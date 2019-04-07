@@ -1,0 +1,4 @@
+\subsection{Analytic \glspl{eta}}
+\label{sec:trip_etas_dist}
+
+We can estimate arrival times using analytical methods.

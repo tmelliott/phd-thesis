@@ -1,0 +1,30 @@
+\subsection{Particle filter \glspl{eta}}
+\label{sec:trip_etas_pf}
+
+An alternative to using a \kf{} estimate of travel times and dwell times,
+which assumes Gaussian parameters,
+we could instead use the current state of the vehicle,
+as approximated by the \pf{},
+to obtain a sample of arrival times for each stop.
+This would involve the same distributions as shown above,
+however needn't summarise them using the expectation and variance.
+
+
+It then becomes a trival case of simulating
+a travel time $\NWstate_\ell\vi$ for each particle
+along each segment $\ell$ using \cref{eq:seg_tt_dist},
+and similarly a dwell time $\Tdwell_j\vi$
+at each stop $j$ using \cref{eq:stop_dwell_times}.
+Then the arrival time for each particle at stop $j$ is given by
+\begin{equation}
+\label{eq:pf_eta_estimate}
+\Tarr\vi_j = t_r + \sum_{k=1}^{j-1} \sum_{\ell\in\mathcal{L}_k} \NWstate\vi_\ell
+    + \Tdwell\vi_k
+\end{equation}
+Then, using the particles' posterior weights after the last update,
+the arrival time becomes
+\begin{equation}
+\label{eq:pf_eta_dist}
+p(\Tarr_j | \Vobs_{1:k}) \approx
+    \sum_{i=1}^\Np \Pwt_k \dirac (\Tarr_j - \Tarr\vi_j)
+\end{equation}

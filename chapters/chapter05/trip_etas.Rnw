@@ -1,0 +1,6 @@
+\section{Estimating arrival time distribtions}
+\label{sec:trip_etas}
+
+
+\input{DIRNAME/trip_etas_dist.tex}
+\input{DIRNAME/trip_etas_pf.tex}
