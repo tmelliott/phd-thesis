@@ -1,3 +1,0 @@
-\section{Estimating the arrival time}
-\label{sec:trip_eta_est}
-

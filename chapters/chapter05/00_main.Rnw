@@ -55,12 +55,6 @@ require three things:
     $\Linktt$; and
 \item estimates of dwell time at stops, $\TTdwell$.
 \end{enumerate}
-Knowing these allows us to express the arrival time at stop $j$,
-of a vehicle last observed at time $\Vtime_k$, as
-\begin{equation}
-\label{eq:trip_eta}
-\Tarr_j = \Vtime_k + \sum_{m=1}^{j-1} \Linkt_m + \Tdwell_m
-\end{equation}
 Estimation of each of these will be discussed in \cref{sec:trip_state}.
 Note that for the remainder of this section,
 we speak of each route independently of all others,

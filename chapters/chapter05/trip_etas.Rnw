@@ -1,6 +1,28 @@
 \section{Estimating arrival time distribtions}
 \label{sec:trip_etas}
 
+Once the trip parameters have all been estimated,
+the arrival time at stop $j$ of trip with state
+$\Tripr = \tvec{\Vtime_k, \TripStop, \TripDep, \TripSeg, \SegProg}$,
+being serviced by a vehicle last observed at time $\Vtime_k$,
+can be expressed as
+\begin{equation}
+\label{eq:trip_eta}
+\Tarr_j =
+\Vtime_k +
+\SegProg (\NWstate^\Tripr_c)_\TripSeg +
+\sum_{\ell=\TripSeg+1}^{\TripSeg(j)-1}
+    \left(\NWstate^\Tripr_c\right)_\ell +
+\sum_{m=\TripStop + \TripDep}^{j-1} \Tdwell_m
+\end{equation}
+which, broken down,
+is the time the vehicle was last seen,
+the travel time remaining on the current segment,
+plus the travel time alone all segments from
+the next segment up until the segment before the stop,
+and finally the dwell time at all intermediate stops,
+including the current stop if the vehicle has not yet
+departed that stop.
 
 \input{DIRNAME/trip_etas_dist.tex}
 \input{DIRNAME/trip_etas_pf.tex}

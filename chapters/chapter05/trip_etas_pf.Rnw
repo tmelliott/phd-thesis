@@ -11,15 +11,26 @@ however needn't summarise them using the expectation and variance.
 
 
 It then becomes a trival case of simulating
-a travel time $\NWstate_\ell\vi$ for each particle
-along each segment $\ell$ using \cref{eq:seg_tt_dist},
+a travel time $(\NWstate_c)\vi_\ell$ for each particle
+along each segment $\ell\in\RouteSegs$ using \cref{eq:seg_tt_dist},
 and similarly a dwell time $\Tdwell_j\vi$
 at each stop $j$ using \cref{eq:stop_dwell_times}.
 Then the arrival time for each particle at stop $j$ is given by
 \begin{equation}
 \label{eq:pf_eta_estimate}
-\Tarr\vi_j = t_r + \sum_{k=1}^{j-1} \sum_{\ell\in\mathcal{L}_k} \NWstate\vi_\ell
-    + \Tdwell\vi_k
+\Tarr\vi_j =
+t_k +
+\SegProg b\vi_\TripSeg +
+\sum_{\ell=\TripSeg+1}^{\TripSeg(j)-1}
+    b\vi_\ell +
+\pdwell\vi_s +
+\sum_{m=s+1}^{j-1} \Istop\vi_m(\mindwell + \pdwell\vi_m)
+\end{equation}
+where
+\begin{equation}
+\label{eq:pf_seg_tt}
+b\vi_\ell \sim
+\Normal{(\hat\NWstate_c)_\ell}{(\NWvar_c)_{\ell,\ell}}
 \end{equation}
 Then, using the particles' posterior weights after the last update,
 the arrival time becomes
@@ -28,3 +39,41 @@ the arrival time becomes
 p(\Tarr_j | \Vobs_{1:k}) \approx
     \sum_{i=1}^\Np \Pwt_k \dirac (\Tarr_j - \Tarr\vi_j)
 \end{equation}
+
+
+However, \cref{eq:pf_seg_tt} does not take into account
+correlations between road segments,
+which are planned to be included in future work.
+Therefore, we can replace it with the marginal distribution,
+which for bivariate normal variables $X_1,X_2$
+with means $\mu_1,\mu_2$,
+variances $\sigma_1^2,\sigma_2^2$
+and covariance $\rho$, then
+\begin{equation}
+\label{eq:pf_seg_tt_marginal}
+% b\vi_\ell | b\vi_{\ell-1} \sim
+% \Normal{
+%     (\hat\NWstate_c)_\ell +
+%     \frac{(\NWvar_c)_{\ell,\ell}}{(\NWvar_c)_{\ell-1,\ell-1}}
+%     (\NWvar_c)_{\ell-1,\ell}
+%     (b\vi_{\ell-1} - (\hat\NWstate_c)_{\ell-1})
+% }{
+%     (1 - (\NWvar_c)_{\ell-1,\ell}^2)
+%     (\NWvar_c)_{\ell,\ell}^2
+% }
+X_2 | X_1 = x_1 \sim
+\Normal{\mu_2 + \frac{\sigma_2}{\sigma_1}\rho(x_1 - \mu_1)}
+{(1-\rho^2)\sigma_2^2}
+\end{equation}
+Thus the \pf{} estimates will account for any known
+correlation structure in the road network.
+
+
+The obvious downside of the \pf{} is that
+it is computationally intensive.
+So, while it makes it a lot easier to estimate
+the arrival time distribution
+accounting for all the uncertainty accurately
+(i.e., without making normality assumptions),
+we need to check that it is faesible in the \rt{} context.
+

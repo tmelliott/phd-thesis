@@ -1,9 +1,0 @@
-\subsection{Link travel times}
-\label{sec:trip_tt_est}
-
-
-\subsection{Stop dwell times}
-\label{eq:trip_stop_dwell}
-
-\subsection{\Pf{} approximation}
-\label{sec:trip_eta_pf}

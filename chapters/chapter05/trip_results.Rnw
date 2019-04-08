@@ -1,0 +1,14 @@
+\section{ETA results}
+\label{sec:trip_results}
+
+The arrival time estimation methods described in
+\cref{sec:trip_etas}
+were implemented to compare both the
+\emph{reliability} of results,
+as well as the computation time.
+
+
+The reliability of the results pertains to
+the proportion of \gls{eta} credible intervals (80%, 95%, 99%)
+that contain the ``true'' (as reported by the \gls{gtfs} feed)
+arrival time at the stop.
