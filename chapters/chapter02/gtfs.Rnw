@@ -13,7 +13,8 @@ by independent agencies.
 There are several components of GTFS that are of particular interest to us:
 routes, trips, stops, stop times, and shapes.
 Extensive documentation can be found on these and the other components
-on the GTFS website (\url{https://developers.google.com/transit/gtfs/}).
+on the GTFS website (\url{https://developers.google.com/transit/gtfs/})
+\citep{GoogleDevelopers_2006}.
 
 A \emph{route} is a collection of \emph{trips} that are displayed to comuters
 as a single service;
@@ -24,4 +25,88 @@ will arrive at stops for each trip;
 and a \emph{shape} is the GPS track a vehicle will take for a specific route.
 
 
+These definitions could probably go in a glossary?
+Or a table of GTFS terms.
+Or we want a nice figure. Let's make that now.
 
+<<gtfs_nw,echo=FALSE,messages=FALSE,fig.width=8,fig.height=5,out.width="\\textwidth",fig.align="center">>=
+suppressPackageStartupMessages(library(tidyverse))
+load("gtfs_shape.rda")
+load("gtfs_stops.rda")
+
+shape <- shape[335:484, ]
+xl <- range(shape$shape_pt_lon)
+yl <- range(shape$shape_pt_lat)
+stops <- stops %>%
+    filter(stop_lon >= xl[1] & stop_lon <= xl[2] &
+           stop_lat >= yl[1] & stop_lat <= yl[2]) %>%
+    mutate(stop_id = 1:n())
+busimg <- png::readPNG("bus.png", native = TRUE) %>%
+    grid::rasterGrob(0, 0, 1, 1,
+        just = c("left", "bottom")
+    )
+rat <- cos(mean(shape$shape_pt_lat * pi / 180))
+xd <- diff(xl)
+yd <- diff(yl)
+# bus locations:
+b1 <- shape[30,3:2] %>% as.numeric
+b2 <- shape[113,3:2] %>% as.numeric
+p <- ggplot(shape, aes(shape_pt_lon, shape_pt_lat)) +
+    geom_path() +
+    geom_label(aes(stop_lon, stop_lat, label = stop_id),
+        data = stops,
+        size = 3) +
+    annotation_custom(busimg,
+        b1[1] - xd * 0.2,
+        b1[1] + xd * 0.2,
+        b1[2] - xd * 0.2 / rat,
+        b1[2] + xd * 0.2 / rat
+    ) +
+    annotation_custom(busimg,
+        b2[1] - xd * 0.2,
+        b2[1] + xd * 0.2,
+        b2[2] - xd * 0.2 / rat,
+        b2[2] + xd * 0.2 / rat
+    ) +
+    annotate("text",
+        x = b1[1] + xd,
+        y = c(b1[2], b2[2]),
+        label = paste("Trip", c("B", "A")),
+        size = 3
+    ) +
+    annotate("text",
+        x = b1[1] + xd * 1.5,
+        y = mean(c(b1[2], b2[2])),
+        label = "Stops",
+        size = 3
+    ) +
+    geom_segment(
+        aes(x, y,
+            xend = b1[1] + xd * 1.1,
+            yend = mean(c(b1[2], b2[2]))
+        ),
+        data = tibble(
+            x = stops$stop_lon[2:4] + xd * 0.25,
+            y = stops$stop_lat[2:4]
+        ),
+        lty = "23", lwd = 0.3
+    ) +
+    coord_fixed(rat) +
+    theme_minimal() +
+    theme(panel.grid = element_blank()) +
+    scale_x_continuous(breaks = NULL,
+        limits = extendrange(xl, f = 3)) +
+    scale_y_continuous(breaks = NULL) +
+    xlab("") + ylab("")
+
+# arrivals board
+p +
+    geom_rect(
+        aes(
+            xmin = stops$stop_lon[5] - xd * 2,
+            xmax = stops$stop_lon[5] - xd,
+            ymin = stops$stop_lat[5] - xd,
+            ymax = stops$stop_lat[5]
+        )
+    )
+@

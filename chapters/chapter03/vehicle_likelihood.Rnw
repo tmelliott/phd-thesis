@@ -282,7 +282,7 @@ ggplot(Yx, aes(x, y)) +
     geom_point(colour = c("black", "orangered"), size = 2) +
     coord_fixed(1) +
     theme_minimal() + theme(panel.grid = element_blank()) +
-    xlab("North-South (meters)") + ylab("West-East (meters)") +
+    ylab("North-South (meters)") + xlab("West-East (meters)") +
     xlim(xr[1], xr[2]) + ylim(yr[1], yr[2])
 @
 
@@ -328,7 +328,7 @@ ggplot(Yx, aes(x, y)) +
         shape = 21, fill = "transparent") +
     coord_fixed(1) +
     theme_minimal() + theme(panel.grid = element_blank()) +
-    xlab("North-South (meters)") + ylab("West-East (meters)") +
+    ylab("North-South (meters)") + xlab("West-East (meters)") +
     xlim(xr[1], xr[2]) + ylim(yr[1], yr[2])
 @
 
