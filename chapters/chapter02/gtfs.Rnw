@@ -103,10 +103,50 @@ p <- ggplot(shape, aes(shape_pt_lon, shape_pt_lat)) +
 p +
     geom_rect(
         aes(
-            xmin = stops$stop_lon[5] - xd * 2,
-            xmax = stops$stop_lon[5] - xd,
+            xmin = stops$stop_lon[5] - xd * 3 - xd * 0.3,
+            xmax = stops$stop_lon[5] - xd - xd * 0.3,
             ymin = stops$stop_lat[5] - xd,
-            ymax = stops$stop_lat[5]
-        )
+            ymax = stops$stop_lat[5] + xd * 0.5
+        ),
+        fill = "#eeeeee",
+        col = "black"
+    ) +
+    geom_rect(
+        aes(
+            xmin = stops$stop_lon[5] - xd * 3 - xd * 0.3,
+            xmax = stops$stop_lon[5] - xd - xd * 0.3,
+            ymin = stops$stop_lat[5],
+            ymax = stops$stop_lat[5] + xd * 0.5
+        ),
+        fill = "#eeeeee",
+        col = "black",
+    ) +
+    annotate("text",
+        x = stops$stop_lon[5] - xd * 1.95 - xd * 0.3,
+        y = stops$stop_lat[5] + xd * 0.75,
+        label = "StopTimes",
+        size = 3
+    ) +
+    annotate("text",
+        x = stops$stop_lon[5] - xd * 1.95 - xd * 0.3,
+        y = stops$stop_lat[5] + xd * 0.25,
+        label = "Trip   Sched",
+        size = 2.5
+    ) +
+    annotate("text",
+        x = stops$stop_lon[5] - xd * 1.90 - xd * 0.3,
+        y = stops$stop_lat[5] - xd * c(0.3, 0.7),
+        label = c("A       9:42", "B       9:56"),
+        size = 2.5
+    ) +
+    geom_segment(
+        aes(
+            x = stops$stop_lon[5] - xd - xd * 0.3,
+            xend = stops$stop_lon[5] - xd * 0.3,
+            y = stops$stop_lat[5],
+            yend = stops$stop_lat[5]
+        ),
+        lwd = 0.3,
+        lty = "23"
     )
 @
