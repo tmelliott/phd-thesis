@@ -23,13 +23,10 @@ a \emph{trip} is a a journey servicing two or more stops at a specific time;
 \emph{stop times} are the (scheduled) times at which vehicles
 will arrive at stops for each trip;
 and a \emph{shape} is the GPS track a vehicle will take for a specific route.
+The relationship between these terms is displayed in
+\cref{fig:gtfs_nw}.
 
-
-These definitions could probably go in a glossary?
-Or a table of GTFS terms.
-Or we want a nice figure. Let's make that now.
-
-<<gtfs_nw,echo=FALSE,messages=FALSE,fig.width=8,fig.height=5,out.width="\\textwidth",fig.align="center">>=
+<<gtfs_nw,echo=FALSE,messages=FALSE,fig.width=8,fig.height=5,out.width="\\textwidth",fig.align="center",fig.cap="A \\gls{gtfs} diagram of a single \\emph{route}, showing two \\emph{trips} (A and B) travelling along the route's \\emph{shape} path. The numbered squares represents \\emph{stops}, and the scheduled arrival times of each trip at stop 5 are displayed in the \\emph{stop times} box.">>=
 suppressPackageStartupMessages(library(tidyverse))
 load("gtfs_shape.rda")
 load("gtfs_stops.rda")
