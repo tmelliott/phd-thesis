@@ -1,0 +1,66 @@
+\section{On the evolution of bus prediction}
+\label{sec:literature}
+
+
+Over the last two decades,
+there has been an enormous advance in both the technologies available and the models used
+to track buses in \rt{} and simultaneously make arrival-time predictions for the upcoming stops.
+Of particular interest are the recursive Bayesian filters,
+namely the Kalman Filter, which has been used in transit models since the late 1990's,
+and the \pf{}, which has only recently shown up in the transit literature,
+but has several unique characteristics we wish to exploit in our work.
+In addition to these models,
+there has also been a lot of progress in the field using data-oriented and machine learning models
+such as \gls{knn}, \gls{ann}, and \gls{svm}.
+We will briefly describe these,
+focusing on the transit-specific features that were incorporated into them.
+
+
+The first use of recusive Bayesian models in arrival time estimation
+was by \cite{Wall_1999},
+in which measurements of \emph{distance-until-destination}
+were used to estimate vehicle position,
+and a \emph{travel time function} based on historical data
+was used to estimate time until arrival.
+The simple model, based solely on historical data and the current position,
+was capable of estimating arrival time to within 5~minutes accuracy,
+even with sparse data,
+along two test routes.
+
+
+In a later paper,
+\cite{Cathey_2003} described a general framework for arrival time prediction
+involving three components:
+the tracker, the filter, and the predictor.
+The \emph{tracker} consists of vehicle data combined with schedule information,
+allowing linking ot trips and vehicles.
+The \emph{filter} allows a sequence of \rt{} observations of vehicle position
+to estimate location and speed along the route.
+The \emph{predictor} is charged with generating arrival time estimates.
+
+
+The tracking component used by \cite{Cathey_2003} has become more-or-less obsolete
+with advances in the vehicle tracking technologies
+(see \cref{sec:gtfs}).
+For the position filter, they used a \kf{} (\cref{sec:kf}),
+which assumes a Gaussian state distribution.
+From this they were able to estimate the instantaneous speed of a vehicle,
+as well as smooth noisy position observations.
+
+
+For the predictor step, \cite{Cathey_2003} provided several examples.
+In one, they used the scheduled travel times,
+and therefore schedule-based speeds,
+to estimate the travel time, explicitely accounting for layover stops.
+In the second example,
+a two-dimentional speed function over distance (along route) and time,
+obtained from a probe vehicle (so, historical data),
+was used instead.
+They also used predictive error over time to determine
+how early a passenger should arrive at a stop
+before the estimated arrival time to have a 90\% probability of catching the bus,
+and compared this to using the schedule to show that their proposed methodology
+provided a significant gain in information.
+
+
+
