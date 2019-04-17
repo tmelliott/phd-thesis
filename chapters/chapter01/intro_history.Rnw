@@ -64,3 +64,60 @@ provided a significant gain in information.
 
 
 
+Another important component of transit modelling are the passengers themselves,
+which, thanks to new \gls{apc} technologies,
+\cite{Shalaby_2004} were able to incorporate into their predictive model.
+In their test system,
+they had available to them vehicle location,
+the arrival and departure times at bus stops,
+as well as the number of passengers boarding and alighting.
+They then fit two separte \kf{} models to each of the
+link running time (travel time between stops)
+and the dwell time (time spent waiting at a stop while passengers
+board and alight).
+Their model used high demand locations,
+so stop skipping was not included in their model.
+
+
+Historical data (three previous days) was used to predict the
+running time and dwell time at the next time point.
+From the \gls{apc} data, they were also able to compute
+passenger arrival rates at stops,
+and therefore improve the dwell time predictions:
+a bus running late will encounter more waiting passengers,
+and the dwell time will be longer.
+A \kf{} algorithm based on another used for a similar model
+by \cite{Reinhoudt_1997},
+was used which predicted travel time using historical data
+along the next link,
+and travel time along the previous link.
+
+
+\cite{Shalaby_2004} compared their \kf{} results to other models
+implemented on the same route,
+and found that it outperformed historical (only),
+regression, and neural network models in a variety of situations,
+notably a ``special event'', and during lane closures,
+which demonstrates the importance of using \rt{} information.
+They did note that the predictive model needed to be developed
+further to handle overlapping routes serving the same bus stops.
+
+
+The importance of \rt{} information on traffic conditions
+was mentioned by \cite{Jeong_2005},
+who compared several models, including \gls{ann},
+in a \rt{} application.
+Again, they stress the importance of dwell time in predictions,
+which was used along side travel time and
+schedule adherence in their \gls{ann} model.
+They compared two separate predictive approaches:
+one in which the model was retrained as new data was recieved,
+and another that used data from the previous model update to make predictions,
+and found that there was no significant improvement by
+retraining in \rt{}.
+
+
+\cite{Yu_2006} implemented an \gls{svm}, a variant of \gls{ann},
+to predict arrival time for a single route,
+and showed improved predictions but large computational requirements.
+Later, \cite{}

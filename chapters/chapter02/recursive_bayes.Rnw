@@ -110,6 +110,9 @@ Therefore, the \kf{} prediction step is
 \end{split}
 \end{equation}
 
+\mathbf{Q is the \emph{rate of change of the variance of
+process noise}} \citep{Cathey_2003}.
+
 The update step is also simple,
 and expressed as a series of equations:
 \begin{equation}
