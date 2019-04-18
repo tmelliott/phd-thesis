@@ -58,7 +58,7 @@ with variance
 &= \Prstop_{j} \left(
     \dwellvar_{j} + (1-\Prstop_{j})(\mindwell + \dwell_{j})^2
 \right)
-\end{equation}
+\end{align}
 
 <<prove_varDm,echo=FALSE,eval=FALSE>>=
 N <- 1e6
