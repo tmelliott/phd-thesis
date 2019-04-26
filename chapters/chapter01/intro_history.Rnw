@@ -2,6 +2,144 @@
 \label{sec:literature}
 
 
+The driving force behind advances in transit modelling and arrival time prediction
+has been the evolution of the technologies used to track transit vehicles in \rt{}.
+As we will see, much of the literature focuses on a specific type of data,
+or is constrained by the available technologies at the time.
+The major factor is predictive models is the \rt{} faesibility,
+which becomes more of a problem as fleet sizes increase.
+
+
+Transit vehicles have been fitted with \gls{avl} devices for many decades now \citep{TCRP_1997},
+but usually has been limited in its use for several reasons.
+First and foremost is the deployment of devices, are were often expensive.
+There's also the issue of retrieving, processing, and publishing \gls{rti} for commuters to use,
+a non-issue today with mobile devices becoming a necessity in developed cities.
+
+
+Collection and storage of data is also considered,
+particularly when its use in predictive models is desired,
+for example in regression of neural network models.
+
+
+There are three main categories of data collection discussed here.
+These are vehicle location, time points, and passenger counts.
+\emph{Vehicle location} data refers to observations of a vehicle's position,
+either in reference to the route
+(for example using an odometer or fixed signpost recievers to observe distance travelled),
+or the Earth, as is the case with \gls{gps} devices,
+which are now almost standard.
+\emph{Time point} observations are made by reporting the time that a particular vehicle
+arrived at or departed from a particular location,
+such as a bus stop, intersection, or other (e.g., automatic toll readers, \citep{Yu_2011}).
+Finally, observations of the number of passengers boarding and debarking are made using \glspl{apc},
+which while unavailble in Auckland, are prominent in some of the major sources cited.
+This data is often used in a historical context,
+providing estimates of passenger demand, which has a large influence on dwell time at stops.
+
+
+There are also other sources of information unique to some papers,
+whether it be signal patterns, traffic flows, or other,
+and papers have made use of its specialising for operational purposes.
+
+
+The models themselves fall into three categories:
+\rt{} state-based, historical data, and a combination of the two.
+The latter is by far the most popular, as many papers have shown it to outperform the others.
+
+
+Of the models used in the last 20~years, the \kf{} has been the most popular due to its simplicity
+\citep{Wall_1999,Dailey_2001,Cathey_2003,Shalaby_2004,Yu_2010}.
+The main concept is to infer the current position and speed of a vehicle along the route
+and based on some travel time prediction function
+estimate the \glspl{eta} at future stops
+\citep{cn}.
+We give a full description of the \kf{} in \cref{sec:kf}.
+
+
+One key idea is that of travel time variability over time.
+\cite{Cathey_2003} proposed a general prescription using a prediction function
+which could use historical data, including time of day, weather, etc
+to generate predictions.
+Others using \gls{knn} and \gls{ann} to predict arrival times based off a variety of data
+\citep{Jeong_2005,Yu_2006,Yu_2010,Yu_2011}.
+Many used specific data types,
+such as on-board observations \citep{cn},
+cameras \citep{Xinghao_2013,Yu_2011},
+and toll readers \citep{Yu_2011}.
+{}
+
+These models saw improvements, but still unable to respond to \rt{} events accurately.
+The concept of using headway---the time since the previous trip---has been implemented,
+and shown improvements \citep{cn}.
+This is, in effect, estimating \rt{} traffic.
+
+
+However often trip frequency is not high enough to capture \rt{} changes in congestion.
+So \cite{Yu_2011} proposed using data from multiple routes to estimate current travel times.
+This was done by using automatic toll readers uproute from a major stop.
+This provided a marked improvement over alternative single-route strategies.
+Since then, other methods of estimating traffic state (congestion, effectively)
+have beeen proposed, as as using taxis \citep{Xinghao_2013},
+and other stuff \ldots
+Some more advanced methods using shockwaves proposed by \cite{Julio_2016}.
+
+
+As far as the methods used to estimate \rt{} vehicle and road state,
+many have been used bus the predominant one has been \emph{\gls{rbe}};
+most other methods---namely \gls{ann} and \gls{svm}---were used
+with time point and \gls{apc} data,
+so vehicle tracking was not incorporated in the model
+(no filtering of noisy position observations was required).
+
+
+We will give an indepth overview of \gls{rbe} in \cref{sec:recursive-bayes},
+but for now suffice to say that it is a commonly used method of filtering out
+noisy observations of a Markov process, particularly usedful in vehicle tracking applications
+\citep{Gordon_1993,Carpenter_1999,Gustafsson_2002}.
+
+
+The \kf{} is the simplest of the \glspl{rbe},
+and was commonly used by the likes of \cite{Wall_1999,Cathey_2003} and others.
+However, it is a very simplisted model and has high potential for failure,
+particularly when sampling intervals are long \citep{cn},
+allowing a higher uncertainty in the vehicle trajectory.
+
+
+In \cite{Hans_2015} (?? or earlier) a \pf{} was used to model transit vehicles.
+The main advantage was described as being that it could cover a higher proportion
+of likely trajectories, even with low sampling.
+They also used particle trajectories for prediction (the median was used as a point estimate).
+Their goal, however, was in operations control, not \glspl{eta}.
+
+
+Modelling the (\rt{}) travel times along roads or, more commonly, between stops,
+has been shown to be a vital predictor of arrival time
+\citep{cn}.
+Initial work just used the time of the previous trip along the same route,
+combined with some \gls{svm} model to predict current vehicle travel time \cite{Yu_2006}.
+Further work used other routes serving the same stop(s) \cite{Yu_2011}.
+More recently, \cite{Cats_2016} (maybe 2015 paper too?) used travel times of previous buses
+between stops to predict travel times,
+and some fancy weighting formula.
+
+
+
+Perhaps the most important question is now, \emph{is this all worth it}?
+The technologies and models have been implemented for the sole purpose of
+improving the reliability of \glspl{eta} displayed to commuters.
+Early research found that a countdown reduced experienced wait times
+\citep{TCRP_2003,TCRP_2003b},
+although they did not mention accuracy of the countdown.
+Other people have \ldots
+
+
+
+
+
+
+\pagebreak
+
 Over the last two decades,
 there has been an enormous advance in both the technologies available and the models used
 to track buses in \rt{} and simultaneously make arrival-time predictions for the upcoming stops.
