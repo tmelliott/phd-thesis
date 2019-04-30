@@ -106,7 +106,7 @@ The travel time computation for this model is the same as for A2.
 
 \subsubsection{Simulation}
 
-<<sim1_gen,echo=FALSE,message=FALSE>>=
+<<sim1_gen,echo=FALSE,message=FALSE,cache=FALSE>>=
 source('sims.R')
 s1 <- simulate_vehicle()
 segs <- lapply(1:nrow(s1$segments),

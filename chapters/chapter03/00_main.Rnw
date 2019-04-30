@@ -60,9 +60,9 @@ In this chapter,
 we develop the transition function based on a model of bus behaviour
 (section~\ref{sec:vehicle_model}),
 and construct the likleihood using both vehicle positions and trip updates
-(section~\ref{sec:vehicle_likelihood}).
+(section~\ref{sec:pf-likelihood}).
 Finally, we discuss our implementation of the \pf{}
-(section~\ref{sec:particle_flter}).
+(section~\ref{sec:particle-filter}).
 
 
 \input{DIRNAME/vehicle_model.tex}
