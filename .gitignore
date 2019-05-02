@@ -4,6 +4,7 @@
 !include/*.tex
 
 *.sqlite
+*.zip
 
 figure
 allrefs.bib
