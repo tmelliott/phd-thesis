@@ -239,4 +239,92 @@ so this too could be inferred from the static schedule information.
 \subsection{\Rt{} GTFS}
 \label{sec:gtfs_rt}
 
-The \rt{} component of \GTFS{} involves a lot more
+The \rt{} component of \GTFS{} is responsible for handling vehicle positions,
+trip updates (arrivals and departures from stops),
+and service alerts (cancellations and stop closures, for example).
+Data is processed by a central server,
+and then stored in an appropriate fashion to enable quick access via \glspl{api}.
+There is therefore the additional need of a server that can handle
+vast numbers of \gls{api} requests,
+which means that only a subset of the transport providers using \GTFS{}
+have also implemented this \rt{} component.
+Below we give a brief summary of these components,
+but further information can be read on the \GTFS{} website%
+\footnote{see \url{https://developers.google.com/transit/gtfs-realtime/}.}.
+
+
+\subsubsection{Vehicle positions}
+\label{sec:gtfs_rt_vehicle}
+
+The key components of a vehicle position (in the context of \GTFS{})
+are a \emph{vehicle descriptor} which includes information about the physical vehicle,
+a \emph{trip descriptor} which holds information about the trip being serviced,
+a \emph{timestamp} specifying exactly when the observation was made,
+and a \emph{position} containing the actual data,
+such as the \gls{gps} observation.
+
+
+\subsubsection{Trip updates}
+\label{sec:gtfs_rt_trip}
+
+As vehicles equipped with \gls{avl} technology arrive at and depart from stops,
+information about their time of arrival,
+and most importantly \emph{schedule adherence},
+is stored in trip updates.
+These also contain a \emph{trip descriptor},
+as well as one or more \emph{stop time updates}.
+\AT{} provides a single stop time update for the most recently visited stop;
+however, it is possible to retain all previous stop time updates,
+as well as provide predictions for upcoming stops.
+
+
+Each stop time update reports either the arrival or departure time and,
+where schedule information is available,
+the schedule adherance by way of an \emph{arrival} or \emph{departure delay} (in seconds).
+Typically this is based off the \gls{gps} position of the vehicle,
+which is monitored by the \gls{avl} system on the vehicle,
+enabling it to determine where on the route it is.
+
+
+
+\subsubsection{Service alerts}
+\label{sec:gtfs_rt_alerts}
+
+Less important for the current work, but necessary for reliable \gls{rti},
+\emph{service alerts} enable transit operators to modify the static \GTFS{} in \rt{}.
+So, when a trip is cancelled, they can\footnote{Although they often don't.}
+send out a service alert announcing that a specific trip has been cancelled.
+This is often displayed to passengers as a ``C'' on the \rt{} board.
+It is also possible to add trips, for example if there is a special event,
+or to reroute trips via different stops,
+but this is beyond the scope of our work.
+
+
+\subsection{Accessing \rt{} data (API)}
+\label{sec:gtfs_rt_api}
+
+In order to distribute vehicle locations, trip updates, and service alerts
+to passengers quickly and usefully requires more than just a \rt{} board at bus stops.
+Personal mobile devices have revolutionised the way we live our lives,
+and developers are constantly creating new apps to help us out.
+Included in these are transit apps,
+which are capable of passing on \rt{} \GTFS{} data to passengers.
+
+
+The most common method of distributing \rt{} data is via an \gls{api}.
+These are, in simple terms, a fixed web address that developers can fetch
+and return a data file---either JSON or, in the case of some \GTFS{} systems,
+protobuf \citep{cn}---which can then be parsed and displayed to users.
+Usually developers need an \emph{\gls{api} key} to prevent server overload,
+or to control access to data.
+Our R package includes the ability to connect to a \GTFS{}-based \gls{api} easily,
+by issuing the following command:
+<<transitr_api_connect>>=
+nw <- load_gtfs("at_gtfs.sqlite") %>%
+    realtime_feed(
+        "https://api.at.govt.nz/v2/public/realtime/vehiclelocations",
+        with_headers(
+            "Ocp-Apim-Subscription-Key" = Sys.getenv('APIKEY')
+        )
+    )
+@

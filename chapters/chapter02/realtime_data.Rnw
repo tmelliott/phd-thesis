@@ -1,5 +1,4 @@
-
-\section{\Rt{} vehicle data}
+\section{Charactersitics of \rt{} transit data}
 \label{sec:realtime-data}
 
 There are several ways in which transit vehicles can report their location.
