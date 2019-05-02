@@ -212,6 +212,7 @@ library(transitr)
 con <- dbConnect(SQLite(), db)
 vmax <- dbGetQuery(con, "select max(version) as v from routes")$v
 nstoptimes <- dbGetQuery(con, sprintf("SELECT count(*) as n from stop_times where trip_id in (select trip_id from trips where version=%s)", vmax))$n
+dbDisconnect(con)
 @
 
 
