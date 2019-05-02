@@ -325,6 +325,5 @@ nw <- load_gtfs("at_gtfs.sqlite") %>%
         "https://api.at.govt.nz/v2/public/realtime/vehiclelocations",
         with_headers(
             "Ocp-Apim-Subscription-Key" = Sys.getenv('APIKEY')
-        )
-    )
+        ))
 @

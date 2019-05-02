@@ -1,4 +1,4 @@
-\section{Recursive Bayesian estimation}
+\section{Modelling \rt{} data: recursive Bayes}
 \label{sec:recursive-bayes}
 
 The nature of \rt{} transit data is that,
