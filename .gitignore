@@ -3,6 +3,8 @@
 *.tex
 !include/*.tex
 
+*.sqlite
+
 figure
 allrefs.bib
 thesis.pdf

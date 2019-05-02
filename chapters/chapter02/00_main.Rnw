@@ -1,82 +1,135 @@
-\chapter{Working with \rt{} transit data}
+\chapter{\Rt{} transit data}
 \label{cha:data}
 
-\textcolor{red}{
-    \begin{itemize}
-        \item the basic nature of \rt{} transit data:
-            it is \emph{\rt{}}!
-        \item vehicles are fitted with \gls{avl} technology,
-            for example a \gls{gps} device,
-            which allows the transit provider (Auckland Transport)
-            to track the location of each vehicle in the network
-            as they scurry around like ants
-        \item however, in this day and age, it has become increasingly common
-            for this type of data to be made publically available
-        \item this allows independent developers to create mobile apps
-            that commuters can use to check bus times
-            \begin{itemize}
-                \item some examples from places like Seattle? or where
-                    they \emph{DON'T} use GTFS
-                \item and some NZ examples that do use GTFS:
-                    AT Mobile, KiwiHub, waka.com, etc.
-            \end{itemize}
-        \item typically, the type of data is the same: routes,
-            instances of routes (trips), stops, paths (shapes),
-            and of course \rt{} data!
-        \item Google released a \emph{specification} of how this should be organised,
-            called it \gls{gtfs}: specifies definitions of things,
-            and the fields (what information about each thing)
-            that are required, or optional
-        \item Also a \rt{} version of \gls{gtfs},
-            detailing how vehicle positions or trip arrival/departure observations
-            should be described in a public \gls{api}
-        \item one thing lacking from gtfs is spatial relationships
-            \begin{itemize}
-                \item two routes may overlap or not, and there's no direct
-                    way of knowing
-                \item it would be incredibly useful if any shared section(s)
-                    of routes was known, and could be modelled as such
-                \item thus instead of relying only on other buses travelling
-                    along the same route to tell us about things,
-                    we could also use buses of other routes
-                    that happen to travel along the same \emph{road}
-            \end{itemize}
-        \item then there's how we actually model \rt{} data?!
-            usually we fit complex models and these take time to estimate/fit
-        \item in \rt{} context, however, we observe each data point sequentially,
-            and it seems a waste to re-fit all of the previous observations
-            (we don't actually care about them anymore, tbh): this type of
-            \rt{} tracking often uses \emph{recursive Bayesian filters}
-    \end{itemize}
+<<gtfs_info,echo=FALSE>>=
+library(RSQLite)
+url <- "https://cdn01.at.govt.nz/data/gtfs.zip"
+db <- "at.sqlite"
+outdated <- function(url) {
+    date <- gsub("Last-Modified: |\r", "", system(sprintf("curl -sI %s | grep Last-Modified", url), intern = TRUE))
+    last.mod <- as.POSIXct(date, tz = "GMT", format = "%a, %d %b %Y %H:%M:%S GMT")
+
+    cur.mod <- ".gtfs_date"
+    if (!file.exists(cur.mod)) {
+        writeLines(as.character(last.mod), cur.mod)
+        return(TRUE)
+    }
+    prev.mod <- as.POSIXct(readLines(cur.mod), tz = "GMT")
+    if (prev.mod < last.mod) {
+        writeLines(as.character(last.mod), cur.mod)
+        return(TRUE)
+    }
+    FALSE
 }
+if (outdated(url)) {
+    if (file.exists(db)) unlink(db)
+    tmp <- tempfile()
+    download.file(url, tmp)
+    dir <- tempdir()
+    files <- unzip(tmp, exdir = dir)
+    unlink(tmp)
+    con <- dbConnect(SQLite(), db)
+    for (file in files) {
+        tbl <- tools::file_path_sans_ext(basename(file))
+        dbWriteTable(con, tbl, read.csv(file, header = TRUE))
+    }
+    dbDisconnect(con)
+    unlink(dir)
+}
+updated_at <- as.POSIXct(readLines(".gtfs_date"), tz = "GMT")
+updated_fmt <- format(updated_at, "%d %B %Y")
+
+# fetch some info about the data
+con <- dbConnect(SQLite(), db)
+nroute <- dbGetQuery(con, "select count(*) as n from routes")$n
+ntrip <- dbGetQuery(con, "select count(*) as n from trips")$n
+ntrip.week <- dbGetQuery(con, "select count(*) as n from calendar where friday=1")$n
+dbDisconnect(con)
+
+# fetch stuff from TransitFeeds
+nfeed <- 1108
+nlocation <- 606
+@
+
+\AT{} operates a fleet of vehicles---including buses, trains, and ferries---%
+to transport passengers around Auckland, New Zealand's largest urban region,
+from Wellford in the north to Pukekohe in the south \citep{cn}.
+Serving the region are \Sexpr{nroute}~routes%
+\footnote{As of \Sexpr{updated_fmt}, sourced from \url{https://at.govt.nz/}.},
+each providing a service from an \emph{origin} to a \emph{destination}
+via a specified sequence of \emph{stops}
+at which passengers may board or alight.
 
 
-The concept at the core of this work is that
-everything is happening in \rt{}.
-Observations of vehicles are behind recorded and distributed online,
-the prediction program is processing them,
-fitting a model,
-and generating arrival time estimates which are themselves being distributed,
-until they are finally delivered to users' mobile devices.
-All in \rt{}.
-And repeated approximately every 30~seconds (or sooner, if possible).
+For each route, one or more \emph{trips} are scheduled to operate,
+typically departing from the origin stop at a fixed time,
+with approximate arrival times for the intermediate stops along the way.
+In some cases, services will wait at a (usually significant) stop
+until the scheduled departure time,
+which is referred to as a \emph{layover};
+in others, drivers will attempt to adjust their speed to hold to the schedule.
+In most cases, however,
+drivers will heed no attention to the schedule
+and simply drive along the route at whatever speed is reasonable
+(or unreasonable)%
+\footnote{At least, this is the case in Auckland.}.
+Not all trips run every day;
+typically trips are scheduled as weekday, Saturday, or Sunday and public holidays.
+Altogther there are (at the time of writing)
+\Sexpr{format(ntrip, big.mark = ",")}~trips provided by \AT{},
+\Sexpr{format(ntrip.week, big.mark = ",")} of which run on weekdays.
 
 
-In this section,
-we will examine the existing infrastructure providing each of these steps.
-First is the data,
-which comprises of two parts:
-the pre-specified, \emph{static} component (\cref{sec:gtfs})
-and the \rt{} component (\cref{sec:realtime-data}).
-One thing missing, however, is spatial information.
-I don't know how to meld this into the flow of the chapter.
-Perhaps instead of focus on \rt{},
-it can be \emph{data} focus - static -> realtime -> network.
-The network is the novel bit.
-It's how we do the realtime network bit.
-Which is key to our approach.
+The assignment of routes, trips, and stops is a common occurence in transport systems,
+to the extent that it was formalised by Google's \emph{\GTFS{}} \citep{GoogleDevelopers_2006}.
+\GTFS{} provides a detailed specification of how transit data should be organised,
+enabling external systems to access it easily,
+with the primary example being Google Maps,
+although plenty of other applications exist that make use of it%
+\footnote{Such as the one you're reading about right now.}.
+It has now been adopted by \Sexpr{format(nfeed, big.mark = ",")}~providers
+across \Sexpr{format(nlocation, big.mark = ",")}~locations globally,
+as shown in \cref{fig:gtfs_feeds}
+(see \cref{sec:gtfs} for further details on \GTFS{}).
 
-The concept: network data for congestion.
+\begin{figure}
+\centering
+\includegraphics[width=0.8\textwidth]{figure/gtfs_feeds.png}
+\caption[Locations of GTFS feeds]{Locations of the \Sexpr{nlocation}~\GTFS{} feeds,\\
+sourced from \url{http://transitfeeds.com/} on 2 May 2019.}
+\label{fig:gtfs_feeds}
+\end{figure}
+
+
+The vehicles servicing the trips are observed as they travel along the route,
+either as intermittent \GPS{} locations (\emph{vehicle positions}),
+or on arrival at or departure from bus stops along the way (\emph{trip updates}).
+How this data is structured is also specified by \GTFS,
+and will be described in detail in \cref{sec:realtime-data},
+along with a discussion of the issues we encoutered using the \AT{} data.
+
+
+One of the major ideas we discussed in \cref{sec:literature}
+was the importance of combining data from multiple routes when predicting arrival times.
+As it stands, there is no direct way of determining if two routes overlap---%
+that is, share a common path---from \GTFS{} data.
+The simplest approach would be to compare (sub)sequences of stops,
+with routes servicing the same stops obviously sharing a common path,
+although there are several situations where this is not true.
+We formalise this idea, as well as expand on it, in \cref{sec:route-segments}.
+
+
+The \rt{} nature of the data, and the necessity for predictions to be made
+as soon after obtaining the data as possible,
+made \gls{rbe} a prime candidate;
+many other authors came to the same conclusion,
+as we discussed in \cref{sec:literature}.
+This class of models are commonly used in vehicle tracking applications,
+allowing the vehicle's state (such as speed) to be estimated from
+a \rt{} sequence of noisy measurements of its location.
+The final section of this chapter gives background information on
+the main type of models used in our work,
+which will be presented in \cref{cha:vehicle_model,cha:network_model}.
 
 
 \input{DIRNAME/gtfs.tex}

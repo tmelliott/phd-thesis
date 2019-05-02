@@ -109,6 +109,9 @@ headsepline, % Uncomment to get a line under the header
 \renewcommand{\showlabelfont}{\tiny}
 % \usepackage{showkeys}
 
+\usepackage[symbol]{footmisc}
+\renewcommand{\thefootnote}{\fnsymbol{footnote}}
+
 \begin{document}
 
 \frontmatter % Use roman page numbering style (i, ii, iii, iv...) for the pre-content pages
