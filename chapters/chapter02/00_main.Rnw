@@ -2,48 +2,16 @@
 \label{cha:data}
 
 <<gtfs_info,echo=FALSE>>=
-library(RSQLite)
-url <- "https://cdn01.at.govt.nz/data/gtfs.zip"
-db <- "at.sqlite"
-outdated <- function(url) {
-    date <- gsub("Last-Modified: |\r", "", system(sprintf("curl -sI %s | grep Last-Modified", url), intern = TRUE))
-    last.mod <- as.POSIXct(date, tz = "GMT", format = "%a, %d %b %Y %H:%M:%S GMT")
-
-    cur.mod <- ".gtfs_date"
-    if (!file.exists(cur.mod)) {
-        writeLines(as.character(last.mod), cur.mod)
-        return(TRUE)
-    }
-    prev.mod <- as.POSIXct(readLines(cur.mod), tz = "GMT")
-    if (prev.mod < last.mod) {
-        writeLines(as.character(last.mod), cur.mod)
-        return(TRUE)
-    }
-    FALSE
-}
-if (outdated(url)) {
-    if (file.exists(db)) unlink(db)
-    tmp <- tempfile()
-    download.file(url, tmp)
-    dir <- tempdir()
-    files <- unzip(tmp, exdir = dir)
-    unlink(tmp)
-    con <- dbConnect(SQLite(), db)
-    for (file in files) {
-        tbl <- tools::file_path_sans_ext(basename(file))
-        dbWriteTable(con, tbl, read.csv(file, header = TRUE))
-    }
-    dbDisconnect(con)
-    unlink(dir)
-}
+source("load_gtfs.R")
 updated_at <- as.POSIXct(readLines(".gtfs_date"), tz = "GMT")
 updated_fmt <- format(updated_at, "%d %B %Y")
 
 # fetch some info about the data
 con <- dbConnect(SQLite(), db)
-nroute <- dbGetQuery(con, "select count(*) as n from routes")$n
-ntrip <- dbGetQuery(con, "select count(*) as n from trips")$n
-ntrip.week <- dbGetQuery(con, "select count(*) as n from calendar where friday=1")$n
+vmax <- dbGetQuery(con, "select max(version) as v from routes")$v
+nroute <- dbGetQuery(con, sprintf("select count(*) as n from routes where version=%s", vmax))$n
+ntrip <- dbGetQuery(con, sprintf("select count(*) as n from trips where version=%s", vmax))$n
+ntrip.week <- dbGetQuery(con, sprintf("select count(*) as n from calendar where friday=1 and version=%s", vmax))$n
 dbDisconnect(con)
 
 # fetch stuff from TransitFeeds

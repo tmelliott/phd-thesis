@@ -1,7 +1,7 @@
 \section{GTFS}
 \label{sec:gtfs}
 
-The adoption of GTFS to public transport agencies around the world
+The adoption of GTFS \citep{GoogleDevelopers_2006} to public transport agencies around the world
 has made it possible for apps such as Google Maps
 to access and display public transport data to users,
 regardless of their location.
@@ -10,33 +10,19 @@ how transit data should be organised in a fundamental way
 that is consistent across agencies around the world.
 
 
-\GTFS{} consists of two parts:
-the \emph{static} part specifies how schedule information---%
-such as what trips are scheduled on what days, or
-which stops are serviced by which routes---should be structured;
-the \emph{\rt{}} part specifies how \rt{} data,
-such as vehicle locations and trip updates,
-should be formatted for distribution via \glspl{api}.
+\GTFS{} consists of two components,
+\emph{static} and \emph{\rt{}}.
+The static component specifies how information portaining to the schedule,
+fare, and route geography are organised,
+while the \emph{\rt{}} component specifies the format for vehicle locations,
+arrival predictions, and service advisories.
+Each of the static and \rt{} components are implemented by a transit provider,
+for example \AT{} have a set up their \GTFS{} service
+which is hosted at \url{https://dev-portal.at.govt.nz}.
 
 
 \subsection{Static GTFS}
 \label{sec:gtfs_static}
-
-There are several components of GTFS that are of particular interest to us:
-routes, trips, stops, stop times, and shapes.
-The definitions of these terms are given in \cref{tab:gtfs_terms}.
-Extensive documentation can be found on these and the other components
-on the GTFS website (\url{https://developers.google.com/transit/gtfs/})
-\citep{GoogleDevelopers_2006}.
-
-
-\Cref{fig:gtfs_nw} demonstrates a single \emph{route},
-along which there are two active \emph{trips} (A and B).
-The route's \emph{shape} is represented by the line connecting
-the six \emph{stops} numbered 1--6.
-The \rt{} arrivals board is shown for stop~5,
-displaying the scheduled \emph{stop time} (arrival time) for each trip at that stop.
-The additional information displayed is described in the next section.
 
 
 \begin{table}[t]
@@ -58,6 +44,23 @@ shape & the GPS track a vehicle will take for a specific route \\
 \url{https://developers.google.com/transit/gtfs/reference/}}
 \label{tab:gtfs_terms}
 \end{table}
+
+
+There are several components of GTFS that are of particular interest to us:
+routes, trips, stops, stop times, and shapes.
+The definitions of these terms are given in \cref{tab:gtfs_terms}.
+Extensive documentation can be found on these and the other components
+on the GTFS website (\url{https://developers.google.com/transit/gtfs/})
+\citep{GoogleDevelopers_2006}.
+
+
+\Cref{fig:gtfs_nw} demonstrates a single \emph{route},
+along which there are two active \emph{trips} (A and B).
+The route's \emph{shape} is represented by the line connecting
+the six \emph{stops} numbered 1--6.
+The \rt{} arrivals board is shown for stop~5,
+displaying the scheduled \emph{stop time} (arrival time) for each trip at that stop.
+The additional information displayed is described in the next section.
 
 
 
@@ -192,7 +195,47 @@ p +
 @
 
 
+The distribution of static \GTFS{} data by transport providers is typically done via text files,
+one for each of the components (\verb+routes.csv+, \verb+trips.csv+, etc).
+Often these are then distributed as a single ZIP archive,
+and the data can easily be loaded into a \emph{relational database}.
+In the R package developed as part of this work,
+this is done automatically using the \verb+create_gtfs()+ function:
+<<transitr_load_gtfs,eval=FALSE>>=
+library(transitr)
+nw <- create_gtfs("at_gtfs.zip", db = "at_gtfs.sqlite")
+@
+
+<<transitr_load_gtfs_hidden,echo=FALSE>>=
+source("load_gtfs.R")
+library(transitr)
+con <- dbConnect(SQLite(), db)
+vmax <- dbGetQuery(con, "select max(version) as v from routes")$v
+nstoptimes <- dbGetQuery(con, sprintf("SELECT count(*) as n from stop_times where trip_id in (select trip_id from trips where version=%s)", vmax))$n
+@
+
+
+Within these separate files or tables, the data is stored as per \GTFS{}.
+Importantly, shapes are stored as sequences of coordinates in a sequence
+that draw a path on a map,
+while stops are represented as a single coordinate marking the location of the bus stop.
+Stop times are stored in trip-stop pairs\footnote{It is a pivot table, if you know what that is.},
+with one row for every stop of each trip, along with the scheduled arrival and departure times%
+\footnote{There are \Sexpr{format(nstoptimes, big.mark=",")} rows in the stop times table for Auckland Transport!}.
+
+
+
+On its own, the static \GTFS{} information is as useful as a printed timetable,
+allowing simple journey planning to take place.
+It therefore provides the necessary ``fallback'' state in cases where
+no \rt{} information is available for a given trip.
+In later sections, we will be needing \emph{prior} information about
+the travel times between stops,
+so this too could be inferred from the static schedule information.
+
+
+
 \subsection{\Rt{} GTFS}
 \label{sec:gtfs_rt}
 
-
+The \rt{} component of \GTFS{} involves a lot more
