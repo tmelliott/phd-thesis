@@ -1,5 +1,30 @@
-vi\section{Modelling \rt{} data: recursive Bayes}
+\section{Modelling \rt{} data: recursive Bayes}
 \label{sec:recursive-bayes}
+
+Now that we have discussed how the data is structured,
+we need to consider how it can be modelled.
+The main point to consider is that the data are being collected in \rt{},
+in order to make predictions of arrial time \emph{in \rt{}}.
+Therefore, the modelling framework is tightly constrained by
+the necessity that it can be run quickly.
+We are working with vehicle location data,
+with the goal of estimating the location and speed of a vehicle,
+collectively referred to as its \emph{state},
+which we will (for now) denote $\bx$.
+This state changes over time, so we denote a particular instance of the state
+at a time $t_k$ using a subscript, $\bx_k$.
+
+
+However, we cannot observe the state of the vehicle directly;
+instead we get observations $\bz_k$, from which we wish to infer the underlying state.
+
+
+
+
+
+
+
+\pagebreak
 
 In many data analysis situations,
 data is observed and stored in an $n\times m$ matrix which, for generality,
@@ -25,7 +50,7 @@ the data is observed \emph{and modelled} in \rt{}.
 That is, at time $t_k$, we recieve an observation as a column vector
 $\boldsymbol{\mathcal{Y}}_k$ of length $n$,
 and want to estimate the state of the vehicle
-$p(\boldsymbol{\mathcal{X}}_{0:k}|\boldsymbol{\mathcal{Y}}_{0:k})$.
+$p(\boldsymbol{\mathcal{X}}_{0:k}|\boldsymbol{\mathcal{Y}}_{1:k})$.
 Of course, we could just fit a full Bayesian model to the new data,
 but this will take time,
 and will involve a lot of refitting data that is not only already estimated,
@@ -36,85 +61,115 @@ Instead, it is common for \rt{} applications to use a recursive estimation algor
 
 
 
-
-
-
-
-% The nature of \rt{} transit data is that,
-% rather than recieving an entire dataset $\VobsMat$,
-% which would permit a single model to be fitted once
-% (e.g., using \gls{mcmc}),
-% each observation is recieved incrementally.
-% One possibility would be to fit the full model
-% to estimate $p(\Vstate_{0:k} | \Vobs_{0:k})$
-% for every $k\in 0, \ldots, K$;
-% however, that would be highly inefficient as
-% \gls{mcmc} algorithm typically take more than a few seconds to fit,
-% and we have up to 1000~vehicles at peak hour to model simultaneously.
-% Instead, we realise that the state at time $\Vtime_k$
-% depends only on the state at time $\Vtime_{k-1}$.
-% That is, $p(\Vstate_k | \Vstate_{0:k-1}) = p(\Vstate_k | \Vstate_{k-1})$.
-% This means we can implement a \emph{recursive Bayesian model}
-% on the state.
-
-% \textbf{Not sure the above is in the right place, but hey \ldots}
-% \vspace{1em}
-
 The general principal behind recursive Bayesian estimation,
 or \emph{sequential Bayes},
-is that there exists some underlying Markov process
-$\mathcal{X}$ with transition function $\mathcal{F}$
-and system noise $\mathcal{Q}$,
+is that there exists some underlying Markov process with state $x_k$,
+of which observations $z_k$ are made.
+The assumption that the process is Markov---which means that the current state
+depends only on the previous state, and is indepenent of all others---gives
 \begin{equation}
-\label{eq:markov_state}
-\mathcal{X}_k = \mathcal{F}(\mathcal{X}_{k-1}, \mathcal{Q}_k).
+\label{eq:rbe_markov}
+p(\boldsymbol{\mathcal{X}}_k | \boldsymbol{\mathcal{X}}_{k-1}, \ldots, \boldsymbol{\mathcal{X}}_{0}) =
+p(\boldsymbol{\mathcal{X}}_k | \boldsymbol{\mathcal{X}}_{k-1})
 \end{equation}
-The important aspect of this is that the current state
-depends only on the previous state,
+and, since the observation at time $t_k$ is dependentent only on the state at time $t_k$,
+we have that
 \begin{equation}
-\label{eq:state_dist}
-p(\mathcal{X}_k | \mathcal{X}_0, \ldots, \mathcal{X}_{k-1}) =
-p(\mathcal{X}_k | \mathcal{X}_{k-1})
+\label{eq:rbe_obs}
+p(\boldsymbol{\mathcal{Y}}_k | \boldsymbol{\mathcal{X}}_{k}, \ldots, \boldsymbol{\mathcal{X}}_{0}) =
+p(\boldsymbol{\mathcal{Y}}_k | \boldsymbol{\mathcal{X}}_{k}).
 \end{equation}
-which allows us to model the current state using only the previous one,
-which speeds up processing time.
-How this is done depends on the estimator being used.
 
 
-The second part of recursive Bayes regards how the object is observed.
-In many cases, it is impossible to measure the desired state directly,
-so instead a related, \emph{observable} state is measured,
-$\mathcal{Y}$, which is related to the underlying state through
-the measurement function $\mathcal{H}$
-and measurement error $\mathcal{R}$,
-\begin{equation}
-\label{eq:state_measure}
-\mathcal{Y}_k = \mathcal{H}(\mathcal{X}_k, \mathcal{R})
-\end{equation}
-It is of interest to estimate the current state
-based on all of the observations so far,
-\begin{equation}
-\label{eq:state_dist_obs}
-p(\mathcal{X}_k | \mathcal{Y}_{1:k})
-\end{equation}
-which can be done recursively each time a new observation is recieved.
+Now, the numerator from \cref{eq:bayes} can be re-expressed,
+first by showing that
+\begin{align}
+\label{eq:rbe_join_x}
+p(\boldsymbol{\mathcal{X}}_{0:k}) &=
+p(\boldsymbol{\mathcal{X}}_{0},\boldsymbol{\mathcal{X}}_{1},\ldots,\boldsymbol{\mathcal{X}}_{k}) \nonumber\\
+&= p(\boldsymbol{\mathcal{X}}_{0}) p(\boldsymbol{\mathcal{X}}_{1} | \boldsymbol{\mathcal{X}}_{0})
+    p(\boldsymbol{\mathcal{X}}_{2} | \boldsymbol{\mathcal{X}}_{1}, \boldsymbol{\mathcal{X}}_{0}) \cdots
+    p(\boldsymbol{\mathcal{X}}_{k} | \boldsymbol{\mathcal{X}}_{k-1}, \ldots, \boldsymbol{\mathcal{X}}_{0})
+    \nonumber\\
+\intertext{which can be simplified using \cref{eq:rbe_markov} to}
+p(\boldsymbol{\mathcal{X}}_{0:k})
+&= p(\boldsymbol{\mathcal{X}}_{0})
+    p(\boldsymbol{\mathcal{X}}_{1} | \boldsymbol{\mathcal{X}}_{0})
+    p(\boldsymbol{\mathcal{X}}_{2} | \boldsymbol{\mathcal{X}}_{1}) \cdots
+    p(\boldsymbol{\mathcal{X}}_{k} | \boldsymbol{\mathcal{X}}_{k-1}) \nonumber\\
+&= p(\boldsymbol{\mathcal{X}}_{0})
+    \prod_{i=1}^k p(\boldsymbol{\mathcal{X}}_{i} | \boldsymbol{\mathcal{X}}_{i-1})
+\end{align}
+Secondly, using \cref{eq:rbe_obs}, the rest of the numerator becomes
+\begin{align}
+\label{eq:rbe_join_y}
+p(\boldsymbol{\mathcal{Y}}_{1:k} | \boldsymbol{\mathcal{X}}_{0:k}) &=
+p(\boldsymbol{\mathcal{Y}}_{1} | \boldsymbol{\mathcal{X}}_{1}) \cdots
+p(\boldsymbol{\mathcal{Y}}_{k} | \boldsymbol{\mathcal{X}}_{k}) \nonumber \\
+&= \prod_{i=1}^k p(\boldsymbol{\mathcal{Y}}_{i} | \boldsymbol{\mathcal{X}}_{i})
+\end{align}
 
-The general formula for recusive Bayes models is
-to first \emph{predict} the next state,
-$p(\mathcal{X}_k | \mathcal{X}_{k-1})$,
-and then to update the prediction using the likelihood
-$p(\mathcal{Y}_k | \mathcal{X}_k)$
-to obtain a posterior estimate of the state
-given all previous observations,
-$p(\mathcal{X}_k | \mathcal{Y}_{1:k})$.
+
+% Now, we can express \cref{eq:bayes} by substituting \cref{eq:rbe_join_x,eq:rbe_join_y},
+% \begin{align}
+% \label{eq:rbe_bayes}
+
+% \end{align}
 
 
-There are several different estimation techniques,
-from emperical ones such as the \emph{\kf{}}
-and it's variants (Extendend \kf{}, etc.),
-to numerical ones such as the \pf{}.
-Here we will discuss the \kf{} and the \pf{},
-which we will be using in later sections.
+
+% with transition function $\mathcal{F}$
+% and system noise $\mathcal{Q}$,
+% \begin{equation}
+% \label{eq:markov_state}
+% \mathcal{X}_k = \mathcal{F}(\mathcal{X}_{k-1}, \mathcal{Q}_k).
+% \end{equation}
+% The important aspect of this is that the current state
+% depends only on the previous state,
+% % \begin{equation}
+% % \label{eq:state_dist}
+% % p(\mathcal{X}_k | \mathcal{X}_0, \ldots, \mathcal{X}_{k-1}) =
+% % p(\mathcal{X}_k | \mathcal{X}_{k-1})
+% % \end{equation}
+% which allows us to model the current state using only the previous one,
+% which speeds up processing time.
+% How this is done depends on the estimator being used.
+
+
+% The second part of recursive Bayes regards how the object is observed.
+% In many cases, it is impossible to measure the desired state directly,
+% so instead a related, \emph{observable} state is measured,
+% $\mathcal{Y}$, which is related to the underlying state through
+% the measurement function $\mathcal{H}$
+% and measurement error $\mathcal{R}$,
+% \begin{equation}
+% \label{eq:state_measure}
+% \mathcal{Y}_k = \mathcal{H}(\mathcal{X}_k, \mathcal{R})
+% \end{equation}
+% It is of interest to estimate the current state
+% based on all of the observations so far,
+% \begin{equation}
+% \label{eq:state_dist_obs}
+% p(\mathcal{X}_k | \mathcal{Y}_{1:k})
+% \end{equation}
+% which can be done recursively each time a new observation is recieved.
+
+% The general formula for recusive Bayes models is
+% to first \emph{predict} the next state,
+% $p(\mathcal{X}_k | \mathcal{X}_{k-1})$,
+% and then to update the prediction using the likelihood
+% $p(\mathcal{Y}_k | \mathcal{X}_k)$
+% to obtain a posterior estimate of the state
+% given all previous observations,
+% $p(\mathcal{X}_k | \mathcal{Y}_{1:k})$.
+
+
+% There are several different estimation techniques,
+% from emperical ones such as the \emph{\kf{}}
+% and it's variants (Extendend \kf{}, etc.),
+% to numerical ones such as the \pf{}.
+% Here we will discuss the \kf{} and the \pf{},
+% which we will be using in later sections.
 
 
 \subsection{\kf{}}
