@@ -1,25 +1,64 @@
-\section{Modelling \rt{} data: recursive Bayes}
+vi\section{Modelling \rt{} data: recursive Bayes}
 \label{sec:recursive-bayes}
 
-The nature of \rt{} transit data is that,
-rather than recieving an entire dataset $\VobsMat$,
-which would permit a single model to be fitted once
-(e.g., using \gls{mcmc}),
-each observation is recieved incrementally.
-One possibility would be to fit the full model
-to estimate $p(\Vstate_{0:k} | \Vobs_{0:k})$
-for every $k\in 0, \ldots, K$;
-however, that would be highly inefficient as
-\gls{mcmc} algorithm typically take more than a few seconds to fit,
-and we have up to 1000~vehicles at peak hour to model simultaneously.
-Instead, we realise that the state at time $\Vtime_k$
-depends only on the state at time $\Vtime_{k-1}$.
-That is, $p(\Vstate_k | \Vstate_{0:k-1}) = p(\Vstate_k | \Vstate_{k-1})$.
-This means we can implement a \emph{recursive Bayesian model}
-on the state.
+In many data analysis situations,
+data is observed and stored in an $n\times m$ matrix which, for generality,
+will be denoted $\boldsymbol{\mathcal{Y}}$ in this section.
+We could then implement a model and estimate all of the parameters at once,
+for example by using \gls{mcmc},
+to estimate some matrix of parameters $\boldsymbol{\mathcal{X}}$
+that correspond to the values we are interested in (the speed of vehicles),
+using the well known Bayes' formula,
+\begin{equation}
+\label{eq:bayes}
+p(\boldsymbol{\mathcal{X}}|\boldsymbol{\mathcal{Y}}) =
+\frac{
+    p(\boldsymbol{\mathcal{X}})
+    p(\boldsymbol{\mathcal{Y}}|\boldsymbol{\mathcal{X}})
+}{
+    p(\boldsymbol{\mathcal{Y}})
+}
+\end{equation}
 
-\textbf{Not sure the above is in the right place, but hey \ldots}
-\vspace{1em}
+In \rt{} applications, as are many vehicle tracking problems,
+the data is observed \emph{and modelled} in \rt{}.
+That is, at time $t_k$, we recieve an observation as a column vector
+$\boldsymbol{\mathcal{Y}}_k$ of length $n$,
+and want to estimate the state of the vehicle
+$p(\boldsymbol{\mathcal{X}}_{0:k}|\boldsymbol{\mathcal{Y}}_{0:k})$.
+Of course, we could just fit a full Bayesian model to the new data,
+but this will take time,
+and will involve a lot of refitting data that is not only already estimated,
+but no longer necessary
+(we no longer care about the vehicle state at any time before $t_k$).
+Instead, it is common for \rt{} applications to use a recursive estimation algorithm.
+
+
+
+
+
+
+
+
+% The nature of \rt{} transit data is that,
+% rather than recieving an entire dataset $\VobsMat$,
+% which would permit a single model to be fitted once
+% (e.g., using \gls{mcmc}),
+% each observation is recieved incrementally.
+% One possibility would be to fit the full model
+% to estimate $p(\Vstate_{0:k} | \Vobs_{0:k})$
+% for every $k\in 0, \ldots, K$;
+% however, that would be highly inefficient as
+% \gls{mcmc} algorithm typically take more than a few seconds to fit,
+% and we have up to 1000~vehicles at peak hour to model simultaneously.
+% Instead, we realise that the state at time $\Vtime_k$
+% depends only on the state at time $\Vtime_{k-1}$.
+% That is, $p(\Vstate_k | \Vstate_{0:k-1}) = p(\Vstate_k | \Vstate_{k-1})$.
+% This means we can implement a \emph{recursive Bayesian model}
+% on the state.
+
+% \textbf{Not sure the above is in the right place, but hey \ldots}
+% \vspace{1em}
 
 The general principal behind recursive Bayesian estimation,
 or \emph{sequential Bayes},
