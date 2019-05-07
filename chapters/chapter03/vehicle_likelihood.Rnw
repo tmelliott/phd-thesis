@@ -1,5 +1,4 @@
-
-\section{Likelihood}
+\subsection{Likelihood}
 \label{sec:pf-likelihood}
 
 In the previous section,
@@ -41,7 +40,7 @@ The first likelihood function is the primary one of interest,
 as it accounts for vehicle positions taken using a \gls{gps}.
 
 
-\subsection{GPS vehicle locations}
+\subsubsection{GPS vehicle locations}
 \label{sec:lhood_gps}
 
 <<lhood_obs,message=FALSE,echo=FALSE,fig.height=3,fig.width=8,fig.cap="Observations of vehicle on a simple path. The red points indicate the reported GPS positions, with circles indicating the GPS error associated with each observation. Observation Y1 is easy to map to the route, while Y2 is more complicated and has two plausible, distinct locations.",cache=TRUE>>=
@@ -429,7 +428,7 @@ plh +
 @
 
 
-\subsection{Trip updates}
+\subsubsection{Trip updates}
 \label{sec:lhood_trip}
 
 \gls{gtfs} does not only provide vehicle locations,
@@ -475,3 +474,4 @@ each observation will be processed individually;
 in situations where more than one type of observation is recieved,
 they are processed in chronological order
 and the particles reweighted between each.
+

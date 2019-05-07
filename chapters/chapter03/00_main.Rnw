@@ -20,52 +20,9 @@ section~\ref{sec:particle-filter}
 
 
 
-The vehicle model itself implements a simplified estimation of bus behaviour,
-allowing us to infer the vehicle's trajectory between consecutive observations.
-The foundation of this model is a simple dynamic vehicle tracking model,
-in which the vehicle's unknown state is infered using a sequence of GPS coordinates.
-The path of the vehicle is known,
-so the state uses the \emph{distance traveled}, $\Vdist_k$, along the route at time $\Vtime_k$.
-We are also interested in the \emph{speed} of the vehicle, $\Vspeed_k$,
-as well as it's travel time $\Vtt_\ell$ along road segments $\ell = 1,\ldots,L_r$.
-Therefore, the underlying, unknown, and \emph{unobservable} state of each vehicle is denoted
-\begin{equation}
-\label{eq:vehicle_state}
-\Vstate_k = \tvec{\Vdist_k, \Vspeed_k, \vec{\Vtt}^\top}
-\end{equation}
-
-As discussed, we chose to implement a Bayes' filter model,
-implemented using a \pf{},
-to estimate the \rt{} state of each vehicle.
-To do so, we need a transition function to predict the future state,
-and a likelihood and measurement function to update the state given an observation.
-The vehicle model is, in it's simplest form,
-\begin{equation}
-\label{eq:vehicle_model}
-\begin{split}
-\Vstate_k &= \Vtrans(\Vstate_{k-1}, \Vnoise_k) \\
-\Vobs_k &= h(\Vstate_k) + \GPSerr
-\end{split}
-\end{equation}
-
-Since we are using the \pf{} to implement the model,
-we have a lot of flexibility in how each of these components are specified.
-The transition function $\Vtrans$, for example,
-can implement a complex simulation of bus behaviour,
-while the measurement function $\Vmeas$ can be constructed to deal with \emph{points},
-which are easy to map between one and two dimensions,
-unlike distributions (as in the case of the \kf{}).
-
-In this chapter,
-we develop the transition function based on a model of bus behaviour
-(section~\ref{sec:vehicle_model}),
-and construct the likleihood using both vehicle positions and trip updates
-(section~\ref{sec:pf-likelihood}).
-Finally, we discuss our implementation of the \pf{}
-(section~\ref{sec:particle-filter}).
-
 
 \input{DIRNAME/vehicle_model.tex}
 \input{DIRNAME/vehicle_likelihood.tex}
+
 \input{DIRNAME/vehicle_implementation.tex}
 
