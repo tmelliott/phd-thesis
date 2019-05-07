@@ -50,6 +50,5 @@ if the infrastructure is available at some time in the future.
 
 
 \input{DIRNAME/pf_computation.tex}
-\input{DIRNAME/vehicle_travel_times.tex}
 \input{DIRNAME/pf_issues.tex}
 \input{DIRNAME/parameter_selection.tex}

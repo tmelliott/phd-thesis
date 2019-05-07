@@ -26,3 +26,5 @@ section~\ref{sec:particle-filter}
 
 \input{DIRNAME/vehicle_implementation.tex}
 
+
+\input{DIRNAME/vehicle_travel_times.tex}

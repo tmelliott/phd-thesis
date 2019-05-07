@@ -1,4 +1,4 @@
-\subsection{Estimating travel times}
+\section{Estimating travel times}
 \label{sec:vehicle_travel_times}
 
 The entire point of the vehicle model
