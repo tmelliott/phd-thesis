@@ -1,19 +1,50 @@
 \section{\Rt{} vehicle model}
 \label{sec:vehicle_model}
 
+\Rt{} tracking of vehicles has been studied vigorously,
+particularly for robotics applications and self driving cars \citep{cn}.
+However, most of these use data that has a (very) high sampling rate,
+often more than one per second.
+In transit data, this is not the case;
+instead, our models need to be able to deal with data that is updated
+once every 10--30~seconds or, in some cases, even longer.
+
+
+The two main problems with low frequency sampling are that,
+firstly, the possible locations a vehicle can be at grows exponentially,
+so the prediction part of the \gls{rbe} algorithm (see \cref{sec:recursive-bayes})
+can struggle to cover all of the possible trajectories the vehicle might take---%
+remembering that this is a key part of what we are trying to estimate!
+The second problem, related to the first,
+is that it is very easy to \emph{lose} the vehicle in the predict step,
+resulting in degradation of the filter and having to reinitialize.
+This is bad because it means we lose any information about travel times
+in that period.
+
+
+The \kf{} is a fast estimation method, however it has a higher chance of failure
+in our application due to the above reasons,
+and it assumes the state is Gaussian, which is often not the case,
+for example at bus stops---the bus may or may not stop,
+so there will be at least two plausible locations for the prediction.
+The \pf{}, while having a much higher computational cost,
+is much more flexible and capable of accounting for a larger range of
+plausible trajectories, as mentioned by \cite{Hans_2015},
+who also used a \pf{} to model buses.
+
 
 The vehicle model itself implements a simplified estimation of bus behaviour,
 allowing us to infer the vehicle's trajectory between consecutive observations.
 The foundation of this model is a simple dynamic vehicle tracking model,
-in which the vehicle's unknown state is infered using a sequence of GPS coordinates.
+in which the vehicle's unknown state, $\Vstate$,
+is infered using a sequence of GPS coordinates.
 The path of the vehicle is known,
 so the state uses the \emph{distance traveled}, $\Vdist_k$, along the route at time $\Vtime_k$.
-We are also interested in the \emph{speed} of the vehicle, $\Vspeed_k$,
-as well as it's travel time $\Vtt_\ell$ along road segments $\ell = 1,\ldots,L_r$.
+We are also interested in the \emph{speed} of the vehicle, $\Vspeed_k$
 Therefore, the underlying, unknown, and \emph{unobservable} state of each vehicle is denoted
 \begin{equation}
 \label{eq:vehicle_state}
-\Vstate_k = \tvec{\Vdist_k, \Vspeed_k, \vec{\Vtt}^\top}
+\Vstate_k = \tvec{\Vdist_k, \Vspeed_k}
 \end{equation}
 
 As discussed, we chose to implement a Bayes' filter model,

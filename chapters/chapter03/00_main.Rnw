@@ -17,7 +17,8 @@ We have chosen to implement it in \rt{} using a \pf{},
 which allows much more flexibility in the model.
 The design and implementation of the \pf{} is discussed later in
 section~\ref{sec:particle-filter}
-
+Finally, we discuss how travel times are estimated from the \pf{} estimates
+of travel times, which will be the starting point of \cref{cha:network_model}.
 
 
 
