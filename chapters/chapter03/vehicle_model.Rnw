@@ -50,251 +50,192 @@ Therefore, the underlying, unknown, and \emph{unobservable} state of each vehicl
 As discussed, we chose to implement a Bayes' filter model,
 implemented using a \pf{},
 to estimate the \rt{} state of each vehicle.
-To do so, we need a transition function to predict the future state,
-and a likelihood and measurement function to update the state given an observation.
+To do so, we need a \emph{transition function} $\Vtrans$
+to predict the future state
+$p(\Vstate_k | \Vstate_{k-1})$,
+and a likelihood and measurement function $\Vmeas$
+to update the state given an observation
+$p(\Vstate_k | \Vobs_{1:k})$.
 The vehicle model is, in it's simplest form,
+composed of the state $\Vstate$, the transition function $\Vtrans$
+with system noise $\Vnoise$---which represents the change in speed per second---%
+as well as the observation $\Vobs$, measurement function $\Vmeas$
+and measurement---or \gls{gps}---error, $\GPSerr$,
 \begin{equation}
 \label{eq:vehicle_model}
 \begin{split}
 \Vstate_k &= \Vtrans(\Vstate_{k-1}, \Vnoise_k) \\
-\Vobs_k &= h(\Vstate_k) + \GPSerr
+\Vobs_k &= \Vmeas(\Vstate_k) + \GPSerr
 \end{split}
 \end{equation}
 
-Since we are using the \pf{} to implement the model,
-we have a lot of flexibility in how each of these components are specified.
+The \pf{} permits a lot of flexibility in how each of the components are specified.
 The transition function $\Vtrans$, for example,
 can implement a complex simulation of bus behaviour,
-while the measurement function $\Vmeas$ can be constructed to deal with \emph{points},
-which are easy to map between one and two dimensions,
-unlike distributions (as in the case of the \kf{}).
-
-In this chapter,
-we develop the transition function based on a model of bus behaviour
-(section~\ref{sec:vehicle_model}),
-and construct the likleihood using both vehicle positions and trip updates
-(section~\ref{sec:pf-likelihood}).
-Finally, we discuss our implementation of the \pf{}
-(section~\ref{sec:particle-filter}).
+while the measurement function $\Vmeas$ can be constructed
+to use \emph{points} that can easily be
+mapped between one and two dimensions.
 
 
-\subsection{Transition}
+We will now discuss the details of the vehicle model components separately.
+The model of bus behaviour for the transition function is covered in
+\cref{sec:vehicle_model_trans},
+and presents several models which will be compared later
+in \cref{sec:vehicle_travel_times}.
+Then, in \cref{sec:pf-likelihood},
+the necessary measurement function and likelihood for the data
+will be constructed.
+Details of the actual implementation have been left for
+\cref{sec:particle-filter}.
+
+
+
+\subsection{Vehicle transition model}
 \label{sec:vehicle_model_trans}
 
 Transit vehicle behaviour is both predictable and volatile.
-The trajectory of a bus servicing a trip is known,
-so the direction of travel---a major component in vehicle tracking---%
-is a non-issue.
-Instead, the main parameter of interest is the vehicle's speed,
-with which we can determine information about the congestion along roads.
+Unlink the majority of vehicle tracking applications,
+transit vehicles travel along a known \emph{path},
+which is stored as a sequence of \gls{gps} coordinates
+referred to in \GTFS{} as the \emph{shape}.
+However, the position along this two-dimensional line,
+and the speed at which it is travelling, is unknown.
+Estimation of each of these is therefore necessary
+in order to estimate travel time along road segments:
+the position along the shape tells us which road segment the vehicle is on,
+and the speed tells us about the travel time.
 
 
-In this section, we describe the mechanics of bus behaviour,
-and how these are included in the final model.
-That is, we construct the transition function $f$.
-
-
-
-\subsubsection{General vehicle behaviour}
-\label{sec:vehicle_model_behaviour}
-
-We will be working with the following definition of the transition function
-for this part,
+In this section, we develop a model of bus behaviour incrementally,
+starting off with a simple distance and speed model
+before incorporating stops and intersections.
+The overall goal is to \emph{predict} the state of the vehicle,
+which, using the particle filter, is given by
 \begin{equation}
-\label{eq:vtrans_general}
-\Vstate_k = \Vtrans(\Vstate_{k-1}, \Vtdiff_k, \Vnoise)
+\label{eq:vehicle_pf_predict}
+p(\Vstate_k | \Vstate_{k-1}) \approx
+\sum_{i=1}^\Np
+    \Pwt_{k-1}
+    \dirac\left(\Vstate_k - f(\Vstate\vi_{k-1}, \Vtdiff_k, \Vnoise_k)\right)
 \end{equation}
 where $\Vtdiff_k = \Vtime_k - \Vtime_{k-1}$
 and the system noise $\Vnoise$ is constant over time.
 
-We use a \pf{} so we do not need to talk in terms of a distributions.
-Instead, in the section, we describe the motion of a particle, a unique ``imaginary'' vehicle.
-So, given a particle with state $\Vstate\vi_{k-1}$ at time $\Vtime_{k-1}$,
-we use Newton's Laws of Motion \cite{cn}
-to predict the state at time $\Vtime_k$
-after travelling for $\Vtdiff_k$ seconds.
 
-In the first model, A1, we assume a constant speed $\Vspeed_k$
+\subsubsection{General vehicle behaviour (Model A)}
+
+Since the \pf{} is applying the transition function to points,
+rather than distributions (as is the case with the \kf{}),
+each particle can be transitioned independently according to physics,
+in this case Newton's Laws of Motion \cite{cn},
+which allows us to predict the distance travelled of an object
+after travelling for $\Vtdiff_k$~seconds at a speed of $\Vspeed_k$,
+\begin{equation}
+\label{eq:vehicle_model_newton}
+\Vdist_k = \Vdist_{k-1} + \Vtdiff_k\Vspeed_k.
+\end{equation}
+This same basic model was used by the likes of
+\cite{Cathey_2003,cn}.
+
+
+The second part of the model to consider is the noise variation.
+Clearly, vehicles do not travel at a constant speed,
+instead they accelerate and decelerate according to the traffic conditions,
+driver behaviour, and other factors (bus stops and intersections are
+explicitely examined later).
+Presented below are three increasingly generalised models,
+from a constant speed between observations and stops,
+to random speed and random acceleration.
+
+In the first model (A1) we assume a constant speed $\Vspeed_k$
 in the interval $(\Vtime_{k-1}, \Vtime_k)$,
 \begin{equation}
-\Vspeed\vi_k \sim \TNormal{\Vspeed\vi_{k-1}}{\Vnoise}{0}{30}
+\Vspeed_k \sim \TNormal{\Vspeed_{k-1}}{\Vnoise}{0}{30}
 \end{equation}
 where $\TNormal{\mu}{\sigma}{a}{b}$ is the normal distribution
 truncated to the interval $(a, b)$.
-In this case, we truncate the vehicle's speed to ensure it is
+In this case, vehicle speed was truncated to ensure it is
 both positive and under 30~m/s,
 which is 108~km/h (the maximum road speed in Auckland is 100~km/h).
-
+The truncation point could, of course,
+be reduced in a majority of roads throughout Auckland,
+but this information was not straightforward/free to obtain.
 Having sampled a new speed (to ensure system variability, see \cref{sec:pf}),
-the particle can be transitioned forward,
-% as shown in \cref{fig:vtrans_general1},
-using the equation
+the vehicle travels forward according to \cref{eq:vehicle_model_newton}.
+
+
+In order to compute the vehicle's travel time along a road segment,
+the start and end times of travel along the segment,
+$\Vsegstart_\ell$ and $\Vsegend_\ell$,
+respectively, are interpolated.
+The end time of travel along segment $\ell - 1$ is the same as the
+start time of travel along segment $\ell$,
+so given segment $\ell$ begins at $\Tsegd_\ell$~meters along the route shape,
+then whenever $\Tsegd_\ell \in (\Vdist_{k-1},  \leq \Vdist_k]$,
+the relevant segment start and end times are computed as
 \begin{equation}
-\Vdist\vi_k = \Vdist\vi_{k-1} + \Vtdiff_k\Vspeed\vi_k.
+\label{eq:vehicle_model_a1_tt_interp}
+\Vsegend_{\ell-1} = \Vsegstart_\ell =
+\Vtime_{k-1} + \frac{\Tsegd_\ell - \Vdist_{k-1}}{\Vspeed_k}.
 \end{equation}
 
-To compute the travel time along segments,
-blah blah blah.
+
+Travel times are straightforward to compute in this model
+once both start and end times of travel along a segment $\ell$
+have been interpolated,
+\begin{equation}
+\label{eq:vehicle_model_a1_tt}
+\Vtt_\ell = \Vsegend_\ell - \Vsegstart_\ell.
+\end{equation}
 
 
-In the second model, A2, we allow the vehicle speed to follow a random walk
-between observations rather than remaining constant,
-% as shown in \cref{fig:vtrans_general2}.
+
+A second model (A2) allows the vehicle speed to follow a random walk
+between observations rather than remaining constant.
 That is,
 \begin{equation}
-\Vspeed\vi_s \sim \TNormal{\Vspeed\vi_{s-1}}{\Vnoise}{0}{30},\quad
-\Vtime_s \in (\Vtime_{k-1}, \Vtime_k]
+\Vspeed_s \sim \TNormal{\Vspeed_{s-1}}{\Vnoise}{0}{30},\quad
+\Vtime_s \in (\Vtime_{k-1}, \Vtime_k].
 \end{equation}
-Now, the distance is updated iteratively at the same time as the speed,
+In order to simultaneously compute segment travel times,
+the distance is also iteratively updated each second
+by modifying \cref{eq:vehicle_model_newton} (removing the $\Vdtiff_k$ parameter)
 \begin{equation}
-\Vdist\vi_s = \Vdist\vi_{s-1} + \Vspeed\vi_s.
+\Vdist_s = \Vdist_{s-1} + \Vspeed_s.
 \end{equation}
-which also makes travel time computation easier:
-once the particle enters segment $\ell$ ($\Vdist\vi_s \geq \Tsegd_\ell$),
-the travel time $\Vtt\vi_\ell$ is incremented by one second each
+Once the particle enters segment $\ell$ ($\Vdist_s \geq \Tsegd_\ell$),
+the travel time $\Vtt_\ell$ is incremented by one second each
 iteration until the particle leaves the segment
-($\Vdist\vi_s \geq \Tsegd_\ell + \Tseglen_\ell$).
+($\Vdist_s \geq \Tsegd_\ell + \Tseglen_\ell$).
 
 
-In the third model, A3, we add an additional parameter to the vehicle's state,
+In the third model (A3),
+the process is generalised even further by adding another parameter
+to the vehicle state,
 the acceleration $\Vaccel_k$ at time $\Vtime_k$.
-This allows us to more realistically model the vehicle's behaviour,
-and it is this model we use to generate the simulated data below.
-Given an acceleration, we can update the vehicle's speed using
+This allows more realistical modelling of vehicle behaviour,
+and it was this model we used to generate the simulated data below.
+Given an acceleration and again following Newton's Laws,
+vehicle speed is updated by
 \begin{equation}
-\Vspeed\vi_s = \Vspeed\vi_{s-1} + \Vaccel\vi_{s}
+\label{eq:vehicle_model_accel}
+\Vspeed_s = \Vspeed_{s-1} + \Vaccel_{s}
 \end{equation}
-We must truncate the acceleration distribution to ensure
-the vehicle's speed remains positive and under 30~m/s,
-which given the above equation yields the inequality
+
+The acceleration noise distribution needed to be truncated
+in such as was as to to ensure
+the vehicle's speed remained positive and less than 30~m/s,
+which from \cref{eq:vehicle_model_accel} yields the inequality
 \begin{equation}
-0 \leq \Vspeed\vi_{s-1} + \Vaccel\vi_s \leq 30
+- \Vspeed_{s-1} \leq \Vaccel_s \leq 30 - \Vspeed_{s-1}
 \end{equation}
-so the acceleration distribution is
+resulting in the acceleration distribution
 \begin{equation}
-\Vaccel\vi_s \sim \TNormal{\Vaccel\vi_{s-1}}{\Vnoise}{-\Vspeed\vi_{s-1}}{30 - \Vspeed\vi_{s-1}}
+\Vaccel_s \sim \TNormal{\Vaccel_{s-1}}{\Vnoise}{-\Vspeed_{s-1}}{30 - \Vspeed_{s-1}}
 \end{equation}
-This model would be improved by placing additional constraints on the acceleration,
-for example to model acceleration and deceleration phases
-differently.
-However, as we will discuss later,
-such detail was unnecessary in the model
-due to the sparsity of the observations.
-The travel time computation for this model is the same as for A2.
 
-
-\subsubsection{Simulation}
-
-<<sim1_gen,echo=FALSE,message=FALSE,cache=FALSE>>=
-source('sims.R')
-s1 <- simulate_vehicle()
-segs <- lapply(1:nrow(s1$segments),
-    function(i) s1$segments$distance[i] + c(0, s1$segments$length[i])
-)
-tt <- s1$segments$tt
-fcap1 <- 'Simulated vehicle trajectory, with five road segments.'
-fscap1 <- c(
-    "The simulated data.",
-    "10~s sampling.",
-    "30~s sampling.",
-    "Observations at bus stops and intersections."
-)
-simnames <- c("Uniform (10s)", "Uniform (30s)", "Waypoints")
-@
-
-
-To assess the performance of these models and compare their
-estimation of road travel times, we implemented a simple simulation.
-The simulated data, shown in \cref{fig:sim1_graph1},
-uses model A3 to simulate a vehicle trajectory,
-and uses several time point sampling methods:
-uniform sampling with high (\cref{fig:sim1_graph2})
-and low (\cref{fig:sim1_graph3}) frequency,
-and non-uniform sampling (\cref{fig:sim1_graph4}),
-which is more in line with how the Auckland Transport data is collected.
-
-
-The goal of the simulation is to estimate the travel time
-along a \Sexpr{diff(segs[[1]])}~m ``road segment'' with constant traffic flow,
-and a \Sexpr{diff(segs[[2]])}~m segment with congestion,
-denoted by the shaded regions in the figures below.
-The simulation was performed in R \citep{rcore}
-using $\Np = 2000$ particles per vehicle,
-and so the implementation is slightly different from the C++ one
-defined in \cref{sec:pf_implementation}.
-
-<<sim1_graph,echo=FALSE,fig.height=2,fig.width=4,out.width=".49\\linewidth",fig.cap=fcap1,fig.subcap=fscap1,fig.ncol=2>>=
-p1 <- ggplot(s1$path, aes(time, distance)) +
-    geom_hline(yintercept = s1$segments$distance[-1],
-        lty = 2, colour = "gray") +
-    theme_minimal() +
-    theme(panel.grid = element_blank()) +
-    xlab('Time (s)') + ylab('Distance (m)') +
-    ylim(0, max(s1$path$distance)) + xlim(0, max(s1$path$time))
-
-p1 + geom_path()
-p1 + geom_point(aes(t, x), data = s1$observations$high)
-p1 + geom_point(aes(t, x), data = s1$observations$low)
-p1 + geom_point(aes(t, x), data = s1$observations$waypoints)
-@
-
-<<sim1_pf,echo=FALSE,message=FALSE,warning=FALSE,fig.height=5,fig.width=8,out.width="\\linewidth",fig.cap="Simulation results for the three models (rows) applied to the data from three sampling methods (columns), using $\\Np=2000$ particles. Model A1 tended to underestimate the travel time, whilst models A2 and A3 gave quite similar results. As expected, the uniform high-frequency sampling gives the best estimate of travel time, while the other two result in significant uncertainty in travel times.">>=
-S0 <- get_sim_1()
-# for (i in 1:5) {
-#     print(
-#         S0 %>% filter(segment == sprintf("Segment %d", i)) %>%
-#             ggplot(aes(travel_time, fill = model)) +
-#             geom_histogram(bins = 30) +
-#             facet_grid(model~sim) +
-#             theme_minimal() + theme(panel.grid = element_blank()) +
-#             geom_vline(xintercept = tt[i], col = "gray", lty = 2) +
-#             scale_y_continuous(breaks = NULL) +
-#             xlab("Travel time (s)") + ylab("Frequency")
-#     )
-# }
-S0 %>%
-    mutate(
-        truth = tt[as.numeric(gsub("Segment ", "", segment))]
-    ) %>%
-    ggplot(aes(model, travel_time - truth, fill = model)) +
-    geom_violin() +
-    # geom_histogram(bins = 30) +
-    facet_grid(segment ~ sim,  scales = "free_y") +
-    theme_minimal() + theme(panel.grid = element_blank()) +
-    geom_hline(yintercept = 0, col = "gray", lty = 2) +
-    # scale_y_continuous(breaks = NULL) +
-    ylab("Particle travel time - actual travel time (s)") +
-    xlab("Model")
-@
-
-<<sim1_pf_full,echo=FALSE,message=FALSE,warning=FALSE,fig.width=8,fig.height=4,fig.cap="Travel time estimation results for 100 simulations, in which each the vehicle trajectory is simulated using a different seed, and the travel time estimate is taken as the mean of the particle travel times along each segment.">>=
-# do the whole thing over and over again
-n <- 240
-Nparticle <- 2000
-simnames <- c("Uniform (10s)", "Uniform (30s)", "Waypoints")
-
-s00 <- pbapply::pblapply(1:100, function(seed) {
-    if (!dir.exists("sims")) dir.create("sims")
-    # message(sprintf("\n* Now running simulation %d ...", seed))
-    x <- NULL
-    set.seed(seed)
-    while(is.null(x))
-        x <- doSim(Nparticle, simnames, seed = sample(1e9, 1), fn = seed)
-    x
-}) %>% bind_rows() %>% ungroup()
-
-s00 %>% ggplot(aes(truth, (truth - estimate), fill = segment, colour = segment)) +
-    geom_hline(yintercept = 0, colour = "gray") +
-    geom_point() +
-    facet_grid(sim ~ model) +
-    theme_minimal() + theme(panel.grid = element_blank()) +
-    xlab("Actual travel time (s)") + ylab("Estimate - Actual (s)")
-@
-
-From these two model simulations,
-it is obvious that the preferred model is model A1
-with non-constant speed controlled by noise ("acceleration") each second.
-
+Computing the travel time of the vehicle along road segments
+was done in the same way as for model A2.
 
 \subsubsection{Bus stops}
 \label{sec:vehicle_model_stops}
@@ -369,115 +310,6 @@ giving the dwell time $\pdwell\vi_m$ as
 \end{equation}
 
 
-\subsubsection{Simulation}
-
-<<sim2_gen,echo=FALSE,message=FALSE>>=
-s2 <- simulate_vehicle(pi = 1, seed = 1000)
-segs <- lapply(1:nrow(s2$segments),
-    function(i) s2$segments$distance[i] + c(0, s2$segments$length[i])
-)
-tt <- s2$segments %>% rowwise() %>%
-    mutate(
-        tt = tt -
-            sum(s2$stops$d[between(s2$stops$distance,
-                distance, distance + length
-            )])
-    ) %>% pluck("tt")
-fcap2 <- 'Simulated vehicle trajectory, with five road segments and three intermediate stops.'
-fscap2 <- c(
-    "The simulated data.",
-    "10~s sampling.",
-    "30~s sampling.",
-    "Observations at bus stops and intersections."
-)
-@
-
-
-
-<<sim2_graph,echo=FALSE,fig.height=2,fig.width=4,out.width=".49\\linewidth",fig.cap=fcap2,fig.subcap=fscap2,fig.ncol=2>>=
-p2 <- ggplot(s2$path, aes(time, distance)) +
-    geom_hline(yintercept = s2$segments$distance[-1],
-        lty = 2, colour = "gray") +
-    geom_hline(yintercept = s2$stops$distance[-1],
-        lty = 3, colour = "orangered") +
-    theme_minimal() +
-    theme(panel.grid = element_blank()) +
-    xlab('Time (s)') + ylab('Distance (m)') +
-    ylim(0, max(s2$path$distance)) + xlim(0, max(s2$path$time))
-
-p2 + geom_path()
-p2 + geom_point(aes(t, x), data = s2$observations$high)
-p2 + geom_point(aes(t, x), data = s2$observations$low)
-p2 + geom_point(aes(t, x), data = s2$observations$waypoints)
-@
-
-And now we simulate some data with stopping at bus stops.
-\Cref{fig:sim2_graph} shows a similar trajectory as before,
-but instead the vehicle stops at bus stops along the route
-(denoted with a dotted red line).
-The sampling is the same as before:
-10~second and 30~second rates,
-as well as observations at waypoints
-(intersections and bus stops).
-
-
-<<sim2_pf,echo=FALSE,message=FALSE,warning=FALSE,fig.height=5,fig.width=8,out.width="\\linewidth",fig.cap="Simulation results for the three models (rows) applied to the data from three sampling methods (columns), using $\\Np=2000$ particles. [details].">>=
-S0 <- get_sim_2()
-# for (i in 1:5) {
-#     print(
-#         S0 %>% filter(segment == sprintf("Segment %d", i)) %>%
-#             ggplot(aes(travel_time - tt[i], fill = model)) +
-#             geom_histogram(bins = 30) +
-#             facet_grid(model~sim) +
-#             theme_minimal() + theme(panel.grid = element_blank()) +
-#             geom_vline(xintercept = 0, col = "gray", lty = 2) +
-#             scale_y_continuous(breaks = NULL) +
-#             xlab("Particle travel time - actual travel time (s)") +
-#             ylab("Frequency")
-#     )
-# }
-S0 %>%
-    mutate(
-        truth = tt[as.numeric(gsub("Segment ", "", segment))]
-    ) %>%
-    ggplot(aes(model, travel_time - truth, fill = model)) +
-    geom_violin() +
-    # geom_histogram(bins = 30) +
-    facet_grid(segment ~ sim,  scales = "free_y") +
-    theme_minimal() + theme(panel.grid = element_blank()) +
-    geom_hline(yintercept = 0, col = "gray", lty = 2) +
-    # scale_y_continuous(breaks = NULL) +
-    ylab("Particle travel time - actual travel time (s)") +
-    xlab("Model")
-@
-
-The results, shown in \cref{fig:sim2_pf},
-show less accuracy in travel time estimation.
-The uniform sampling observations give the best results as expected,
-while the other two result in a lot of uncertainty.
-
-Comparing the models,
-we see that model A1 is generally the worst,
-except in segments 1--2 which contain no bus stops.
-The changes in vehicle speed at bus stops
-cannot be captured by A1,
-whereas, particularly in the 10~s simulation,
-models A2 and A3 can.
-However, in segments 3--5 with bus stops,
-we begin to see a lot of uncertainty in the travel time.
-
-
-The only faesible way to improve travel time estimation
-is by reducing the noise in the speed component,
-which limits the set of possible trajectories the particles can take.
-This works well when all obstacles (intersections) are accounted for,
-but less so when there are unknown obstacles,
-for example a pedestrian crossing,
-or where the bus route turns into a side street
-we no knowledge of this intersection is known.
-In these situations,
-reducing the noise can result in poor performance of the \pf{},
-so there is a trade off between performance and precision.
 
 
 \subsubsection{Intersections}

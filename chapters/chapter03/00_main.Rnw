@@ -14,18 +14,20 @@ any intersections along the route.
 In this chapter, we develop a model of the observed data $\Vobs$ for each vehicle,
 using the GTFS network developed in section~\ref{sec:route-segments}.
 We have chosen to implement it in \rt{} using a \pf{},
-which allows much more flexibility in the model.
+which allows much more flexibility in the model,
+which is detailed in \cref{sec:vehicle_model}.
+Following this, travel time estimation is implemented using the results
+from the \pf{} model,
+and the models compared using a simulation in \cref{sec:vehicle_travel_times}.
 The design and implementation of the \pf{} is discussed later in
-section~\ref{sec:particle-filter}
-Finally, we discuss how travel times are estimated from the \pf{} estimates
-of travel times, which will be the starting point of \cref{cha:network_model}.
+section~\ref{sec:particle-filter}.
 
 
 
 \input{DIRNAME/vehicle_model.tex}
 \input{DIRNAME/vehicle_likelihood.tex}
 
+\input{DIRNAME/vehicle_travel_times.tex}
+
 \input{DIRNAME/vehicle_implementation.tex}
 
-
-\input{DIRNAME/vehicle_travel_times.tex}
