@@ -258,7 +258,7 @@ models A2 and A3 can.
 However, in segments 3--5 with bus stops,
 we begin to see a lot of uncertainty in the travel time.
 
-
+\textbf{what is this para???}
 The only faesible way to improve travel time estimation
 is by reducing the noise in the speed component,
 which limits the set of possible trajectories the particles can take.

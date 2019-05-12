@@ -123,6 +123,7 @@ and the system noise $\Vnoise$ is constant over time.
 
 
 \subsubsection{General vehicle behaviour (Model A)}
+\label{sec:vehicle_model_behaviour}
 
 Since the \pf{} is applying the transition function to points,
 rather than distributions (as is the case with the \kf{}),
@@ -242,16 +243,32 @@ was done in the same way as for model A2.
 
 The main feature of transit vehicle behaviour that distinguishes it from
 other vehicle tracking applications is the presense of known stopping locations,
-or \emph{bus stops}.
-It is therefore an integral component of our model;
+or \emph{bus stops},
+which are therefore an integral component of our model.
 however, modelling stopping behaviour in \rt{} is a difficult problem,
 particularly when the observations are sparse,
 or frequently observed (only) at bus stops (\cref{sec:realtime-data}).
 
-The typical behaviour is that, with some probability $\Prstop_m$,
-a bus servicing route $r$ will stop at bus stop $m \in \{1, \ldots, \Nstop_r\}$.
+
+The main difficulty here is related to the way in which the data are observed,
+which was discussed in \cref{sec:vp_data}.
+It is quite common for \GPS{} to only be observed at bus stops,
+a location at which there is positive probability of landing.
+Thus, it makes sense that the maximum likelihood estimate of the
+trajectory between two bus stops puts the maximum possible time
+\emph{at the stop}, resulting in maximum speed between stops.
+Early iterations of our model succummed to this problem
+until we implemented a somewhat strict likelihood function
+on the trip updates (see \cref{sec:lhood_trip}).
+
+
+The typical behaviour at bus stops is that a bus will stop
+if there are passengers signalling to get on or off the bus.
+Probabilistically, we say that a bus servicing route $r$
+will stop at bus stop $m \in \{1, \ldots, \Nstop_r\}$
+with some unknown probability $\Prstop_m$.
 In those situations when the bus does not stop,
-the behaviour follows the model described above (\cref{sec:vehicle_model_behaviour}).
+the behaviour follows model A.
 Conversely, when it does stop, it follows the following behaviour:
 \begin{enumerate}
 \item deceleration on approach to stop, doors open,
@@ -262,17 +279,18 @@ Following the work by \cite{Hans_2015},
 steps 1 and 3 above are combined into a single constant parameter $\mindwell$,
 which represents the \emph{minimum dwell time} at a stop.
 
-The second step is modelled as the service time of the stop,
+Step 2 is modelled as the service time of the stop,
 that is the time to allow passengers to alight and board.
 As we have no \rt{} data on passenger counts available in Auckland,
 we rely on the flexibility of the \pf{} to estimate
 dwell time in \rt{}.
-We are using a truncated normal distribution
+Using a truncated normal distribution
 with mean $\mindwell + \dwell_m$ and variance $\dwellvar_m$,
 with a point mass of $1-\Prstop_m$ on zero,
 as shown in \cref{fig:eta_dwell_times}.
 
 <<eta_dwell_times, echo=FALSE, fig.height=3,fig.cap="Dwell time at bus stop $m$">>=
+suppressPackageStartupMessages(library(tidyverse))
 gamma <- 10
 tau <- 20
 omega <- 10
@@ -296,17 +314,17 @@ tibble(x = xx, y = yy) %>%
     theme(panel.grid = element_blank())
 @
 
-So, for a given particle approaching stop $m$,
+So, for a given vehicle approaching stop $m$,
 the dwell time associated with that stop
 can be expressed as a function of
 \begin{equation}
-\Istop\vi_m \sim \Bern{\Prstop_m}\quad\text{and}\quad
-\pserve\vi_m \sim \TNormal{\dwell_m}{\dwellvar_m}{\gamma}{\infty}
+\Istop_m \sim \Bern{\Prstop_m}\quad\text{and}\quad
+\pserve_m \sim \TNormal{\dwell_m}{\dwellvar_m}{\gamma}{\infty}
 \end{equation}
-giving the dwell time $\pdwell\vi_m$ as
+giving the dwell time $\pdwell_m$ as
 \begin{equation}
 \label{eq:stop_dwell_time}
-\pdwell\vi_m = \Istop\vi_m (\mindwell + \pserve\vi_m)
+\pdwell_m = \Istop_m (\mindwell + \pserve_m)
 \end{equation}
 
 
