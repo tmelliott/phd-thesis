@@ -295,24 +295,31 @@ ggplot(Yx, aes(x, y)) +
     xlim(xr[1], xr[2]) + ylim(yr[1], yr[2])
 @
 
-Now to develop the actual likelihood.
-Here we are assuming that GPS observations are made with symmetrical error
-on the ground;
-that is, the GPS error $\GPSerr$ is measured in meters
-and has no directional bias.
-The model for the likelihood using bivariate normal error
-$\vec{r}\vi_k \sim \Normal{\vec{0}}{\GPSerr \mat{I}}$,
-with measurements
+
+Now that spherical observations can be compared on a flat surface,
+it is necessary to assume that \GPS{} observations are distributed
+as a multivariate random variable around the true position of the vehicle
+on the ground,
+with a \GPS{} error of $\GPSerr$,
+and that the variation does not depend on direction.
+That is, if the observation $\Vobs_k$ is projected using
+\cref{eq:equirectangular_projection} conditional on the true position
+$\Vmeas(\Vstate_k)$,
+then the projected point will be a multivariate random variable
+$\vec{r}_k \sim \Normal{\vec{0}}{\GPSerr \mat{I}}$.
+The above, shown in \cref{fig:gps_error2},
+can more simply be expressed by
 \begin{equation}
-\Vproj{\Vobs_k}{\Vmeas(\Vstate\vi_k)} =
-    \Vproj{\Vmeas(\Vstate\vi_k)}{\Vmeas(\Vstate\vi_k)} + \vec{r}\vi_k
-\end{equation}
-where it is obvious from \cref{fig:gps_error2}
-that the first term on the right hand side is zero, so
-\begin{equation}
+% \label{eq:obs_projection}
 \label{eq:gps_error_model}
-\Vobs_k = \Viproj{\vec{r}\vi_k}{\Vmeas(\Vstate\vi_k)}.
+\Vproj{\Vobs_k}{\Vmeas(\Vstate_k)} =
+    \Vproj{\Vmeas(\Vstate_k)}{\Vmeas(\Vstate_k)} + \vec{r}_k
+    = \vec{r}_k
 \end{equation}
+
+% \begin{equation}
+% \Vobs_k = \Viproj{\vec{r}\vi_k}{\Vmeas(\Vstate\vi_k)}.
+% \end{equation}
 
 <<gps_error,echo=FALSE,message=FALSE,cache=TRUE,fig.width=4,fig.height=4,out.width="0.49\\textwidth",fig.align="center",fig.cap="GPS error is assumed to be circular on a map.",fig.subcap=c("GPS map error", "Projected error")>>=
 xr <- Yx$lng[1] + 0.002 * c(-1, 1)
@@ -342,12 +349,11 @@ ggplot(Yx, aes(x, y)) +
 @
 
 
-Now we are assuming a bivariate likelihood on the projected data,
-however we can reformulate things to get a much simpler expression for the likelihood.
 From \cref{eq:equirectangular_projection,eq:obs_dist,eq:gps_error_model}
-we get that the distance is simply the magnitude of the error $\vec{r}\vi_k$,
+the distance between the true and observed locations
+is the magnitude of the error $\vec{r}_k$,
 \begin{equation}
-\dist{\Vobs_k, \Vmeas(\Vstate\vi_k)} = ||\vec{r}\vi_k|| =
+\dist{\Vobs_k, \Vmeas(\Vstate_k)} = ||\vec{r}_k|| =
     \sqrt{r_{k1}^2 + r_{k2}^2}
 \end{equation}
 However, this error can also be expressed in terms of two independent,
@@ -361,41 +367,33 @@ resulting in
 \end{equation}
 Since the distribution of two squared standard normal random variables is known
 to be $\chi^2$ distributed with 2~degrees of freedom,
-which is itself exponential with rate 0.5,
-and since the GPS error is a fixed parameter,
-then we can transform the distance to obtain
+which is itself exponential with rate 0.5
+\citep{cn},
+then
+\begin{equation}
+\label{eq:sum_sq_dist}
+z_1^2 + z_2^2 \sim \Exp{\frac{1}{2}}
+\end{equation}
+which, following the [fact] that if $X \sim \Exp{\theta}$,
+then $cX \sim \Exp{c\theta}$,
+the squared distance between points is simply represented as
 \begin{equation}
 \label{eq:distance_distrib}
-\frac{\dist{\Vobs_k, \Vmeas(\Vstate\vi_k)}^2}{\GPSerr}
-     = z_1^2 + z_2^2 \sim \Exp{\frac{1}{2}}
+\dist{\Vobs_k, \Vmeas(\Vstate_k)}^2 \sim \Exp{\frac{\GPSerr}{2}}
 \end{equation}
 
-So now, given a particle state estimate,
-we can compute the liklihood of a GPS observation using only
-the distance between two coordinates,
+So now, given a particle state estimate of $\Vstate\vi_k$,
+the likelihood of a \GPS{} observation using only
+the distance between two coordinates is given by
 \begin{equation}
 \label{eq:particle_lh_fun}
 p(\Vobs_k | \Vstate\vi_k) =
     \frac{1}{2} \exp\left\{
-        - \frac{\dist{\Vobs_k, \Vmeas(\Vstate\vi_k)}^2}{2\GPSerr}
+        - \frac{\GPSerr\dist{\Vobs_k, \Vmeas(\Vstate\vi_k)}^2}{2}
     \right\}
 \end{equation}
+allowing the particles to be reweighted using \cref{eq:vehicle_pf_reweight}.
 
-
-Now that we have shown how the likelihood is computed,
-we can demonstrate the \pf{} update step.
-To update the particles,
-we simply \emph{reweight} each particle using the following formula
-(where $\Pwt_0 = \Np^{-1}$):
-\begin{equation}
-\label{eq:particle_weights}
-\Pwt_k =
-\frac{
-    \Pwt_{k-1} p(\Vobs_k | \Vstate\vi_k)
-}{
-    \sum_{j=1}^\Np \Pwt[j]_{k-1} p(\Vobs_k | \Vstate^{(j)}_k)
-}
-\end{equation}
 
 <<pf_wts,echo=FALSE,message=FALSE,cache=TRUE,fig.width=8,fig.height=3,fig.align="center",fig.cap="The \\pf{} estimate of vehicle state after reweighting particles based on the likelihood, or distance from the observed location.",fig.ncol=1>>=
 proj <- function(x, path) {
