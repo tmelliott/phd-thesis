@@ -1,43 +1,53 @@
 \subsection{Likelihood}
 \label{sec:pf-likelihood}
 
-In the previous section,
-the focus was the model used for the transition function $\Vtrans$,
-which is used to predict the future state of the vehicle
-given its last position update.
-This gives an estimate of
-$p(\Vstate_{k} | \Vstate_{k-1})$.
-In order to obtain the posterior distribution of
-the vehicle's state at time $\Vtime_k$,
-$p(\Vstate_k | \Vobs_{1:k})$,
-the estimate needs to be updated to account for the vehicles'
-reported position.
+The second component of \glspl{rbm} is the update step,
+which involves accounting for the likelihood of the data
+given the predicted state, $p(\Vobs_k | \Vstate_k)$.
 In the \pf{}, as discussed in \cref{sec:pf},
 updating is performed by reweighting each of the particles
 based on their individual likelihoods, $p(\Vobs_k | \Vstate\vi_k)$,
 and then, if necessary, peforming weighted resampling with replacement
 (important resampling).
+That is,
+\begin{equation}
+\label{eq:vehicle_pf_update}
+p(\Vstate_k | \Vobs_{1:k}) \approx
+\sum_{i=1}^\Np
+    \Pwt_{k}
+    \dirac\left(
+        \Vstate_k - \Vstate\vi_k
+    \right)
+\end{equation}
+where
+\begin{equation}
+\label{eq:vehicle_pf_reweight}
+\Pwt_k = \frac{
+    \Pwt_{k-1} p(\Vobs_k | \Vstate\vi_k)
+}{
+    \sum_{j=1}^\Np \Pwt[j]_{k-1} p(\Vobs_k | \Vstate\vi[j]_k)
+}
+\end{equation}
 
 
 The likelihood function is where the \pf{} shines in this application.
-In traditional models, such as the \kf{} implemented by the usual suspects
-\citep{Cathey_2003},
-it is necessary to transform the observations into the same space
-as the state;
-that is, from three dimensions (GPS coordinates are in 3D)
-to one dimension (distance, along a line, that just so happens to be in three dimensions).
-This ``map matching'' is a fundamentally difficult problem \citep{cn},
-and even more ruthlessly it completely throws away potentially important information.
+the real advantage is in the flexibility of the proposal distribution,
+in that it is not restricted to conform to a fixed number of modes,
+for example when passing $m$ stops in a time interval,
+there will be (assuming constant speed) $2^m$ modes in the proposal distribution,
+two for each stop.
+Also, not all of the modes will have the same width:
+some will be narrow (when the bus doesn't stop),
+others will be wide (when it does stop with unknown dwell time).
 
 
-The \pf{} makes no such assumptions,
-and instead allows us to compare each particle directly to the bus,
-allowing us to ask \emph{is this particle plausible}?
-We can therefore formulate a likelihood function (two, infact)
-that are implicitely what one would describe if trying to explain things
-in the real world.
-The first likelihood function is the primary one of interest,
-as it accounts for vehicle positions taken using a \gls{gps}.
+
+The \pf{} effectively checks to see how plausible the observation is
+assuming each particle is the truth,
+allowing us to weight each particle by its plausibility.
+Since there are two types of data,
+two likelihood functions are required:
+one for \GPS{} observations, and a second for trip updates.
 
 
 \subsubsection{GPS vehicle locations}
@@ -184,10 +194,8 @@ of the estimated position to the vehicle's reported position.
 We therefore want the likelihood to depend on the
 \emph{distance between the observed and predicted} vehicle locations.
 The first step in computing the likelihood is therefore
-to calculate the GPS position of the \emph{particle}, $\Ppos\vi_k$.
-By definition, this is the \emph{measurement function}
-introduced in \cref{sec:recursive-bayes},
-so we have
+to calculate the GPS position of the \emph{particle}, $\Ppos\vi_k$,
+by using what is referred to as the \emph{measurement function},
 \begin{equation}
 \label{eq:pf_measurement_fun}
 \Ppos\vi_k = \Vmeas(\Vstate\vi_k)
@@ -195,8 +203,8 @@ so we have
 which is simply a deterministic function given the route's path,
 which is a sequence of latitude-longitude pairs
 and the cumulative distance along the line.
-Once the geographical position of the particle's is obtained,
-we can compare them directly to the observed location,
+Once the geographical position of the particle is obtained,
+it is compared to the observed vehicle location,
 as shown in \cref{fig:gps_dist}.
 
 <<gps_dist,echo=FALSE,message=FALSE,cache=TRUE,fig.width=8,fig.height=4,out.width="0.8\\textwidth",fig.align="center",fig.cap="GPS distance between two points. The vehicle's reported location is shown in orange; one particle estimate of it's location is in black. The desired distance is denoted by the red line.">>=
@@ -223,10 +231,10 @@ get_stamenmap(bbox, zoom = 18, maptype = "toner-background") %>%
 
 Computing the distance between two GPS coordinates can be done in many ways,
 each with varying levels of accuracy.
-Since all of our distance are going to be (very) small,
-we can safely use the \emph{Equirectangular projection},
-$\Vproj{\Vobs_1}{\Vobs_0}$,
-which transforms the point $\Vobs_1 = \tvec{\Vlon_1, \Vlat_1}$,
+Since all of the distance are going to be (very) small,
+the \emph{Equirectangular projection} is sufficiently accurate
+for computing geographical distances \citep{cn}.
+This projection transforms the point $\Vobs_1 = \tvec{\Vlon_1, \Vlat_1}$,
 where latitude $\Vlat$ and longitude $\Vlon$ are in radians
 (the width of one longitudinal radian depends on latitude)
 onto a surface with meters on both axes,
@@ -248,6 +256,8 @@ using their \emph{euclidean distance}
 \dist{\Vobs_0, \Vobs_1} = \sqrt{x^2 + y^2}.
 \end{equation}
 This is shown visually in \cref{fig:gps_projection}.
+Note that conversion from degrees to radians is achieved by
+multiplying degrees by $\frac{\pi}{180}$.
 
 <<gps_projection,echo=FALSE,message=FALSE,cache=TRUE,fig.width=4,fig.height=3.5,out.width="0.49\\textwidth",fig.align="center",fig.cap="Equirectangular projection of GPS coordinates onto flat surface, allowing the distance from each particle to the observed location to easily be calculated.",fig.subcap=c("GPS coordinates","Projected points")>>=
 xr <- extendrange(range(Yx$lng), f = 0.2)
@@ -256,7 +266,7 @@ ggplot(Yx, aes(lng, lat)) +
     geom_point(colour = c("black", "orangered"), size = 2) +
     coord_fixed(cos(Yx$lat[2] * pi / 180)) +
     theme_minimal() + theme(panel.grid = element_blank()) +
-    xlab("Longitude (radians)") + ylab("Latitude (radians)") +
+    xlab("Longitude (degrees)") + ylab("Latitude (degrees)") +
     xlim(xr[1], xr[2]) + ylim(yr[1], yr[2])
 
 R <- 6371000

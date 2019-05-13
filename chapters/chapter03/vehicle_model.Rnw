@@ -353,13 +353,13 @@ we use a similar approach as for bus stops,
 however we remove the minimum dwell time
 and simply use an exponential distribution for the wait times,
 \begin{equation}
-\Iint\vi_\ell \sim \Bern{\rho_\ell}\quad\text{and}\quad
-\pcwait\vi_\ell \sim \Exp{\intwait_\ell^{-1}}
+\Iint_\ell \sim \Bern{\rho_\ell}\quad\text{and}\quad
+\pcwait_\ell \sim \Exp{\intwait_\ell^{-1}}
 \end{equation}
-giving the wait time $\pwait\vi_\ell$ as
+giving the wait time $\pwait_\ell$ as
 \begin{equation}
 \label{eq:intersection_wait_time}
-\pwait\vi_\ell = \Iint\vi_\ell \pcwait\vi_\ell.
+\pwait_\ell = \Iint_\ell \pcwait_\ell.
 \end{equation}
 
 Another complication with intersections is that
@@ -372,3 +372,8 @@ it is possible for a vehicle to be queuing up
 and report its location as \emph{at the intersection},
 rather than in the queue.
 
+
+\textcolor{red}{
+    The main point is to keep track of the bus by covering all possible
+    trajectories.
+}
