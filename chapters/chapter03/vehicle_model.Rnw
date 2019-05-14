@@ -318,6 +318,7 @@ So, for a given vehicle approaching stop $m$,
 the dwell time associated with that stop
 can be expressed as a function of
 \begin{equation}
+\label{eq:stop_dwell_model}
 \Istop_m \sim \Bern{\Prstop_m}\quad\text{and}\quad
 \pserve_m \sim \TNormal{\dwell_m}{\dwellvar_m}{\gamma}{\infty}
 \end{equation}
