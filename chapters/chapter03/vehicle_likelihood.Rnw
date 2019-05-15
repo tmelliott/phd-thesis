@@ -393,6 +393,7 @@ p(\Vobs_k | \Vstate\vi_k) =
     \right\}
 \end{equation}
 allowing the particles to be reweighted using \cref{eq:vehicle_pf_reweight}.
+This is shown visually in \cref{fig:pf_wts}.
 
 
 <<pf_wts,echo=FALSE,message=FALSE,cache=TRUE,fig.width=8,fig.height=3,fig.align="center",fig.cap="The \\pf{} estimate of vehicle state after reweighting particles based on the likelihood, or distance from the observed location.",fig.ncol=1>>=
