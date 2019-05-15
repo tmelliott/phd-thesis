@@ -375,11 +375,11 @@ then
 z_1^2 + z_2^2 \sim \Exp{\frac{1}{2}}
 \end{equation}
 which, following the [fact] that if $X \sim \Exp{\theta}$,
-then $cX \sim \Exp{c\theta}$,
+then $cX \sim \Exp{\frac{\theta}{c}}$,
 the squared distance between points is simply represented as
 \begin{equation}
 \label{eq:distance_distrib}
-\dist{\Vobs_k, \Vmeas(\Vstate_k)}^2 \sim \Exp{\frac{\GPSerr}{2}}
+\dist{\Vobs_k, \Vmeas(\Vstate_k)}^2 \sim \Exp{\frac{1}{2\GPSerr}}
 \end{equation}
 
 So now, given a particle state estimate of $\Vstate\vi_k$,
@@ -388,8 +388,8 @@ the distance between two coordinates is given by
 \begin{equation}
 \label{eq:particle_lh_fun}
 p(\Vobs_k | \Vstate\vi_k) =
-    \frac{1}{2} \exp\left\{
-        - \frac{\GPSerr\dist{\Vobs_k, \Vmeas(\Vstate\vi_k)}^2}{2}
+    \frac{1}{2\GPSerr} \exp\left\{
+        - \frac{\dist{\Vobs_k, \Vmeas(\Vstate\vi_k)}^2}{2\GPSerr}
     \right\}
 \end{equation}
 allowing the particles to be reweighted using \cref{eq:vehicle_pf_reweight}.
@@ -440,47 +440,99 @@ plh +
 \subsubsection{Trip updates}
 \label{sec:lhood_trip}
 
-\gls{gtfs} does not only provide vehicle locations,
-but also \emph{trip updates} (see \cref{sec:tu_data}).
-In Auckland, these trip updates are provided along with
-a \emph{separate} vehicle position update;
-however, as we discussed,
-these are not of the vehicle's true location,
-but rather of \emph{waypoints} (the stop's exact location).
-Therefore, treating these as vehicle position updates
-can cause issues with the \pf{} when
-the vehicle hasn't quite arrived yet.
+As well as vehicle position updates from \GPS{} data,
+\GTFS{} provides trip updates from arrival and departure information.
+In many situations, it is difficult to infer a vehicle's trajectory
+based solely off of \GPS{} data,
+and so trip updates are therefore an invaluable part of the update step.
+In this case, the \pf{} prediction step goes ahead as presented
+in \cref{sec:vehicle_model_trans},
+but instead of then comparing the coordinates,
+the arrival or departure times are used to compute the liklelihood of the particles.
 
 
-To overcome most of the situations where trip updates are problematic,
-we implement a separate likelihood for them.
-The likelhood on arrival time $\Varr_m$ at stop $m$ is a
-normal random variable with mean $\Tarr_m$ and variance $\TUerr$,
+The trip update observations differ from the \GPS{} observations
+in that there are now three situations which can occur.
+The observation can be of an arrival time at stop $m$, $\Varr_m$,
+or it can be of a departure time, $\Vdep_m$.
+In the latter case, treatment of the observations depends on whether or not
+$\Varr_m$ was observed.
+This gives us three likelihood functions to derive,
+\begin{itemize}
+\item $p(\Varr_m | \Vstate_k)$, the arrival time likelihood function,
+\item $p(\Vdep_m | \Vstate_k, \text{arrival missing})$, the departure time likelihood conditional
+    on not having observed arrival time, and
+\item $p(\Vdep_m | \Vstate_k, \text{arrival observed})$, the departure time likleihood conditional
+    on having observed arrival time.
+\end{itemize}
+
+
+In order the compute the likelihood for these,
+we refer back to the dwell time model
+described in \cref{eq:stop_dwell_model,eq:stop_dwell_time}.
+Two additional parameters are also needed:
+the actual arrival time of the bus at stop $m$, $\Tarr_{m}$,
+and the measurement error of arrival time in seconds, $\TUerr$.
+The arrival time can be computed for each stop $m$ directly from the model
+(i.e., via interpolation).
+The departure time is then computed by summing the arrival and dwell times.
+
+
+The observed arrival and departured times,
+denoted $\Varr_m$ and $\Vdep_m$, respectively,
+are assumed to each be normally distributed,
+with mean and variance determined by the described model.
+For arrival time, this is simply
 \begin{equation}
 \label{eq:tu_arr_lhood}
-\Varr_m \sim \Normal{\Tarr_{mr}}{\TUerr}
+\Varr_m \sim \Normal{\Tarr_{mr}}{\TUerr}.
 \end{equation}
-
-The departure time $\Vdep_m$ is a little more difficult,
-as it depends on whether there was an observed arrival time or not.
-In the case where there was,
-we wish to place a likelihood on the \emph{dwell time} at stop $m$,
-$\Vdwell_m = \Vdep_m - \Varr_m \geq 0$,
-which is exponential with mean $\Tdwell_m$,
-otherwise the departure time is a normal random variable
-with mean $\Tarr_m + \Tdwell_m$ and  variance $\TUerr$,
+and for departure time,
 \begin{equation}
 \label{eq:tu_dep_lhood}
-\Vdep_m \sim
-\begin{cases}
-\Exp{\Tdwell_m} & \text{if arrival time reported,} \\
-\Normal{\Tarr_m + \Tdwell_m}{\TUerr} & \text{otherwise.}
-\end{cases}
+\Vdep_m \sim \Normal{\Tarr_m + \pdwell_m}{\TUerr}
 \end{equation}
+
+
+% \textcolor{red}{Likelihood function for dwell time already defined up there somewhere.}
+% The departure time $\Vdep_m$ is a little more difficult,
+% as it depends on whether there was an observed arrival time or not.
+% In the case where there was,
+% we wish to place a likelihood on the \emph{dwell time} at stop $m$,
+% $\Vdwell_m = \Vdep_m - \Varr_m \geq 0$,
+% which is exponential with mean $\Tdwell_m$,
+% otherwise the departure time is a normal random variable
+% with mean $\Tarr_m + \Tdwell_m$ and  variance $\TUerr$,
+% \begin{equation}
+% \label{eq:tu_dep_lhood}
+% \Vdep_m \sim
+% \begin{cases}
+% \Exp{\Tdwell_m} & \text{if arrival time reported,} \\
+% \Normal{\Tarr_m + \Tdwell_m}{\TUerr} & \text{otherwise.}
+% \end{cases}
+% \end{equation}
 
 In our \pf{} implementation,
 each observation will be processed individually;
 in situations where more than one type of observation is recieved,
 they are processed in chronological order
 and the particles reweighted between each.
-
+The necessary likelihood component for \cref{eq:vehicle_pf_reweight}
+is therefore
+\begin{equation}
+\label{eq:tu_obs_lhood}
+p(\Vobs_k | \Vstate\vi_k) =
+\begin{cases}
+\frac{1}{\sqrt{2\pi\TUerr}}
+    \exp\left\{
+        -\frac{(\Varr_m - \Tarr_m)^2}{2\TUerr}
+    \right\} & \text{for arrival times} \\
+\frac{1}{\sqrt{2\pi\TUerr}}
+    \exp\left\{
+        -\frac{(\Vdep_m - \Tarr\vi_m - \pdwell\vi_m)^2}{2\TUerr}
+    \right\} & \text{for departure times}
+\end{cases}
+\end{equation}
+which allows the particle sample to be reweighted according to the
+temporal difference in arrival and departure times.
+This is demonstrated in \cref{fig:tu_update}.
