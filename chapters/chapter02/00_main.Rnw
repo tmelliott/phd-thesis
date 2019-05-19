@@ -104,3 +104,5 @@ which will be presented in \cref{cha:vehicle_model,cha:network_model}.
 \input{DIRNAME/realtime_data.tex}
 \input{DIRNAME/route-segmentisation.tex}
 \input{DIRNAME/recursive_bayes.tex}
+
+\input{DIRNAME/realtime-implementation.tex}

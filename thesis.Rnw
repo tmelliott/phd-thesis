@@ -59,6 +59,8 @@ headsepline, % Uncomment to get a line under the header
 \usepackage[acronym,nonumberlist,toc]{glossaries} %Load glossaries package
 \makeglossaries
 
+
+
 \include{include/abbreviations}
 
 %----------------------------------------------------------------------------------------

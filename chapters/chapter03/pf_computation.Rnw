@@ -2,9 +2,38 @@
 \label{sec:pf_implementation}
 
 
-We decided to ue Rcpp \citep{Rcpp}
-to implement the software,
-as it gave us the power of R \citep{rcore} for data manipulation
-(importing \gls{gtfs} data and processing routes, etc.)
-and C++ \citep{cpp} for speed
-(for the \rt{} components).
+The vehicle objects are each given a sample of particles,
+stored in a vector,
+which represented our best estimate of that vehicle's state.
+The trip objects each have \glspl{eta} for each stop,
+with the \emph{a priori} estimates being from the schedule or,
+where available, historical data.
+When vehicle positions and trip updates are observed,
+the vehicle position is updated.
+
+
+After the updates of vehicle position,
+the road network states could be updated through the
+trip shape segment associations,
+providing an updated estimate of the road network state.
+
+
+After updating the network state,
+each trip is cycled and the road segment travel time estimates updated,
+so that the \glspl{eta} are in turn updated
+to reflect the \rt{} state of the road network.
+
+Finally, the trip \glspl{eta} are summarised and written
+to a protobuf feed,
+which can then be distributed efficiently to users.
+Alternatively, these could be written to a database and accessed from apps
+if the infrastructure is available at some time in the future.
+
+
+
+\begin{figure}
+\centering
+\includegraphics[width=0.8\textwidth,clip,trim={0 1mm 0 0}]{chapters/chapter03/program_overview.pdf}
+\label{fig:program_flow}
+\caption{Flow diagram of the vehicle model component of the program. Step (1) is the processing of GTFS observations and assignment to vehicles; step (2) is the update (or creation) of vehicle states (via the particle filter); and step (3) is estimation of travel times from the particle trajectories.}
+\end{figure}

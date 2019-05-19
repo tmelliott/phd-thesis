@@ -1,0 +1,24 @@
+\section{\Rt implementation in Rcpp}
+
+The implementation of the \pf{} in a way that is both
+generalised---%
+to allow distribution to other transit networks
+around the world---%
+and fast was challenging.
+We made several attempts in C++,
+the first which used automatic database systems,
+but this turned out to be too slow;
+instead, we opted for a manual approach,
+in which \gls{oop} was used to describe the \gls{gtfs} data,
+which included trips containing a vector of pointers to the sequence
+of road segments making up the trip's shape,
+and similarly a vector of pointers for the stops.
+The, objects were used to represent each trip and each vehicle,
+which were associated with each other where possible.
+
+We decided to ue Rcpp \citep{Rcpp}
+to implement the software,
+as it gave us the power of R \citep{rcore} for data manipulation
+(importing \gls{gtfs} data and processing routes, etc.)
+and C++ \citep{cpp} for speed
+(for the \rt{} components).

@@ -148,8 +148,38 @@ giving us a set of dwell times
 \Vdwell_{srm} = \Vdep_{srm} - \Varr_{srm}
 \end{equation}
 
-<<observed_dwell,cache=TRUE,message=FALSE,echo=FALSE,fig.width=8,fig.height=3,fig.cap="Distribution of dwell times observed over the course of five days.">>=
+<<observed_dwell,message=FALSE,warning=FALSE,echo=FALSE,fig.width=8,fig.height=3,fig.cap="Distribution of dwell times observed over the course of five days.">>=
+library(tidyverse)
+dwellfile <- "dwell.rda"
+if (file.exists(dwellfile)) {
+    load(dwellfile)
+} else {
+    d <- tempdir()
+    files <- unzip("../../../transitr/trip_updates_archive.zip",
+        exdir = d
+    )
 
+    dwell <- pbapply::pblapply(files, function(file) {
+        load(file) # -> tu
+        tu <- tu %>% as_tibble %>% distinct %>%
+            mutate(date = format(timestamp, "%Y-%m-%d")) %>%
+            select(date, vehicle_id, trip_id, route_id, stop_sequence, type, time)
+        tu %>% filter(type == "arrival") %>% select(-type) %>%
+            inner_join(tu %>% filter(type == "departure") %>% select(-type),
+                by = c("date", "vehicle_id", "trip_id",
+                    "route_id", "stop_sequence"),
+                suffix = c("_arrival", "_departure")
+            ) %>%
+            mutate(dwell = time_departure - time_arrival) %>%
+            filter(dwell >= 0)
+    }) %>% bind_rows()
+    save(dwell, file = dwellfile)
+}
+ggplot(dwell %>% filter(dwell < 2*60)) +
+    geom_histogram(aes(dwell, stat(density)), bins = 120) +
+    theme_minimal() + theme(panel.grid = element_blank()) +
+    xlab("Dwell time (seconds)") + ylab("Distribution") +
+    scale_x_continuous(breaks = seq(0, 120, by = 20))
 @
 
 The raw data from five~days' observations
@@ -158,6 +188,7 @@ Here, we see an interesting pattern with apparent peaks every nine~seconds.
 While we could not determine the precise cause,
 we assume it to be due to a systematic problem in the arrival time
 recording system used to collect the data.
+
 
 Regardless, we can still explore the dwell times for any stop or time effects.
 
