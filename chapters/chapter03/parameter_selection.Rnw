@@ -24,7 +24,7 @@ so the distance from an observation to the route is an approximate estimate
 of measurement error.
 
 
-\subsubsection{Estimating GPS error}
+\subsubsection{GPS error}
 \label{sec:pf_params_gps}
 
 The measurement error for the model is arguably one of the more important parameters,
@@ -135,7 +135,7 @@ From here, we choose a range of GPS error values:
 
 
 
-\subsubsection{Estimating dwell times}
+\subsubsection{Dwell times}
 \label{sec:pf_params_dwell}
 
 We are able to observe a large proportion of dwell times at stops,
@@ -214,7 +214,7 @@ Although I suppose it does give us a more distinctive
 set of possible values.
 
 
-\subsubsection{Estimating system noise}
+\subsubsection{System noise}
 \label{sec:pf_params_noise}
 
 The system noise parameter $\Vnoise$

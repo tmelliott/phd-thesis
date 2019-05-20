@@ -1,6 +1,30 @@
 \section{\Rt{} model implementation}
 \label{sec:particle-filter}
 
+In order to make \rt{} estimates of travel times,
+the model described in the previous sections needs to be
+translated into a computer program,
+which we introduced in \cref{sec:rt-implementation}.
+This involves writing the \code{C++} code for the
+vehicle transition, likelihood, and update functions
+for inclusion in the \code{transitr} package.
+The relevant steps are
+\begin{enumerate}
+\item fetch and process \rt{} observations and attach to a vehicle object;
+\item update the vehicle state by transitioning and reweighting particles;
+    or initialising a new sample of particles if it does not yet exist; and
+\item estimate vehicle travel times along road segments for use in
+    the next part of the model (\cref{cha:network_model}).
+\end{enumerate}
+The above are shown in \cref{fig:program_flow}.
+
+
+As well as implementing the described model,
+there are also several issues with the data---%
+which were described in \cref{sec:realtime-data}---%
+that need to be dealt with as well.
+Finally, we need to assess the model's performance on real world data,
+as well as estimate the parameters used in the model.
 
 
 \input{DIRNAME/pf_computation.tex}

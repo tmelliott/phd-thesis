@@ -1,5 +1,8 @@
-\subsection{Computational implementation}
+\subsection{C++ particulars}
 \label{sec:pf_implementation}
+
+
+
 
 
 The vehicle objects are each given a sample of particles,

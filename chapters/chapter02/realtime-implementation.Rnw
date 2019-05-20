@@ -1,4 +1,5 @@
-\section{\Rt implementation in Rcpp}
+\section{\Rt{} implementation in Rcpp}
+\label{sec:rt-implementation}
 
 The implementation of the \pf{} in a way that is both
 generalised---%
