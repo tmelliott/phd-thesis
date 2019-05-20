@@ -2,7 +2,7 @@ library(RSQLite)
 url <- "https://cdn01.at.govt.nz/data/gtfs.zip"
 db <- "at_gtfs.sqlite"
 outdated <- function(url) {
-    date <- gsub("Last-Modified: |\r", "", system(sprintf("curl -sI %s | grep Last-Modified", url), intern = TRUE))
+    date <- gsub("Last-Modified: |\r", "", system(sprintf("curl -sI %s | grep -i Last-Modified", url), intern = TRUE), ignore.case = TRUE)
     last.mod <- as.POSIXct(date, tz = "GMT", format = "%a, %d %b %Y %H:%M:%S GMT")
 
     cur.mod <- ".gtfs_date"
