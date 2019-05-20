@@ -192,27 +192,24 @@ recording system used to collect the data.
 
 Regardless, we can still explore the dwell times for any stop or time effects.
 
-To these data we fitted the following model
-\begin{equation}
-\label{eq:dwell_time_model}
-\Vdwell_{drm} =
-    \dwell_m +   % mean dwell time for stop m
-    \alpha_0 (\Varr_{drm}) +  % time effect
-    \sum_{j=1}^\Nstop \eta_j I_{j=s}
-\end{equation}
-using \emph{A METHOD}.
+To these data we could fit some model ... and find approximate values
+of dwell time over all/by route/by trip/time of day.
+% \begin{equation}
+% \label{eq:dwell_time_model}
+% \Vdwell_{drm} =
+%     \dwell_m +   % mean dwell time for stop m
+%     \alpha_0 (\Varr_{drm}) +  % time effect
+%     \sum_{j=1}^\Nstop \eta_j I_{j=s}
+% \end{equation}
+% using \emph{A METHOD}.
 We obtained some results.
-These are useful for the predictive model
-(\cref{cha:prediction}),
-and slightly useful for the \pf{} model,
-but not so much since we either know the approximate dwell time
-(from arrival and departure observations),
-or we only know one of them,
-and then we don't know if the bus stopped or not,
-so we have to guess.
-Although I suppose it does give us a more distinctive
-set of possible values.
-
+\textcolor{red}{
+    \begin{itemize}
+        \item in particle filter they're not really useful because
+            even if we know the mean, it's going to be highly variable
+        \item somewhat useful for uncertainty calculations of ETAs
+    \end{itemize}
+}
 
 \subsubsection{System noise}
 \label{sec:pf_params_noise}
@@ -247,6 +244,15 @@ We can measure these two situations:
 And then the same for remaining parameters \ldots
 
 Minimum dwell time $\mindwell$ we just use literature values,
-since there isn't really anything else to go on.
+since there isn't really anything else to go on
+(there's the trip updates dwell times, but they have that weird 9~s issue).
+
+\textcolor{red}{
+    \begin{itemize}
+        \item create a new AT developer account
+        \item collect trip updates every 5 seconds for a few days to try and catch as many arrival/departure times as possible
+        \item then look at that distribution
+    \end{itemize}
+}
 
 

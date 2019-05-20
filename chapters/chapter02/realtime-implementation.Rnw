@@ -1,6 +1,14 @@
 \section{\Rt{} implementation in Rcpp}
 \label{sec:rt-implementation}
 
+\textcolor{red}{
+    \begin{itemize}
+        \item introduction to transitr pkg, pre-processing of GTFS data
+        \item outline of how the program will run in realtime (input, infinite loop, output)
+    \end{itemize}
+}
+
+
 The implementation of the \pf{} in a way that is both
 generalised---%
 to allow distribution to other transit networks

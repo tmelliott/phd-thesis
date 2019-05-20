@@ -1,6 +1,14 @@
 \section{Modelling \rt{} data: recursive Bayes}
 \label{sec:recursive-bayes}
 
+
+\textcolor{red}{
+    \begin{itemize}
+        \item decide on a symbol
+        \item how much detail is necessary?
+    \end{itemize}
+}
+
 Now that we have discussed how the data is structured,
 we need to consider how it can be modelled.
 The main point to consider is that the data are being collected in \rt{},

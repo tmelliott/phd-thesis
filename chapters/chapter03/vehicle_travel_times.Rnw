@@ -258,20 +258,24 @@ models A2 and A3 can.
 However, in segments 3--5 with bus stops,
 we begin to see a lot of uncertainty in the travel time.
 
-\textbf{what is this para???}
-The only faesible way to improve travel time estimation
-is by reducing the noise in the speed component,
-which limits the set of possible trajectories the particles can take.
-This works well when all obstacles (intersections) are accounted for,
-but less so when there are unknown obstacles,
-for example a pedestrian crossing,
-or where the bus route turns into a side street
-we no knowledge of this intersection is known.
-In these situations,
-reducing the noise can result in poor performance of the \pf{},
-so there is a trade off between performance and precision.
+
+\textcolor{red}{
+    \begin{itemize}
+        \item known obstacles are OK - but difficult to account for unknown ones
+        \item TT estimates poorer at higher noise, but obstacles don't break the PF as much
+        \item low noise = poor sample of trajectors (-> requires more particles)
+        \item trade off between performance/precision/Nparticles
+    \end{itemize}
+}
+
 
 
 \subsubsection{Simulation C: intersections model}
 \label{sec:vehicle_sim_C}
 
+\textcolor{red}{
+    \begin{itemize}
+        \item create simulation and test performance with known intersection locations
+        \item not yet applicable to actual model as intersection detection not yet implemented
+    \end{itemize}
+}
