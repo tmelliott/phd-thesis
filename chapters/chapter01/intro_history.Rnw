@@ -1,4 +1,4 @@
-\section{On the evolution of bus prediction}
+\section{Review of bus prediction}
 \label{sec:literature}
 
 
