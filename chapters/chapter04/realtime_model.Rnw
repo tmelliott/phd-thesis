@@ -1,4 +1,3 @@
-
 \section{\Rt{} network model}
 \label{sec:nw_realtime}
 
@@ -54,8 +53,8 @@ to model changes in the current segment.
 
 The state prediction is straightforward if we stick with
 \cref{eq:nw_model}.
-The estimated state has mean $\hat\NWstate_{c|c-1} = \E{\NWstate_c | X_{0:c-1}}$
-and variance $\NWvar_{c|c-1} = \Var{\NWstate_c | X_{0:c-1}}$,
+The estimated state has mean $\hat\NWstate_{c|c-1} = \E{\NWstate_c | \NWobs_{0:c-1}}$
+and variance $\NWvar_{c|c-1} = \Var{\NWstate_c | \NWobs_{0:c-1}}$,
 which are predicted using
 \begin{equation}
 \label{eq:nw_kf_predict}

@@ -1,4 +1,4 @@
-\section{Historical data based priors}
+\section{Constructing a transit network model}
 \label{sec:nw_hist_prior}
 
 In order to improve short-term predictions for the \kf{},

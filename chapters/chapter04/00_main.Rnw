@@ -1,34 +1,41 @@
-
 \chapter{Transit network}
 \label{cha:network_model}
 
-Buses travel along fixed routes,
-navigating bus stops, intersections, and general congestion.
-How the vehicles move through the network is quite chaotic:
-each vehicle is, to an extend, independent,
-unless they are spatially and temporally near
-(e.g., travelling one behind the other).
+Buses travel along fixed routes, navigating bus stops, intersections, and the roadways between them. In the previous chapter, we discussed the role of bus stops and intersections and estimated travel times. Now, we will explore the relationship between those estimates and the underlying transit network consisting of nodes connected by edges. The nodes are either bus stops or intersections, while the edges are the roads the join them. Along these roads, vehicles travel from node to node at speeds controlled by the road's speed limit and, more importantly,  congestion levels. 
 
-In general, however, we can imagine that there is a constant
-flow of traffic through the network
-such that the travel time along a road $\ell$ at time $t_c$.
-is represented by $\NWstate^\ell_c$,
-and is a Markov process,
-\begin{equation}
-\label{eq:nw_model_state}
-\NWstate_\ell_c = \NWstate_\ell_{c-1} + v_\ell_c,
-\quad v_\ell_c \sim \Normal{0}{\NWnoise_\ell}
-\end{equation}
-and that buses pass through the network
-while dealing with obstacles (stops, lights, etc).
-Each bus is a (very) noisy observation of the actual travel time,
-\begin{equation}
-\label{eq:nw_model_obs}
-\NWobs_\ell_c = \NWstate_\ell_c + w_\ell_c,
-\quad w_\ell_c \sim \Normal{0}{\NWerr_\ell}
-\end{equation}
+Vehicle travel time along a specific road will clearly change over time, but also between vehicles due to, for example, driver behaviour. Therefore, there is a distribution of travel times at any given time for one single road, explaining the variability between individual vehicles. Further, the travel times obtained in the previous chapter are noisy measurements of the vehicles' actual travel times, giving rise to a hierarchy of travel times and errors, as demonstrated in \cref{fig:network-tt-heirarchy}.
+
+In this section, we explore ways of modelling the underlying travel time distribution---that is, the mean and variance of buses at a fixed time---over time. As with the vehicle model, we must keep in mind the real-time nature of the application: the information obtained from this model will be used to generate estimates of arrival time in \cref{cha:prediction}. \Cref{sec:nw_realtime} describes how we model travel times in real-time, while \cref{sec:nw_par_est} will explore the model parameters (for example, the rate at which travel times change over time, and the variability between vehicles). In \cref{sec:nw_hist_prior}, we will discuss the use of historical data to improve the forecasting ability of the transit network model, which will be particularly useful for predicting arrival times in the next chapter. Finally, \cref{sec:nw_comp} will cover the computational aspects of the model's real-time implementation and the database supporting it. 
+
+
+
+% Buses travel along fixed routes,
+% navigating bus stops, intersections, and general congestion.
+% How the vehicles move through the network is quite chaotic:
+% each vehicle is, to an extend, independent,
+% unless they are spatially and temporally near
+% (e.g., travelling one behind the other).
+
+% In general, however, we can imagine that there is a constant
+% flow of traffic through the network
+% such that the travel time along a road $\ell$ at time $t_c$.
+% is represented by $\NWstate^\ell_c$,
+% and is a Markov process,
+% \begin{equation}
+% \label{eq:nw_model_state}
+% \NWstate_\ell_c = \NWstate_\ell_{c-1} + v_\ell_c,
+% \quad v_\ell_c \sim \Normal{0}{\NWnoise_\ell}
+% \end{equation}
+% and that buses pass through the network
+% while dealing with obstacles (stops, lights, etc).
+% Each bus is a (very) noisy observation of the actual travel time,
+% \begin{equation}
+% \label{eq:nw_model_obs}
+% \NWobs_\ell_c = \NWstate_\ell_c + w_\ell_c,
+% \quad w_\ell_c \sim \Normal{0}{\NWerr_\ell}
+% \end{equation}
 
 % \input{DIRNAME/network.tex}
+\input{DIRNAME/historical_model.tex}
 \input{DIRNAME/realtime_model.tex}
 \input{DIRNAME/parameter_estimation.tex}
-\input{DIRNAME/historical_model.tex}
