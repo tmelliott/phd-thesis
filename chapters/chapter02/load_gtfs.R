@@ -17,10 +17,16 @@ outdated <- function(url) {
     }
     FALSE
 }
-atzip <- "at_gtfs.zip"
-if (!file.exists(atzip))
-    download.file(url, atzip)
-if (!file.exists(db) || outdated(url)) {
-    if (file.exists(db)) unlink(db)
-    nw <- transitr::create_gtfs(atzip, db = db)
-}
+
+res <- try({
+    atzip <- "at_gtfs.zip"
+    if (!file.exists(atzip))
+        download.file(url, atzip)
+    if (!file.exists(db) || outdated(url)) {
+        if (file.exists(db)) unlink(db)
+        nw <- transitr::create_gtfs(atzip, db = db)
+    }
+}, silent = TRUE)
+
+if (inherits(res, "try-error"))
+    unlink(".gtfs_date")

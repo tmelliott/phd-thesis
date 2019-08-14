@@ -32,7 +32,9 @@
 \newcommand{\Vdist}{x}
 \newcommand{\Vspeed}{\dot x}
 \newcommand{\Vaccel}{\ddot x}
-\newcommand{\Vtt}{z}
+\newcommand{\Vtt}{B}
+\newcommand{\Vttobs}{b}
+\newcommand{\Vtterr}{E}
 \newcommand{\Np}{N}
 \newcommand{\Pwt}[1][i]{W^{(#1)}}
 \newcommand{\Vtrans}{f}
@@ -74,18 +76,20 @@
 \newcommand{\NWvar}{\mat{\boldsymbol{\psi}}}
 \newcommand{\Rstate}{b}
 \newcommand{\Rvar}{v}
-\newcommand{\NWnoise}{\mat{Q}}
-\newcommand{\NWerr}{\mat{E}}
-\newcommand{\NWtrans}{\mat{F}}
+\newcommand{\NWnoise}{q}
+\newcommand{\NWerr}{\Vtterr}
+\newcommand{\NWtransfun}{F}
+\newcommand{\NWtrans}{\mat{\NWtransfun}}
 \newcommand{\NWmeas}{\mat{H}}
 \newcommand{\NWobss}{Z}
-\newcommand{\NWobs}{\boldsymbol{\NWobss}}
+\newcommand{\NWobs}{\Vttobs}
 \newcommand{\NWinfmat}{\mat{U}}
 \newcommand{\NWinfvec}{\boldsymbol{u}}
 \newcommand{\NWobsinfmat}{\mat{I}}
 \newcommand{\NWobsinfvec}{\boldsymbol{i}}
 \newcommand{\NWctrl}{\xi}
 \newcommand{\NWctrlvec}{\vec\NWctrl}
+\newcommand{\NWmaxtt}{\mu}
 
 \newcommand{\NWhistmean}[2]{\beta_{#1}\left(#2\right)}
 \newcommand{\NWhistvar}[2]{\psi_{#1}\left(#2\right)}

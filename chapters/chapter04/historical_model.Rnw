@@ -1,6 +1,106 @@
 \section{Constructing a transit network model}
 \label{sec:nw_hist_prior}
 
+
+
+The relationship between the underlying travel time 
+and the value we estimate (back in chapter 3) involves two steps. 
+First, we must describe the relationship between the underlying travel time 
+and the \emph{actual}  time taken. 
+Secondly, we define the relationship between \emph{actual} and \emph{observed} 
+(or, more specifically, estimated) travel time. 
+This type of model is often called a \emph{heirarchical Bayesian model}.
+
+
+First, we present the relationship at a fixed time $t_c$. 
+We define $\NWstate_{\ell c}$ to be the average travel time of vehicles 
+along road segment $\ell$ at time $t_c$, 
+and $\NWvar_{\ell c}^2$ as the associated variance (\emph{between} vehicles). 
+Now, the time taken for vehicle $m$ to travel along 
+road $\ell$ at time $t_c$ is $\Vtt_{\ell c}^m$ seconds---%
+to avoid complications we define the time a vehicle travels along a road 
+as the time that it reaches the end of the road. 
+Assuming that vehicle travel times follow a normal distribution, 
+we write this as 
+\begin{equation*}
+    \Vtt_{\ell c}^m \sim
+        \Normal{\NWstate_{\ell c}}{\NWvar_{\ell c}^2}
+\end{equation*}
+Once the bus reaches the end of the road and reports its position to us, 
+we estimate (see section 3.3) how long it took, 
+which is a noisy ``measurement'' of the time it \emph{actually} took, 
+which we assume has an error of $\Vtterr_{\ell c}^m$ seconds. 
+Again, assuming the errors follow a normal distribution, 
+we write the observation as 
+\begin{equation*}
+\Vttobs_{\ell c}^m \sim 
+    \Normal{\Vtt_{\ell c}^m}{\Vtterr_{\ell c}^m^2}.
+\end{equation*}
+
+Secondly, we need to consider that travel time changes over time for various reasons. 
+The obvious one is congestion at peak times 
+when lots of people are commuting (many in cars) to or from work, 
+but throughout the day there can be fluctuations in traffic flow 
+due to intersections, incidents, weather, or countless other causes. 
+To model this, we need to account for 
+\emph{systematic, predictable changes}, that is, congestion at peak times, 
+and \emph{random changes}, which accounts for everything else. 
+The systematic part, or trend, can be described 
+using a transition function (or matrix) $\NWtransfun_c$, 
+which, given the state at time $t_{c-1}$ predicts the state at time $t_c$. 
+As for the random fluctuations, these are encapsulated by the model parameter $\NWnoise$, 
+which can be interpreted as \emph{the rate of change of travel time}. 
+Together, again assuming that the state follows a normal distribution, 
+then we write 
+\begin{equation*}
+    \NWstate_{\ell c} \sim 
+        \Normal{\NWstate_{\ell c-1}}{\NWnoise^2}.
+\end{equation*}
+
+However, we can describe the model with more detail than this. 
+Let us assume that the \emph{fastest possible travel time} along a road is denoted $\NWmaxtt_\ell$, 
+which would be obtained by a vehicle travelling at the posted speed limit along the entire road. 
+Now $\NWstate_{\ell c}$ is the additional travel time caused by congestion, 
+driver behaviour, and so on, leading to 
+\begin{equation*}
+    \Vtt_{\ell c}^m \sim
+        \Normal{\NWmaxtt_\ell + \NWstate_{\ell c}}{\NWvar_{\ell c}^2}
+\end{equation*}
+for individual vehicles. 
+
+<<tt_figure,echo=FALSE,fig.height=3,fig.width=6,out.width=".9\\linewidth",fig.cap="Travel times along a road.">>=
+library(ggplot2)
+source("load_nw_data.R")
+
+ggplot(tts, aes(arrival_time, travel_time)) + 
+    geom_point() +
+    geom_hline(yintercept = 43, lty = 2) +
+    theme_classic() + 
+    xlab("Time") + ylab("Travel time (seconds)")
+@
+
+Now that we have a model, we can take a look at some data. 
+\Cref{fig:tt_figure} shows the travel times 
+between two stops on Symonds Street in central Auckland. 
+We know that the maximum speed limit along this road is 50~km/h,
+which is approximately \Sexpr{ceiling(50*1000/60/60)}~m/s.
+The distance between the two stops is 610~m,
+so we know the minimum possible travel time is
+$\lfloor\frac{610}{14}\rfloor = \Sexpr{floor(610/14)}$~seconds.
+
+The first model we fit, N1, uses the transition function 
+\begin{equation*}
+\NWtransfun(\NWstate_{\ell c}) = \NWstate_{\ell c-1}. 
+\end{equation*}
+We're using JAGS \citep{JAGS} to fit the hierarchical model described above, 
+using the following priors:
+
+- MU_SPEED ~ UNIFORM(3, 30) - max speed between 30 and 100kmh
+- 
+
+
+\newpage
+\subsubsection*{Old}
 In order to improve short-term predictions for the \kf{},
 and also longer-term forecasts for arrival time prediction
 (\cref{cha:prediction}),

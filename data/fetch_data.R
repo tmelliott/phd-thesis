@@ -1,5 +1,5 @@
 # fetch historical data from raspberry pi
-date <- "2019-01-15" # tuesday, jan 15 2019
+date <- "2019-08-13" # monday, august 13 2019
 pi <- Sys.getenv("pi_ip")
 
 hfile <-
