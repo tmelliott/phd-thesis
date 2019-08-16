@@ -221,6 +221,12 @@ n1_samples %>%
         xlab("Time") + ylab("Travel time (seconds)")
 @
 
+Fitting the model allowed us to estimate values for $\NWvar$ and $\NWnoise$;
+estimation of the betas was not as important,
+as we do not expect these to be constant throughout the day.
+The point here was to estimate the parameters of change.
+
+
 
 \newpage
 \subsubsection*{Old}
