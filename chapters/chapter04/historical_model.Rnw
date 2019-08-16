@@ -3,100 +3,223 @@
 
 
 
-The relationship between the underlying travel time 
-and the value we estimate (back in chapter 3) involves two steps. 
-First, we must describe the relationship between the underlying travel time 
-and the \emph{actual}  time taken. 
-Secondly, we define the relationship between \emph{actual} and \emph{observed} 
-(or, more specifically, estimated) travel time. 
+The relationship between the underlying travel time
+and the value we estimate (back in chapter 3) involves two steps.
+First, we must describe the relationship between the underlying travel time
+and the \emph{actual}  time taken.
+Secondly, we define the relationship between \emph{actual} and \emph{observed}
+(or, more specifically, estimated) travel time.
 This type of model is often called a \emph{heirarchical Bayesian model}.
 
 
-First, we present the relationship at a fixed time $t_c$. 
-We define $\NWstate_{\ell c}$ to be the average travel time of vehicles 
-along road segment $\ell$ at time $t_c$, 
-and $\NWvar_{\ell c}^2$ as the associated variance (\emph{between} vehicles). 
-Now, the time taken for vehicle $m$ to travel along 
+First, we present the relationship at a fixed time $t_c$.
+We define $\NWstate_{\ell c}$ to be the average travel time of vehicles
+along road segment $\ell$ at time $t_c$,
+and $\NWvar_{\ell c}^2$ as the associated variance (\emph{between} vehicles).
+Now, the time taken for vehicle $m$ to travel along
 road $\ell$ at time $t_c$ is $\Vtt_{\ell c}^m$ seconds---%
-to avoid complications we define the time a vehicle travels along a road 
-as the time that it reaches the end of the road. 
-Assuming that vehicle travel times follow a normal distribution, 
-we write this as 
+to avoid complications we define the time a vehicle travels along a road
+as the time that it reaches the end of the road.
+Assuming that vehicle travel times follow a normal distribution,
+we write this as
 \begin{equation*}
     \Vtt_{\ell c}^m \sim
         \Normal{\NWstate_{\ell c}}{\NWvar_{\ell c}^2}
 \end{equation*}
-Once the bus reaches the end of the road and reports its position to us, 
-we estimate (see section 3.3) how long it took, 
-which is a noisy ``measurement'' of the time it \emph{actually} took, 
-which we assume has an error of $\Vtterr_{\ell c}^m$ seconds. 
-Again, assuming the errors follow a normal distribution, 
-we write the observation as 
+Once the bus reaches the end of the road and reports its position to us,
+we estimate (see section 3.3) how long it took,
+which is a noisy ``measurement'' of the time it \emph{actually} took,
+which we assume has an error of $\Vtterr_{\ell c}^m$ seconds.
+Again, assuming the errors follow a normal distribution,
+we write the observation as
 \begin{equation*}
-\Vttobs_{\ell c}^m \sim 
-    \Normal{\Vtt_{\ell c}^m}{\Vtterr_{\ell c}^m^2}.
+\Vttobs_{\ell c}^m \sim
+    \Normal{\Vtt_{\ell c}^m}{(\Vtterr_{\ell c}^m)^2}.
 \end{equation*}
 
-Secondly, we need to consider that travel time changes over time for various reasons. 
-The obvious one is congestion at peak times 
-when lots of people are commuting (many in cars) to or from work, 
-but throughout the day there can be fluctuations in traffic flow 
-due to intersections, incidents, weather, or countless other causes. 
-To model this, we need to account for 
-\emph{systematic, predictable changes}, that is, congestion at peak times, 
-and \emph{random changes}, which accounts for everything else. 
-The systematic part, or trend, can be described 
-using a transition function (or matrix) $\NWtransfun_c$, 
-which, given the state at time $t_{c-1}$ predicts the state at time $t_c$. 
-As for the random fluctuations, these are encapsulated by the model parameter $\NWnoise$, 
-which can be interpreted as \emph{the rate of change of travel time}. 
-Together, again assuming that the state follows a normal distribution, 
-then we write 
+Secondly, we need to consider that travel time changes over time for various reasons.
+The obvious one is congestion at peak times
+when lots of people are commuting (many in cars) to or from work,
+but throughout the day there can be fluctuations in traffic flow
+due to intersections, incidents, weather, or countless other causes.
+To model this, we need to account for
+\emph{systematic, predictable changes}, that is, congestion at peak times,
+and \emph{random changes}, which accounts for everything else.
+The systematic part, or trend, can be described
+using a transition function (or matrix) $\NWtransfun_c$,
+which, given the state at time $t_{c-1}$ predicts the state at time $t_c$.
+As for the random fluctuations, these are encapsulated by the model parameter $\NWnoise$,
+which can be interpreted as \emph{the rate of change of travel time}.
+Together, again assuming that the state follows a normal distribution,
+then we write
 \begin{equation*}
-    \NWstate_{\ell c} \sim 
-        \Normal{\NWstate_{\ell c-1}}{\NWnoise^2}.
+    \NWstate_{\ell c} \sim
+        \Normal{\NWstate_{\ell c-1}}{(\NWtdiff_c \NWnoise)^2},
 \end{equation*}
+where $\NWtdiff_c = t_c - t_{c-1}$.
 
-However, we can describe the model with more detail than this. 
-Let us assume that the \emph{fastest possible travel time} along a road is denoted $\NWmaxtt_\ell$, 
-which would be obtained by a vehicle travelling at the posted speed limit along the entire road. 
-Now $\NWstate_{\ell c}$ is the additional travel time caused by congestion, 
-driver behaviour, and so on, leading to 
+However, we can describe the model with more detail than this.
+Let us assume that the \emph{fastest possible travel time} along a road is denoted $\NWmaxtt_\ell$,
+which would be obtained by a vehicle travelling at the posted speed limit along the entire road.
+Now $\NWstate_{\ell c}$ is the additional travel time caused by congestion,
+driver behaviour, and so on, leading to
 \begin{equation*}
     \Vtt_{\ell c}^m \sim
         \Normal{\NWmaxtt_\ell + \NWstate_{\ell c}}{\NWvar_{\ell c}^2}
 \end{equation*}
-for individual vehicles. 
+for individual vehicles.
 
 <<tt_figure,echo=FALSE,fig.height=3,fig.width=6,out.width=".9\\linewidth",fig.cap="Travel times along a road.">>=
 library(ggplot2)
 source("load_nw_data.R")
 
-ggplot(tts, aes(arrival_time, travel_time)) + 
+ggplot(tts, aes(arrival_time, travel_time)) +
     geom_point() +
     geom_hline(yintercept = 43, lty = 2) +
-    theme_classic() + 
+    theme_classic() +
     xlab("Time") + ylab("Travel time (seconds)")
 @
 
-Now that we have a model, we can take a look at some data. 
-\Cref{fig:tt_figure} shows the travel times 
-between two stops on Symonds Street in central Auckland. 
+Now that we have a model, we can take a look at some data.
+\Cref{fig:tt_figure} shows the travel times
+between two stops on Symonds Street in central Auckland.
 We know that the maximum speed limit along this road is 50~km/h,
 which is approximately \Sexpr{ceiling(50*1000/60/60)}~m/s.
 The distance between the two stops is 610~m,
 so we know the minimum possible travel time is
 $\lfloor\frac{610}{14}\rfloor = \Sexpr{floor(610/14)}$~seconds.
 
-The first model we fit, N1, uses the transition function 
+The first model we fit, N1, uses the transition function
 \begin{equation*}
-\NWtransfun(\NWstate_{\ell c}) = \NWstate_{\ell c-1}. 
+\NWtransfun(\NWstate_{\ell c}) = \NWstate_{\ell c-1}.
 \end{equation*}
-We're using JAGS \citep{JAGS} to fit the hierarchical model described above, 
-using the following priors:
+We used JAGS \citep{JAGS} to fit the hierarchical model described above,
+using the following values and priors:
+\begin{equation}
+\label{eq:nw_model_n1_priors}
+\begin{split}
+\NWmaxtt_\ell &= \Sexpr{floor(610/14)} \\
+\NWstate_{\ell 1} &\sim
+    \GammaD{0.001}{0.001} \\
+\NWvar_\ell^2 &\sim \Uniform{0}{1000} \\
+(\Vtterr_{\ell c}^m)^2 &\sim \GammaD{0.001}{0.001}
+    \quad\forall c \\
+\NWnoise^2 &\sim \GammaD{0.001}{0.001}
+\end{split}
+\end{equation}
 
-- MU_SPEED ~ UNIFORM(3, 30) - max speed between 30 and 100kmh
-- 
+The model implementation was completed within R
+using the \verb+rjags+ package \citep{rjags},
+and model output was processed and graphed
+using the \verb+tidybayes+ package \citep{tidybayes}
+and \verb+ggplot2+ \citep{ggplot2}.
+Traceplots of the first eight $\NWstate$ parameters,
+as well as for $\NWvar$ and $\NWnoise$ are displayed in \cref{fig:nw_model_n1_view}.
+
+<<nw_model_n1_fit,cache=TRUE,echo=FALSE,message=FALSE>>=
+library(rjags)
+library(tidybayes)
+library(ggplot2)
+
+source("load_nw_data.R")
+
+# group times to 5-minute batches
+t30 <- paste(sep = ":",
+    format(tts$arrival_time,
+        "%Y-%m-%d %H"),
+    format(tts$arrival_time, "%M") %>%
+        as.integer %>% `%/%`(5) %>% `*`(5) %>%
+        stringr::str_pad(2, pad = "0")
+) %>% as.POSIXct
+
+segdata <-
+    list(
+        b = tts$travel_time,
+        t = as.integer(as.factor(t30)),
+        delta = diff(sort(unique(as.integer(t30)))),
+        N = nrow(tts),
+        M = length(unique(t30)),
+        mu = 610 / 14
+    )
+
+# plot(t30, segdata$b)
+# with(segdata, plot(sort(unique(t30))[t], b))
+
+n1_model <- "
+model {
+    for (i in 1:N) {
+        b[i] ~ dnorm(B[i], pow(E, -1))
+        B[i] ~ dnorm(mu + beta[t[i]], pow(phi, -1))
+    }
+
+    beta[1] ~ dgamma(0.0001, 0.0001)
+    for (j in 2:M) {
+        beta[j] ~ dnorm(beta[j-1], pow(pow(delta[j-1], 2) * q, -1))T(0,)
+    }
+
+    phi ~ dgamma(0.01, 0.01)
+    q ~ dgamma(0.0001, 0.0001)
+    E <- 9
+}
+"
+
+
+n1_fit <-
+    jags.model(
+        textConnection(n1_model),
+        data = segdata,
+        n.chains = 4,
+        n.adapt = 10000,
+        quiet = TRUE
+    )
+
+n1_samples <-
+    coda.samples(n1_fit,
+        variable.names = c("beta", "phi", "q"),
+        n.iter = 5000,
+        thin = 5
+    )
+
+@
+
+<<nw_model_n1_view,cache=TRUE,echo=FALSE,fig.height=9,fig.width=6,out.width="\\linewidth",fig.cap="Model output.">>=
+egg::ggarrange(
+    n1_samples %>% spread_draws(beta[t]) %>%
+        filter(t < 9) %>%
+        ggplot(aes(.iteration, beta, colour = as.factor(.chain), group = .chain)) +
+            geom_path() +
+            facet_wrap(~t, scales = "free", nrow = 4),
+
+    n1_samples %>% spread_draws(phi) %>%
+        ggplot(aes(.iteration, sqrt(phi), colour = as.factor(.chain), group = .chain)) +
+            geom_path(),
+
+    n1_samples %>% spread_draws(q) %>%
+        ggplot(aes(.iteration, sqrt(q), colour = as.factor(.chain), group = .chain)) +
+            geom_path(),
+
+    # n1_samples %>% spread_draws(E) %>%
+    #     ggplot(aes(.iteration, sqrt(E), colour = as.factor(.chain), group = .chain)) +
+    #         geom_path(),
+
+    ncol = 1, heights = c(2, 1, 1)
+)
+@
+
+<<nw_model_n1_fitted,cache=TRUE,echo=FALSE,fig.height=3,fig.width=6,out.width="0.9\\linewidth",fig.cap="Travel times with fitted betas">>=
+n1_samples %>%
+    spread_draws(beta[t]) %>%
+    sample_draws(n = 20) %>%
+    #median_qi(beta) %>%
+    mutate(timestamp = sort(unique(t30))[t]) %>%
+    ggplot(aes(timestamp, segdata$mu + beta)) +
+        geom_point(aes(arrival_time, travel_time),
+            data = tts, col = "red") +
+        geom_path(aes(group = .draw)) +
+        geom_hline(yintercept = 43, lty = 2) +
+        theme_classic() +
+        xlab("Time") + ylab("Travel time (seconds)")
+@
 
 
 \newpage
