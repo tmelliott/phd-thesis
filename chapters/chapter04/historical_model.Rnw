@@ -123,15 +123,6 @@ library(ggplot2)
 
 source("load_nw_data.R")
 
-# group times to 5-minute batches
-t30 <- paste(sep = ":",
-    format(tts$arrival_time,
-        "%Y-%m-%d %H"),
-    format(tts$arrival_time, "%M") %>%
-        as.integer %>% `%/%`(5) %>% `*`(5) %>%
-        stringr::str_pad(2, pad = "0")
-) %>% as.POSIXct
-
 segdata <-
     list(
         b = tts$travel_time,
@@ -152,18 +143,18 @@ model {
         B[i] ~ dnorm(mu + beta[t[i]], pow(phi, -1))
     }
 
-    beta[1] ~ dgamma(0.0001, 0.0001)
+    beta[1] ~ dunif(0, 500)
     for (j in 2:M) {
         beta[j] ~ dnorm(beta[j-1], pow(pow(delta[j-1], 2) * q, -1))T(0,)
     }
 
     phi ~ dgamma(0.01, 0.01)
-    q ~ dgamma(0.0001, 0.0001)
+    q ~ dgamma(0.01, 0.01)
     E <- 9
 }
 "
 
-
+t0 <- proc.time()
 n1_fit <-
     jags.model(
         textConnection(n1_model),
@@ -179,7 +170,7 @@ n1_samples <-
         n.iter = 5000,
         thin = 5
     )
-
+time_mcmc <- proc.time() - t0
 @
 
 <<nw_model_n1_view,cache=TRUE,echo=FALSE,fig.height=9,fig.width=6,out.width="\\linewidth",fig.cap="Model output.">>=
@@ -191,11 +182,11 @@ egg::ggarrange(
             facet_wrap(~t, scales = "free", nrow = 4),
 
     n1_samples %>% spread_draws(phi) %>%
-        ggplot(aes(.iteration, sqrt(phi), colour = as.factor(.chain), group = .chain)) +
+        ggplot(aes(.iteration, (phi), colour = as.factor(.chain), group = .chain)) +
             geom_path(),
 
     n1_samples %>% spread_draws(q) %>%
-        ggplot(aes(.iteration, sqrt(q), colour = as.factor(.chain), group = .chain)) +
+        ggplot(aes(.iteration, (q), colour = as.factor(.chain), group = .chain)) +
             geom_path(),
 
     # n1_samples %>% spread_draws(E) %>%
@@ -221,11 +212,172 @@ n1_samples %>%
         xlab("Time") + ylab("Travel time (seconds)")
 @
 
-Fitting the model allowed us to estimate values for $\NWvar$ and $\NWnoise$;
-estimation of the betas was not as important,
-as we do not expect these to be constant throughout the day.
-The point here was to estimate the parameters of change.
+Fitting the model allowed us to estimate values for $\NWvar$ and $\NWnoise$
+for a single road segment.
+It is then possible to fit a \rt{} version of the same model to the same data
+using these tuning parameters to see how well it performs.
+Since the \kf{} does not allow the hierarchical structure we described earlier,
+we combined the between-vehicle noise with measurement error,
+so, from normal theory, the observation variance is simply the
+sum of the two variances,
+\begin{equation}
+    \Vttobs_{\ell c}^m \sim
+        \Normal{\Vtt_{\ell c}^m}{\NWvar_{\ell}^2 + (\Vtterr_{\ell c}^m)^2}
+\end{equation}
+which we can fit using a standard \kf{}.
 
+<<nw_model_n1_kf,cache=TRUE,echo=FALSE,fig.height=3,fig.width=6,out.width="0.9\\linewidth",fig.cap="Travel times with KF fit">>=
+source("load_nw_data.R")
+N <- nrow(tts)
+M <- length(unique(t30))
+kf.fit <-
+    tibble(
+        time = sort(unique(t30)),
+        delta = c(0, diff(sort(unique(t30)))),
+        beta = rep(NA_real_, (M)),
+        beta_hat = rep(NA_real_, (M)),
+        P = rep(NA_real_, (M)),
+        P_hat = rep(NA_real_, (M)),
+        B_hat = 1 / P_hat,
+        b_hat = beta_hat / P_hat,
+        B = 1 / P,
+        b = beta / P
+    )
+
+kf.fit$beta[1] <- 50
+kf.fit$P[1] <- 500
+
+q <- sqrt(0.009)
+phi <- sqrt(1300)
+mu <- 43
+
+# convert all data to information
+kf.data <-
+    tibble(
+        time = t30,
+        t = as.integer(as.factor(t30)),
+        b = tts$travel_time - mu,
+        E = 3.0
+    ) %>% mutate(
+        I = 1 / (E^2 + phi^2),
+        i = b / (E^2 + phi^2)
+    ) %>% arrange(t)
+
+kf.fit <- kf.fit %>%
+    left_join(
+        kf.data %>% group_by(t) %>%
+            summarize(time = first(time), Z = sum(I), z = sum(i)),
+        by = "time"
+    )
+
+t0 <- proc.time()
+for (i in 2:M) {
+    # predict
+    kf.fit$beta_hat[i] <- kf.fit$beta[i-1]
+    kf.fit$P_hat[i] <- kf.fit$P[i-1] + (kf.fit$delta[i] + q)^2
+
+    # update
+    kf.fit$B_hat[i] <- 1 / kf.fit$P_hat[i]
+    kf.fit$b_hat[i] <- kf.fit$beta_hat[i] / kf.fit$P_hat[i]
+    kf.fit$B[i] <- kf.fit$B_hat[i] + kf.fit$Z[i]
+    kf.fit$b[i] <- kf.fit$b_hat[i] + kf.fit$z[i]
+
+    # untransform
+    kf.fit$beta[i] <- kf.fit$b[i] / kf.fit$B[i]
+    kf.fit$P[i] <- 1 / kf.fit$B[i]
+}
+time_kf <- proc.time () - t0
+
+library(ggplot2)
+
+ggplot(kf.fit[-1,], aes(time)) +
+    geom_point(aes(y = mu + b), data = kf.data) +
+    geom_ribbon(aes(
+            ymin = mu + truncnorm::qtruncnorm(0.025, 0, Inf, beta_hat, sqrt(P_hat)),
+            ymax = mu + truncnorm::qtruncnorm(0.975, 0, Inf, beta_hat, sqrt(P_hat))
+        ),
+        fill = "blue", alpha = 0.2) +
+    geom_path(aes(y = mu + beta_hat), col = "blue") +
+    geom_ribbon(aes(
+            ymin = mu + truncnorm::qtruncnorm(0.025, 0, Inf, beta, sqrt(P)),
+            ymax = mu + truncnorm::qtruncnorm(0.975, 0, Inf, beta, sqrt(P))
+        ),
+        fill = "red", alpha = 0.2) +
+    geom_path(aes(y = mu + beta), col = "red") +
+    theme_classic() +
+    xlab("Time") + ylab("Travel time (seconds)")
+@
+
+<<nw_model_n1_kf_pred,cache=TRUE,echo=FALSE,fig.height=3,fig.width=6,out.width="0.9\\linewidth",fig.cap="Travel times predictive distribution from KF fit">>=
+ggplot(kf.fit[-1,], aes(time)) +
+    geom_point(aes(y = mu + b), data = kf.data) +
+    # geom_ribbon(aes(
+    #         ymin = mu + pmax(0, qnorm(0.025, beta_hat, sqrt(P_hat))),
+    #         ymax = mu + qnorm(0.975, beta_hat, sqrt(P_hat))
+    #     ),
+    #     fill = "blue", alpha = 0.2) +
+    # geom_path(aes(y = mu + beta_hat), col = "blue") +
+    geom_ribbon(aes(
+            ymin = mu + truncnorm::qtruncnorm(0.025, 0, Inf, beta, sqrt(P) + phi),
+            ymax = mu + truncnorm::qtruncnorm(0.975, 0, Inf, beta, sqrt(P) + phi)
+        ),
+        fill = "red", alpha = 0.2) +
+    geom_path(aes(y = mu + beta), col = "red") +
+    theme_classic() +
+    xlab("Time") + ylab("Travel time (seconds)")
+@
+
+From \cref{fig:nw_model_n1_kf}, we see a fairly similar pattern
+to the estimate of $\NWstate_{\ell,1:T}$,
+although the peak estimation is less extreme
+and slightly delayed.
+The predictive travel time distribution,
+which accounts for uncertainty in $\NWstate_{\ell c}$ and vehicle variation, $\NWvar_{\ell c}$,
+is shown in \cref{fig:nw_model_n1_kf_pred}.
+However, considering the \kf{} model is assuming constant travel time over time,
+this makes sense,
+as the \kf{} is a \emph{noise filtering} technique.
+
+
+Most importantly is the timing comparison,
+which is shown in \cref{tab:nw_model_n1_timecomp}.
+The hierarchical model fit using JAGS took
+\Sexpr{round(time_mcmc[3] / time_kf[3])} times as long as the \kf{} implementation.
+So, even if we reduced the number of chains, the number of iterations,
+and tried to speed up the JAGS model,
+we would never get it close to the \kf{} result.
+
+<<nw_model_n1_timecomp,echo=FALSE,results="asis">>=
+kable(rbind(time_mcmc, time_kf)[,1:3],
+    booktabs = TRUE,
+    caption = "Timing results")
+@
+
+\kf{}'s can implement non-constant transitions between states,
+for example by modifying $\NWtrans_c$ over time.
+
+
+\subsubsection{Investigating a selection of road segments}
+
+To assess how effective this method is for estimating $\NWvar$ and $\NWnoise$,
+we selected 10 other road segments around Auckland.
+
+<<nw_model_n2_ids>>=
+seg_table <-
+    rbind(
+        c(8413, 8411),
+        c(7036, 4063),
+        c(7324, 7326),
+        c(7147, 7145),
+        c(3184, 3186),
+        c(4674, 4672),
+        c(5865, 5867),
+        c(8118, 8120),
+        c(6220, 6779),
+        c(7189, 7187)
+    )
+
+@
 
 
 \newpage

@@ -25,29 +25,30 @@ if (!file.exists(db)) {
 con <- dbConnect(SQLite(), db)
 on.exit(dbDisconnect(con))
 
-# r <- con %>% 
-#     tbl("routes") %>%
-#     filter(route_short_name == "NX1") %>%
-#     filter(route_long_name %like% "Britomart%") %>%
-#     head(1) %>% collect() %>% pull("route_id")
-# t <- con %>% tbl("trips") %>%
-#     filter(route_id == r) %>%
-#     head(1) %>% collect() %>% pull("trip_id")
-#     # times over the bridge
-# stop_ids <- con %>% tbl("stops") %>%
-#     filter(stop_id %like% paste(stop_nums[1]))
-# %>% tbl("stop_times") %>%
-#     filter(trip_id == t) %>%
-#     arrange(desc(stop_sequence)) %>%
-#     head(2) %>% collect() %>% pull("stop_id")
-# stop_ids <- gsub("-.+", "", stop_ids)
-stop_ids <- c("7151", "7149")
+seg_table <-
+    rbind(
+        c(7151, 7149),
+        c(8413, 8411),
+        c(7036, 4063),
+        c(7324, 7326),
+        c(7147, 7145),
+        c(3184, 3186),
+        c(4674, 4672),
+        c(5865, 5867),
+        c(8118, 8120),
+        c(6220, 6779),
+        c(7189, 7187)
+    )
+mode(seg_table) <- "character"
 
-if (!file.exists("symonds_tt.rda")) {
+unlink("symonds_tt.rda")
+file <- "all_tt.rda"
+if (!file.exists(file)) {
     files <- unzip("archive.zip", list = TRUE)
-    tufiles <- files %>% 
+    tufiles <- files %>%
         filter(stringr::str_detect(Name, "^trip")) %>%
         pull(Name)
+    match_str <- paste("^", seg_table, "-", sep = "", collapse = "|")
     # get DEPARTURES from stop_ids[1] and ARRIVALS at stop_ids[2]
     tus <- lapply(tufiles, function(f) {
         file <- unzip("archive.zip", files = f)
@@ -56,45 +57,67 @@ if (!file.exists("symonds_tt.rda")) {
         # need vehicle, trip, arr/dep time
         lapply(feed$entity, function(e) {
             stu <- e$trip_update$stop_time_update[[1]]
-            if (!grepl(paste(stop_ids, collapse = "|"), stu$stop_id))
-                return(NULL)
+            if (!grepl(match_str, stu$stop_id)) return(NULL)
             tibble(
                 vehicle_id = e$trip_update$vehicle$id,
                 trip_id = e$trip_update$trip$trip_id,
                 stop_id = stu$stop_id,
-                arrival_time = 
-                    ifelse(stu$has("arrival"), 
+                arrival_time =
+                    ifelse(stu$has("arrival"),
                         as.integer(stu$arrival$time), NA_integer_),
-                departure_time = 
-                    ifelse(stu$has("departure"), 
+                departure_time =
+                    ifelse(stu$has("departure"),
                         as.integer(stu$departure$time), NA_integer_)
             )
         }) %>% bind_rows
     }) %>% bind_rows %>% distinct
-    
-    tts <- tus %>% 
-        gather(key = "type", value = "time", 
+
+    tt_all <- tus %>%
+        gather(key = "type", value = "time",
             arrival_time, departure_time
         ) %>%
         filter(
-            (type == "departure_time" & grepl(stop_ids[1], stop_id)) |
-            (type == "arrival_time" & grepl(stop_ids[2], stop_id))
+            (type == "departure_time" &
+                sapply(stop_id, function(x) any(stringr::str_detect(x, seg_table[,1])))) |
+            (type == "arrival_time" &
+                sapply(stop_id, function(x) any(stringr::str_detect(x, seg_table[,2]))))
         ) %>%
-        select(vehicle_id, trip_id, type, time) %>%
-        filter(!is.na(time)) %>% 
-        spread(key = "type", value = "time") %>% 
+        select(vehicle_id, trip_id, stop_id, type, time) %>%
+        mutate(stop_id = gsub("-.+", "", stop_id)) %>%
+        filter(!is.na(time)) %>%
+        group_by(vehicle_id, trip_id, stop_id, type) %>%
+        summarize(time = first(time)) %>%
+        ungroup() %>%
+        mutate(stop_id =
+            ifelse(type == "arrival_time",
+                sapply(stop_id, function(x) seg_table[seg_table[, 2] == x, 1]) %>%
+                    as.character(),
+                stop_id
+            )
+        ) %>%
+        spread(key = "type", value = "time") %>%
         mutate(travel_time = arrival_time - departure_time) %>%
         filter(!is.na(travel_time)) %>%
-        mutate(arrival_time = 
-            as.POSIXct(arrival_time, origin = "1970-01-01")
+        mutate(
+            arrival_time = as.POSIXct(arrival_time, origin = "1970-01-01"),
+            departure_time = as.POSIXct(departure_time, origin = "1970-01-01")
         )
 
-    save(tts, file = "symonds_tt.rda")
+    save(tt_all, file = file)
 } else {
-    load("symonds_tt.rda")
+    load(file)
 }
 
 
 # library(ggplot2)
 # ggplot(tts, aes(arrival_time, travel_time/60)) + geom_point() +
 #     scale_x_datetime()
+
+tts <- tt_all %>% filter(stop_id == seg_table[1, 1])
+t30 <- paste(sep = ":",
+    format(tts$arrival_time,
+        "%Y-%m-%d %H"),
+    format(tts$arrival_time, "%M") %>%
+        as.integer %>% `%/%`(5) %>% `*`(5) %>%
+        stringr::str_pad(2, pad = "0")
+) %>% as.POSIXct
