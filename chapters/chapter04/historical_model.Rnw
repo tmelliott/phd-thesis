@@ -429,10 +429,14 @@ all.fits <- lapply(data.list, function(tts) {
         }
 
         phi ~ dgamma(0.01, 0.01)
-        q ~ dgamma(0.01, 0.01)
+        #q ~ dgamma(0.01, 0.01)
+        log_q ~ dnorm(0, 0.1)
+        eq <- exp(log_q)
+        q <- pow(eq, 2)
         E <- 9
     }
     "
+
 
     t0 <- proc.time()
     n1_fit <-
@@ -459,6 +463,7 @@ all.fits <- lapply(data.list, function(tts) {
 @
 
 <<nw_model_n2_diag,cache=TRUE,echo=FALSE,fig.width=8,fig.height=9,out.width="\\textwidth",fig.cap="Traceplots of network parameters for each segment.">>=
+
 do.call(egg::ggarrange, c(
     do.call(c, lapply(all.fits, function(n1_samples) {
         list(
@@ -482,6 +487,7 @@ do.call(egg::ggarrange, c(
 @
 
 <<nw_model_n2_resfits,cache=TRUE,echo=FALSE,fig.width=6,fig.height=9,out.width="0.8\\textwidth",fig.cap="Sample of posterior fits to segment travel times.">>=
+
 do.call(egg::ggarrange, c(
     lapply(seq_along(all.fits), function(i) {
         tts <- data.list[[i]]
@@ -507,6 +513,7 @@ do.call(egg::ggarrange, c(
 @
 
 <<nw_model_n2_kf,echo=FALSE,cache=TRUE,fig.width=8,fig.height=9,out.width="\\textwidth",fig.cap="Kalman filter results from real-time fitting, showing travel time estimate (left) and posterior predictive travel time (right).">>=
+
 do.call(egg::ggarrange, c(
     do.call(c, lapply(seq_along(all.fits), function(i) {
         tts <- data.list[[i]]
@@ -627,6 +634,9 @@ the JAGS-estimated values of $\NWvar$ and $\NWnoise$ were well suited
 for the \rt{} \kf{} implementation.
 The traceplots are shown in \cref{fig:nw_model_n2_diag},
 and a posterior sample of $\NWstate_{1:C}$ is shown in \cref{fig:nw_model_n2_resfits}.
+For all segments, $\NWvar$ was sampled well;
+however, $\NWnoise$ often had difficulties due to the zero-boundary.
+
 
 We then took the posterior mean from the JAGS samples to estimate values
 for $\NWvar$ and $\NWnoise$ for each segment,
@@ -634,6 +644,12 @@ and fit the \rt{} \kf{} as before.
 \Cref{fig:nw_model_n2_kf} shows the estimates of
 the predicted and updated network state and associated variances,
 along with the predictive distribution (mean + uncertainty + between vehicle noise).
+
+
+A better examination, however, is to look at data from a different day
+for the same segment.
+
+Should try fitting a single value of q and only estimate psi.
 
 
 \newpage
