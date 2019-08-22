@@ -4,7 +4,38 @@
 
 The relationship between the underlying travel time and the value we estimate (back in chapter \cref{cha:vehicle_model}) involves two steps. First, we must describe the relationship between the underlying travel time and the \emph{actual} time taken. Secondly, we define the relationship between \emph{actual} and \emph{observed} (or, more specifically, estimated) travel time. This type of model is often called a \emph{heirarchical Bayesian model} and is demonstrated graphically in \cref{fig:nw_model_hierarchy}.
 
+Let us first consider the state of the network at time $t_c$, which we denote $\boldsymbol{\NWstate}_c = [\NWstate_{1c}, \cdots, \NWstate_{Lc}]$, a vector containing the current real-time travel times of vehicles along all $L$ roads in the network. However, modelling this entire state would increase computational demand as $L$ gets large, so, for now, we have only considered each road segment $\ell$ \emph{independently} (see later in \cref{} for a discussion of the implications of this).
 
+Vehicles travel along road segment $\ell$ at time $t_c$ with an average travel time of $\NWstate_{\ellc}$~seconds, which changes with an average rate of $\NWnoise_\ell$. Assuming the underlying road state is a Markov process, the evolution of travel time, at its simplest level, can be described by
+\begin{equation}\label{eq:nw_state_markov}
+\NWstate_{\ellc} \sim \Normal{\NWstate_{\ellc-1}}{(\NWtdiff_c \NWnoise_c)^2}
+\end{equation}
+where $\NWtdiff_c = t_c - t_{c-1}$ is the time since the last update. Essentially, this model allows travel time to ``wander'' around the sate space, responding to both random and systematic changes to traffic conditions.
+
+
+The Gaussian Markov model assumes that the rate of change is constant over time and independent of the value of travel time: this is unlikely to be the case. It would be reasonable to assume that the rate of change is higher when traffic is heavier (that is, larger fluctuations in travel time) compared to when traffic is free-flowing; when traffic is free-flowing, we expect the \emph{between-vehicle} variability to account for changes between vehicles (for example, a cyclist going up a hill). What I'm trying to say is that there is a \emph{multiplicative} relationship between variance and travel time, not an additive one. We also must consider the lower boundary of travel time, which is easily calculated as
+\begin{equation}\label{eq:seg_min_tt}
+T_\ell^\text{min} = \frac{\text{segment length}}{\text{speed limit}}.
+\end{equation}
+One solution to both of these is to replace $\NWstate_{\ellc}$ with $\NWstate_{\ellc}^\star$, such that
+\begin{equation}\label{eq:nw_state_logtransform}
+\NWstate_{\ellc} = T_\ell^\text{min} + e^{\NWstate_{\ellc}^\star}
+\end{equation}
+and modelling $\NWstate_{\ellc}^\star$ as
+\begin{equation}\label{eq:nw_state_markov_log}
+\NWstate_{\ellc}^\star \sim \Normal{\NWstate_{\ellc-1}^\star}{(\NWtdiff_c \NWnoise_c)^2}.
+\end{equation}
+Note that now $\NWnoise_c$ is the rate of change of travel time on the log scale.
+
+
+When a physical vehicle travels along a road segment, its travel time is influenced by many factors, including (but certainly not limited to) road obstacles (pedestrians crossing the road, cyclists, other vehicles pulling into or out of traffic), driver behaviour (both of the vehicle we are observing and of other road users), lane differences, and queuing traffic. To encapsulate all of this uncertainty, we introduce a single parameter $\NWvar_{\ellc}$, which describes the width of the distribution at the top of \cref{fig:nw_model_hierarchy}, or the \emph{between-vehicle varibility}. The model for the \emph{actual} travel time of a bus $m$ along road segment $\ell$ at time $t_c$ is denoted $\Vtt_{\ellc}^m$, and is assumed to be an observation from the population distribution with mean $\NWstate_{\ellc}$ and variance $\NWvar_{\ellc}^2$. This can be expressed as
+\begin{equation}\label{eq:nw_vehicle_tt}
+\Vtt_{\ellc}^m \sim \Normal{\NWstate_{\ellc}}{\NWvar_{\ellc}^2}
+\end{equation}.
+
+
+
+\pagebreak
 First, we present the relationship at a fixed time $t_c$.
 We define $\NWstate_{\ell c}$ to be the average travel time of vehicles
 along road segment $\ell$ at time $t_c$,
