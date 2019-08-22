@@ -22,8 +22,566 @@ measurement error to have heirarchical distributions,
 with a global mean noise/error and associated variance.
 
 
-<<stuff>>=
-# here's some code that will fit a model to a bunch of data
-# and estimate Q and E,
-# and then use the posterior estimates of the Bs to estimate beta
+
+The first model we fit, N1, uses the transition function
+\begin{equation*}
+\NWtransfun(\NWstate_{\ell c}) = \NWstate_{\ell c-1}.
+\end{equation*}
+We used JAGS \citep{JAGS} to fit the hierarchical model described above,
+using the following values and priors:
+\begin{equation}
+\label{eq:nw_model_n1_priors}
+\begin{split}
+\NWmaxtt_\ell &= \Sexpr{floor(610/14)} \\
+\NWstate_{\ell 1} &\sim
+    \GammaD{0.001}{0.001} \\
+\NWvar_\ell^2 &\sim \Uniform{0}{1000} \\
+(\Vtterr_{\ell c}^m)^2 &\sim \GammaD{0.001}{0.001}
+    \quad\forall c \\
+\NWnoise^2 &\sim \GammaD{0.001}{0.001}
+\end{split}
+\end{equation}
+
+The model implementation was completed within R
+using the \verb+rjags+ package \citep{rjags},
+and model output was processed and graphed
+using the \verb+tidybayes+ package \citep{tidybayes}
+and \verb+ggplot2+ \citep{ggplot2}.
+Traceplots of the first eight $\NWstate$ parameters,
+as well as for $\NWvar$ and $\NWnoise$ are displayed in \cref{fig:nw_model_n1_view}.
+
+<<nw_model_n1_fit,cache=TRUE,echo=FALSE,message=FALSE>>=
+library(rjags)
+library(tidybayes)
+library(ggplot2)
+
+source("load_nw_data.R")
+
+segdata <-
+    list(
+        b = tts$travel_time,
+        t = as.integer(as.factor(t30)),
+        delta = diff(sort(unique(as.integer(t30)))),
+        N = nrow(tts),
+        M = length(unique(t30)),
+        mu = mu[1]
+    )
+
+# plot(t30, segdata$b)
+# with(segdata, plot(sort(unique(t30))[t], b))
+
+n1_model <- "
+model {
+    for (i in 1:N) {
+        b[i] ~ dnorm(B[i], pow(E, -1))
+        B[i] ~ dnorm(mu + beta[t[i]], pow(phi, -1))
+    }
+
+    beta[1] ~ dunif(0, 500)
+    for (j in 2:M) {
+        beta[j] ~ dnorm(beta[j-1], pow(pow(delta[j-1], 2) * q, -1))T(0,)
+    }
+
+    phi ~ dgamma(0.01, 0.01)
+    q ~ dgamma(0.01, 0.01)
+    E <- 9
+}
+"
+
+t0 <- proc.time()
+n1_fit <-
+    jags.model(
+        textConnection(n1_model),
+        data = segdata,
+        n.chains = 4,
+        n.adapt = 10000,
+        quiet = TRUE
+    )
+
+n1_samples <-
+    coda.samples(n1_fit,
+        variable.names = c("beta", "phi", "q"),
+        n.iter = 5000,
+        thin = 5
+    )
+time_mcmc <- proc.time() - t0
 @
+
+<<nw_model_n1_view,cache=TRUE,echo=FALSE,fig.height=9,fig.width=6,out.width="\\linewidth",fig.cap="Model output.">>=
+egg::ggarrange(
+    n1_samples %>% spread_draws(beta[t]) %>%
+        filter(t < 9) %>%
+        ggplot(aes(.iteration, beta, colour = as.factor(.chain), group = .chain)) +
+            geom_path() +
+            facet_wrap(~t, scales = "free", nrow = 4),
+
+    n1_samples %>% spread_draws(phi) %>%
+        ggplot(aes(.iteration, (phi), colour = as.factor(.chain), group = .chain)) +
+            geom_path(),
+
+    n1_samples %>% spread_draws(q) %>%
+        ggplot(aes(.iteration, (q), colour = as.factor(.chain), group = .chain)) +
+            geom_path(),
+
+    # n1_samples %>% spread_draws(E) %>%
+    #     ggplot(aes(.iteration, sqrt(E), colour = as.factor(.chain), group = .chain)) +
+    #         geom_path(),
+
+    ncol = 1, heights = c(2, 1, 1)
+)
+@
+
+<<nw_model_n1_fitted,cache=TRUE,echo=FALSE,fig.height=3,fig.width=6,out.width="0.9\\linewidth",fig.cap="Travel times with fitted betas">>=
+n1_samples %>%
+    spread_draws(beta[t]) %>%
+    sample_draws(n = 20) %>%
+    #median_qi(beta) %>%
+    mutate(timestamp = sort(unique(t30))[t]) %>%
+    ggplot(aes(timestamp, segdata$mu + beta)) +
+        geom_point(aes(arrival_time, travel_time),
+            data = tts, col = "red") +
+        geom_path(aes(group = .draw)) +
+        geom_hline(yintercept = 43, lty = 2) +
+        theme_classic() +
+        xlab("Time") + ylab("Travel time (seconds)")
+@
+
+Fitting the model allowed us to estimate values for $\NWvar$ and $\NWnoise$
+for a single road segment.
+It is then possible to fit a \rt{} version of the same model to the same data
+using these tuning parameters to see how well it performs.
+Since the \kf{} does not allow the hierarchical structure we described earlier,
+we combined the between-vehicle noise with measurement error,
+so, from normal theory, the observation variance is simply the
+sum of the two variances,
+\begin{equation}
+    \Vttobs_{\ell c}^m \sim
+        \Normal{\Vtt_{\ell c}^m}{\NWvar_{\ell}^2 + (\Vtterr_{\ell c}^m)^2}
+\end{equation}
+which we can fit using a standard \kf{}.
+
+<<nw_model_n1_kf,cache=TRUE,echo=FALSE,fig.height=3,fig.width=6,out.width="0.9\\linewidth",fig.cap="Travel times with KF fit">>=
+source("load_nw_data.R")
+N <- nrow(tts)
+M <- length(unique(t30))
+kf.fit <-
+    tibble(
+        time = sort(unique(t30)),
+        delta = c(0, diff(sort(unique(t30)))),
+        beta = rep(NA_real_, (M)),
+        beta_hat = rep(NA_real_, (M)),
+        P = rep(NA_real_, (M)),
+        P_hat = rep(NA_real_, (M)),
+        B_hat = 1 / P_hat,
+        b_hat = beta_hat / P_hat,
+        B = 1 / P,
+        b = beta / P
+    )
+
+kf.fit$beta[1] <- 50
+kf.fit$P[1] <- 500
+
+q <- sqrt(0.009)
+phi <- sqrt(1300)
+mu <- 43
+
+# convert all data to information
+kf.data <-
+    tibble(
+        time = t30,
+        t = as.integer(as.factor(t30)),
+        b = tts$travel_time - mu,
+        E = 3.0
+    ) %>% mutate(
+        I = 1 / (E^2 + phi^2),
+        i = b / (E^2 + phi^2)
+    ) %>% arrange(t)
+
+kf.fit <- kf.fit %>%
+    left_join(
+        kf.data %>% group_by(t) %>%
+            summarize(time = first(time), Z = sum(I), z = sum(i)),
+        by = "time"
+    )
+
+t0 <- proc.time()
+for (i in 2:M) {
+    # predict
+    kf.fit$beta_hat[i] <- kf.fit$beta[i-1]
+    kf.fit$P_hat[i] <- kf.fit$P[i-1] + (kf.fit$delta[i] + q)^2
+
+    # update
+    kf.fit$B_hat[i] <- 1 / kf.fit$P_hat[i]
+    kf.fit$b_hat[i] <- kf.fit$beta_hat[i] / kf.fit$P_hat[i]
+    kf.fit$B[i] <- kf.fit$B_hat[i] + kf.fit$Z[i]
+    kf.fit$b[i] <- kf.fit$b_hat[i] + kf.fit$z[i]
+
+    # untransform
+    kf.fit$beta[i] <- kf.fit$b[i] / kf.fit$B[i]
+    kf.fit$P[i] <- 1 / kf.fit$B[i]
+}
+time_kf <- proc.time () - t0
+
+library(ggplot2)
+
+ggplot(kf.fit[-1,], aes(time)) +
+    geom_point(aes(y = mu + b), data = kf.data) +
+    geom_ribbon(aes(
+            ymin = mu + truncnorm::qtruncnorm(0.025, 0, Inf, beta_hat, sqrt(P_hat)),
+            ymax = mu + truncnorm::qtruncnorm(0.975, 0, Inf, beta_hat, sqrt(P_hat))
+        ),
+        fill = "blue", alpha = 0.2) +
+    geom_path(aes(y = mu + beta_hat), col = "blue") +
+    geom_ribbon(aes(
+            ymin = mu + truncnorm::qtruncnorm(0.025, 0, Inf, beta, sqrt(P)),
+            ymax = mu + truncnorm::qtruncnorm(0.975, 0, Inf, beta, sqrt(P))
+        ),
+        fill = "red", alpha = 0.2) +
+    geom_path(aes(y = mu + beta), col = "red") +
+    theme_classic() +
+    xlab("Time") + ylab("Travel time (seconds)")
+@
+
+<<nw_model_n1_kf_pred,cache=TRUE,echo=FALSE,fig.height=3,fig.width=6,out.width="0.9\\linewidth",fig.cap="Travel times predictive distribution from KF fit">>=
+ggplot(kf.fit[-1,], aes(time)) +
+    geom_point(aes(y = mu + b), data = kf.data) +
+    # geom_ribbon(aes(
+    #         ymin = mu + pmax(0, qnorm(0.025, beta_hat, sqrt(P_hat))),
+    #         ymax = mu + qnorm(0.975, beta_hat, sqrt(P_hat))
+    #     ),
+    #     fill = "blue", alpha = 0.2) +
+    # geom_path(aes(y = mu + beta_hat), col = "blue") +
+    geom_ribbon(aes(
+            ymin = mu + truncnorm::qtruncnorm(0.025, 0, Inf, beta, sqrt(P) + phi),
+            ymax = mu + truncnorm::qtruncnorm(0.975, 0, Inf, beta, sqrt(P) + phi)
+        ),
+        fill = "red", alpha = 0.2) +
+    geom_path(aes(y = mu + beta), col = "red") +
+    theme_classic() +
+    xlab("Time") + ylab("Travel time (seconds)")
+@
+
+From \cref{fig:nw_model_n1_kf}, we see a fairly similar pattern
+to the estimate of $\NWstate_{\ell,1:T}$,
+although the peak estimation is less extreme
+and slightly delayed.
+The predictive travel time distribution,
+which accounts for uncertainty in $\NWstate_{\ell c}$ and vehicle variation, $\NWvar_{\ell c}$,
+is shown in \cref{fig:nw_model_n1_kf_pred}.
+However, considering the \kf{} model is assuming constant travel time over time,
+this makes sense,
+as the \kf{} is a \emph{noise filtering} technique.
+
+
+Most importantly is the timing comparison,
+which is shown in \cref{tab:nw_model_n1_timecomp}.
+The hierarchical model fit using JAGS took
+\Sexpr{round(time_mcmc[3] / time_kf[3])} times as long as the \kf{} implementation.
+So, even if we reduced the number of chains, the number of iterations,
+and tried to speed up the JAGS model,
+we would never get it close to the \kf{} result.
+
+<<nw_model_n1_timecomp,echo=FALSE,results="asis">>=
+kable(rbind(time_mcmc, time_kf)[,1:3],
+    booktabs = TRUE,
+    caption = "Timing results")
+@
+
+\kf{}'s can implement non-constant transitions between states,
+for example by modifying $\NWtrans_c$ over time.
+
+
+\subsubsection{Investigating a selection of road segments}
+
+To assess how effective this method is for estimating $\NWvar$ and $\NWnoise$,
+we selected five other road segments around Auckland
+and repeated the above process.
+We fit the same JAGS model, using the same number of iterations for each,
+which worked in most cases.
+Each segment was modelled independently.
+The travel time data is shown in \cref{fig:nw_model_n2_segplots}.
+
+<<nw_model_n2_segplots,echo=FALSE,cache=TRUE,fig.width=6,fig.height=9,out.width="0.8\\textwidth",fig.cap="Travel times along 5 roads throughout Auckland.">>=
+source("load_nw_data.R")
+library(ggplot2)
+
+data.list <- lapply(c(2, 3, 5, 9, 11), function(i) {
+    tts <- tt_all %>% filter(stop_id == seg_table[i, 1])
+    t30 <- paste(sep = ":",
+        format(tts$arrival_time,
+            "%Y-%m-%d %H"),
+        format(tts$arrival_time, "%M") %>%
+            as.integer %>% `%/%`(5) %>% `*`(5) %>%
+            stringr::str_pad(2, pad = "0")
+    ) %>% as.POSIXct
+    attr(tts, "t30") <- t30
+    attr(tts, "mu") <- mu[i]
+    tts
+})
+
+do.call(egg::ggarrange, c(
+    lapply(data.list, function(tts) {
+        ggplot(tts, aes(arrival_time, travel_time)) +
+            geom_point() +
+            geom_hline(yintercept = attr(tts, "mu"), lty = 2) +
+            theme_classic() +
+            xlab("Time") + ylab("Travel time (seconds)")
+    }),
+    ncol = 1
+))
+@
+
+<<nw_model_nw_jagsfits,echo=FALSE,cache=TRUE>>=
+library(rjags)
+library(tidybayes)
+
+all.fits <- lapply(data.list, function(tts) {
+    t30 <- attr(tts, "t30")
+    segdata <-
+        list(
+            b = tts$travel_time,
+            t = as.integer(as.factor(t30)),
+            delta = diff(sort(unique(as.integer(t30)))),
+            N = nrow(tts),
+            M = length(unique(t30)),
+            mu = attr(tts, "mu")
+        )
+
+    # plot(t30, segdata$b)
+    # with(segdata, plot(sort(unique(t30))[t], b))
+
+    n1_model <- "
+    model {
+        for (i in 1:N) {
+            b[i] ~ dnorm(B[i], pow(E, -1))
+            B[i] ~ dnorm(mu + beta[t[i]], pow(phi, -1))
+        }
+
+        beta[1] ~ dunif(0, 500)
+        for (j in 2:M) {
+            beta[j] ~ dnorm(beta[j-1], pow(pow(delta[j-1], 2) * q, -1))T(0,)
+        }
+
+        phi ~ dgamma(0.01, 0.01)
+        #q ~ dgamma(0.01, 0.01)
+        log_q ~ dnorm(0, 0.1)
+        eq <- exp(log_q)
+        q <- pow(eq, 2)
+        E <- 9
+    }
+    "
+
+
+    t0 <- proc.time()
+    n1_fit <-
+        jags.model(
+            textConnection(n1_model),
+            data = segdata,
+            n.chains = 4,
+            n.adapt = 10000,
+            quiet = TRUE
+        )
+
+    n1_samples <-
+        coda.samples(n1_fit,
+            variable.names = c("beta", "phi", "q"),
+            n.iter = 5000,
+            thin = 5
+        )
+    time_mcmc <- proc.time() - t0
+
+    attr(n1_samples, "time") <- time_mcmc
+
+    n1_samples
+})
+@
+
+<<nw_model_n2_diag,cache=TRUE,echo=FALSE,fig.width=8,fig.height=9,out.width="\\textwidth",fig.cap="Traceplots of network parameters for each segment.">>=
+
+do.call(egg::ggarrange, c(
+    do.call(c, lapply(all.fits, function(n1_samples) {
+        list(
+            n1_samples %>% spread_draws(phi) %>%
+                ggplot(aes(.iteration, phi, colour = as.factor(.chain), group = .chain)) +
+                    geom_path() +
+                    xlab("Iteration") +
+                    theme_classic() + theme(legend.position = "none") +
+                    ylab(expression(psi)),
+
+            n1_samples %>% spread_draws(q) %>%
+                ggplot(aes(.iteration, q, colour = as.factor(.chain), group = .chain)) +
+                    geom_path() +
+                    xlab("Iteration") +
+                    theme_classic() +
+                    labs(colour = "Chain")
+        )
+    })),
+    list(ncol = 2)
+))
+@
+
+<<nw_model_n2_resfits,cache=TRUE,echo=FALSE,fig.width=6,fig.height=9,out.width="0.8\\textwidth",fig.cap="Sample of posterior fits to segment travel times.">>=
+
+do.call(egg::ggarrange, c(
+    lapply(seq_along(all.fits), function(i) {
+        tts <- data.list[[i]]
+        t30 <- attr(tts, "t30")
+        n1_samples <- all.fits[[i]]
+        mu <- attr(tts, "mu")
+
+        n1_samples %>%
+            spread_draws(beta[t]) %>%
+            sample_draws(n = 20) %>%
+            #median_qi(beta) %>%
+            mutate(timestamp = sort(unique(t30))[t]) %>%
+            ggplot(aes(timestamp, mu + beta)) +
+                geom_point(aes(arrival_time, travel_time),
+                    data = tts, col = "red") +
+                geom_path(aes(group = .draw)) +
+                geom_hline(yintercept = 43, lty = 2) +
+                theme_classic() +
+                xlab("Time") + ylab("Travel time (seconds)")
+    }),
+    ncol = 1
+))
+@
+
+<<nw_model_n2_kf,echo=FALSE,cache=TRUE,fig.width=8,fig.height=9,out.width="\\textwidth",fig.cap="Kalman filter results from real-time fitting, showing travel time estimate (left) and posterior predictive travel time (right).">>=
+
+do.call(egg::ggarrange, c(
+    do.call(c, lapply(seq_along(all.fits), function(i) {
+        tts <- data.list[[i]]
+        t30 <- attr(tts, "t30")
+        n1_samples <- all.fits[[i]]
+
+        N <- nrow(tts)
+        M <- length(unique(t30))
+        kf.fit <-
+            tibble(
+                time = sort(unique(t30)),
+                delta = c(0, diff(sort(unique(t30)))),
+                beta = rep(NA_real_, (M)),
+                beta_hat = rep(NA_real_, (M)),
+                P = rep(NA_real_, (M)),
+                P_hat = rep(NA_real_, (M)),
+                B_hat = 1 / P_hat,
+                b_hat = beta_hat / P_hat,
+                B = 1 / P,
+                b = beta / P
+            )
+
+        kf.fit$beta[1] <- mean(as.matrix(n1_samples)[,"beta[1]"])
+        kf.fit$P[1] <- 500
+
+        q <- sqrt(mean(as.matrix(n1_samples)[,"q"]))
+        phi <- sqrt(mean(as.matrix(n1_samples)[,"phi"]))
+        mu <- attr(tts, "mu")
+
+        # convert all data to information
+        kf.data <-
+            tibble(
+                time = t30,
+                t = as.integer(as.factor(t30)),
+                b = tts$travel_time - mu,
+                E = 3.0
+            ) %>% mutate(
+                I = 1 / (E^2 + phi^2),
+                i = b / (E^2 + phi^2)
+            ) %>% arrange(t)
+
+        kf.fit <- kf.fit %>%
+            left_join(
+                kf.data %>% group_by(t) %>%
+                    summarize(time = first(time), Z = sum(I), z = sum(i)),
+                by = "time"
+            )
+
+        t0 <- proc.time()
+        for (i in 2:M) {
+            # predict
+            kf.fit$beta_hat[i] <- kf.fit$beta[i-1]
+            kf.fit$P_hat[i] <- kf.fit$P[i-1] + (kf.fit$delta[i] + q)^2
+
+            # update
+            kf.fit$B_hat[i] <- 1 / kf.fit$P_hat[i]
+            kf.fit$b_hat[i] <- kf.fit$beta_hat[i] / kf.fit$P_hat[i]
+            kf.fit$B[i] <- kf.fit$B_hat[i] + kf.fit$Z[i]
+            kf.fit$b[i] <- kf.fit$b_hat[i] + kf.fit$z[i]
+
+            # untransform
+            kf.fit$beta[i] <- kf.fit$b[i] / kf.fit$B[i]
+            kf.fit$P[i] <- 1 / kf.fit$B[i]
+        }
+        time_kf <- proc.time () - t0
+
+        library(ggplot2)
+
+        list(
+            # n1_samples %>%
+            #     spread_draws(beta[t]) %>%
+            #     sample_draws(n = 20) %>%
+            #     #median_qi(beta) %>%
+            #     mutate(timestamp = sort(unique(t30))[t]) %>%
+            #     ggplot(aes(timestamp, mu + beta)) +
+            #         geom_point(aes(arrival_time, travel_time),
+            #             data = tts, col = "red") +
+            #         geom_path(aes(group = .draw)) +
+            #         geom_hline(yintercept = mu, lty = 2) +
+            #         theme_classic() +
+            #         xlab("Time") + ylab("Travel time (seconds)"),
+
+            ggplot(kf.fit[-1,], aes(time)) +
+                geom_point(aes(y = mu + b), data = kf.data) +
+                geom_ribbon(aes(
+                        ymin = mu + truncnorm::qtruncnorm(0.025, 0, Inf, beta_hat, sqrt(P_hat)),
+                        ymax = mu + truncnorm::qtruncnorm(0.975, 0, Inf, beta_hat, sqrt(P_hat))
+                    ),
+                    fill = "blue", alpha = 0.2) +
+                geom_path(aes(y = mu + beta_hat), col = "blue") +
+                geom_ribbon(aes(
+                        ymin = mu + truncnorm::qtruncnorm(0.025, 0, Inf, beta, sqrt(P)),
+                        ymax = mu + truncnorm::qtruncnorm(0.975, 0, Inf, beta, sqrt(P))
+                    ),
+                    fill = "red", alpha = 0.2) +
+                geom_path(aes(y = mu + beta), col = "red") +
+                theme_classic() +
+                xlab("Time") + ylab("Travel time (seconds)"),
+
+            ggplot(kf.fit[-1,], aes(time)) +
+                geom_point(aes(y = mu + b), data = kf.data) +
+                geom_ribbon(aes(
+                        ymin = mu + truncnorm::qtruncnorm(0.025, 0, Inf, beta, sqrt(P) + phi),
+                        ymax = mu + truncnorm::qtruncnorm(0.975, 0, Inf, beta, sqrt(P) + phi)
+                    ),
+                    fill = "red", alpha = 0.2) +
+                geom_path(aes(y = mu + beta), col = "red") +
+                theme_classic() +
+                xlab("Time") + ylab("Travel time (seconds)")
+        )
+    })),
+    ncol = 2
+))
+@
+
+For most of them, despite a range of features,
+the JAGS-estimated values of $\NWvar$ and $\NWnoise$ were well suited
+for the \rt{} \kf{} implementation.
+The traceplots are shown in \cref{fig:nw_model_n2_diag},
+and a posterior sample of $\NWstate_{1:C}$ is shown in \cref{fig:nw_model_n2_resfits}.
+For all segments, $\NWvar$ was sampled well;
+however, $\NWnoise$ often had difficulties due to the zero-boundary.
+
+
+We then took the posterior mean from the JAGS samples to estimate values
+for $\NWvar$ and $\NWnoise$ for each segment,
+and fit the \rt{} \kf{} as before.
+\Cref{fig:nw_model_n2_kf} shows the estimates of
+the predicted and updated network state and associated variances,
+along with the predictive distribution (mean + uncertainty + between vehicle noise).
+
+
+A better examination, however, is to look at data from a different day
+for the same segment.
+
+Should try fitting a single value of q and only estimate psi.
+

@@ -1,41 +1,84 @@
 \chapter{Transit network}
 \label{cha:network_model}
 
-Buses travel along fixed routes, navigating bus stops, intersections, and the roadways between them. In the previous chapter, we discussed the role of bus stops and intersections and estimated travel times. Now, we will explore the relationship between those estimates and the underlying transit network consisting of nodes connected by edges. The nodes are either bus stops or intersections, while the edges are the roads the join them. Along these roads, vehicles travel from node to node at speeds controlled by the road's speed limit and, more importantly,  congestion levels. 
+Buses travel along fixed routes, navigating bus stops, intersections, and the roadways between them. In the previous chapter, we discussed the role of bus stops and intersections and their impact on estimated travel times. In this chapter, we explore the relationship between those estimates and the underlying transit network, which is simply a collection of nodes (bus stops and intersections) and edges (the roads connecting them). Vehicles traverse the network, travelling from one node to the next along the connecting edges, at speeds which are affected by the ever-changing road conditions, which affect the vehicles' travel times along roads.
 
-Vehicle travel time along a specific road will clearly change over time, but also between vehicles due to, for example, driver behaviour. Therefore, there is a distribution of travel times at any given time for one single road, explaining the variability between individual vehicles. Further, the travel times obtained in the previous chapter are noisy measurements of the vehicles' actual travel times, giving rise to a hierarchy of travel times and errors, as demonstrated in \cref{fig:network-tt-heirarchy}.
+Before we can estimate the road state (that is, the average travel time of transit vehicles), we need to describe the relationship between it and the numbers we obtained in \cref{cha:vehicle_model}. Vehicle travel times along a specific road inevitably change over time, but there is also variation between vehicles due to, for example, driver behaviour. This variability leads to a distribution in the travel time of vehicles travelling simultaneously along the same road, as demonstrated in the first part of \cref{fig:nw_model_hierarchy}. The second part of the same figure shows the relationship between the bus' \emph{actual} travel time and our estimated, \emph{observed} travel time, which is a measurement with some inherent uncertainty.
 
-In this section, we explore ways of modelling the underlying travel time distribution---that is, the mean and variance of buses at a fixed time---over time. As with the vehicle model, we must keep in mind the real-time nature of the application: the information obtained from this model will be used to generate estimates of arrival time in \cref{cha:prediction}. \Cref{sec:nw_realtime} describes how we model travel times in real-time, while \cref{sec:nw_par_est} will explore the model parameters (for example, the rate at which travel times change over time, and the variability between vehicles). In \cref{sec:nw_hist_prior}, we will discuss the use of historical data to improve the forecasting ability of the transit network model, which will be particularly useful for predicting arrival times in the next chapter. Finally, \cref{sec:nw_comp} will cover the computational aspects of the model's real-time implementation and the database supporting it. 
+In this section, we present a model for estimating the distribution of travel times along roads throughout the transit network. As with the vehicle model, we must keep in mind the real-time nature of the application: the information obtained from this model will be used to generate estimates of arrival time in \cref{cha:prediction}. In \Cref{sec:nw_realtime}, we describe the real-time implementation of the model using a Kalman filter. \cref{sec:nw_par_est} explains how we estimated the necessary model parameters (the rate at which travel times change over time and the travel time variability between vehicles) from historical data. This historical data can also be used to improve the model's forecasting ability, as we discuss in \cref{sec:nw_hist_model}, which we will make use of in \cref{cha:prediction}. Finally, we cover the computational aspects of the model's real-time implementation in \cref{sec:nw_implementation}.
 
+<<nw_model_hierarchy,echo=FALSE,fig.width=6,fig.height=6,out.width="0.8\\textwidth",fig.align="center",fig.cap="The hierarchy of travel time variability along a single road segment during one time period. The first level shows \\emph{between-vehicle} variability, which accounts for differing driver behaviour, lane choice, and other obstacles, and the solid arrows represent the \\emph{actual} travel time of that bus along the road. The the second layer shows how measurements, the solid dots at the bottom, are made of the vehicle's travel time.">>=
+suppressPackageStartupMessages({
+    library(dplyr)
+    library(ggplot2)
+})
 
+beta <- 60
+psi <- 20
 
-% Buses travel along fixed routes,
-% navigating bus stops, intersections, and general congestion.
-% How the vehicles move through the network is quite chaotic:
-% each vehicle is, to an extend, independent,
-% unless they are spatially and temporally near
-% (e.g., travelling one behind the other).
+d <- tibble(x = seq(0, 120, length = 1001)) %>%
+    mutate(t = dnorm(x, beta, psi) / dnorm(beta, beta, psi))
 
-% In general, however, we can imagine that there is a constant
-% flow of traffic through the network
-% such that the travel time along a road $\ell$ at time $t_c$.
-% is represented by $\NWstate^\ell_c$,
-% and is a Markov process,
-% \begin{equation}
-% \label{eq:nw_model_state}
-% \NWstate_\ell_c = \NWstate_\ell_{c-1} + v_\ell_c,
-% \quad v_\ell_c \sim \Normal{0}{\NWnoise_\ell}
-% \end{equation}
-% and that buses pass through the network
-% while dealing with obstacles (stops, lights, etc).
-% Each bus is a (very) noisy observation of the actual travel time,
-% \begin{equation}
-% \label{eq:nw_model_obs}
-% \NWobs_\ell_c = \NWstate_\ell_c + w_\ell_c,
-% \quad w_\ell_c \sim \Normal{0}{\NWerr_\ell}
-% \end{equation}
+obs <-
+    tibble(
+        B = c(50, 55, 75, 100),
+        E = c(3, 2, 6, 5),
+        b = c(55, 51, 70, 110),
+    )
 
-% \input{DIRNAME/network.tex}
-\input{DIRNAME/historical_model.tex}
+tr <- 0.005
+dn <- dnorm(0, 0, 3)
+d <- d %>%
+    mutate(
+        t1 = dnorm(x, obs$B[1], obs$E[1]) / dn,
+            # dnorm(obs$B[1], obs$B[1], obs$E[1]),
+        t2 = dnorm(x, obs$B[2], obs$E[2]) / dn,
+            # dnorm(obs$B[1], obs$B[1], obs$E[1]),
+        t3 = dnorm(x, obs$B[3], obs$E[3]) / dn,
+            # dnorm(obs$B[1], obs$B[1], obs$E[1]),
+        t4 = dnorm(x, obs$B[4], obs$E[4]) / dn
+            # dnorm(obs$B[1], obs$B[1], obs$E[1])
+    ) %>% mutate(
+        t1 = ifelse(t1 < tr, NA, t1),
+        t2 = ifelse(t2 < tr, NA, t2),
+        t3 = ifelse(t3 < tr, NA, t3),
+        t4 = ifelse(t4 < tr, NA, t4)
+    )
+
+ggplot(d, aes(x)) + geom_path(aes(y = t + 1)) +
+    # add secondary bell curves
+    geom_path(aes(y = t1 / 2), na.rm = TRUE) +
+    geom_path(aes(y = t2 / 2), na.rm = TRUE) +
+    geom_path(aes(y = t3 / 2), na.rm = TRUE) +
+    geom_path(aes(y = t4 / 2), na.rm = TRUE) +
+    geom_hline(yintercept = 0:1, lty = 2) +
+    # add line segments from top to middle curve
+    geom_segment(
+        aes(x = B, xend = B,
+            y = dnorm(B, beta, psi) / dnorm(beta, beta, psi) + 0.95,
+            yend = dnorm(B, B, E) / dn / 2 + 0.05,
+        ),
+        arrow = arrow(length = unit(0.1, "inches")),
+        data = obs) +
+    # lines to points
+    geom_segment(
+        aes(x = b, xend = b,
+            y = dnorm(b, B, E) / dn / 2,
+            yend = -1
+        ),
+        # arrow = arrow(length = unit(0.09, "inches")),
+        lty = 3,
+        data = obs) +
+    # add the observed points
+    geom_point(aes(b, -1.0), data = obs) +
+    # some labels
+    # annotate("label", 25, 0.5, label = "Between-vehicle variation") +
+    # annotate("label", 25, -0.5, label = "Measurement error") +
+    theme_void()
+@
+
+\input{DIRNAME/construct_model.tex}
 \input{DIRNAME/realtime_model.tex}
 \input{DIRNAME/parameter_estimation.tex}
+\input{DIRNAME/historical_model.tex}
+\input{DIRNAME/implementation.tex}
