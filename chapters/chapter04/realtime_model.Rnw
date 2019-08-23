@@ -1,67 +1,55 @@
 \section{\Rt{} network model}
 \label{sec:nw_realtime}
 
-The state of the network, $\NWstate_c$, at time $t_c$
-is the average travel time of transit vehicles along
-each segment $\ell \in \{1, \ldots, L\}$.
-There are two things we want from the model:
-to update the \rt{} state as vehicles traverse the network,
-and forecast ahead for improving arrival time prediction,
-particularly going into and coming out of peak times.
+For a real-time application, time is the number one constraint. Therefore, we begin by presenting a Kalman filter implementation of the model described in \cref{sec:nw_model}, which, as previously discussed, is a highly efficient estimation method. The first step to using the Kalman filter is to transform the data---that is, the observed travel times---into the same \emph{state space} as $\NWstate_{\ellc}$.
 
-Each individual measurement of travel time is typically very noisy,
-due to many sources of uncertainty with observations.
-We did some exploration of travel time from historical data,
-using $\Varr_{rm} - \Vdep_{rm-1}$ as the estimate.
-
-Therefore we are using another Bayes' filter model,
-this time using a \kf{} (\cref{sec:kf}) to estimate the state.
-In this model, the transition matrix $F_c = \mat{I}$ for all $c$,
-indicating that travel times do not change on average.
-Similarly, the measurement matrix $H_c = \mat{I}$,
-as the measurements are, in the case, of the state directly.
-So the model is
-\begin{equation}
-\label{eq:nw_model}
-\begin{split}
-\NWstate_\ell_c = \NWstate_\ell_{c-1} + v_\ell_c,
-    \quad v_\ell_c \sim \Normal{0}{\NWnoise_\ell} \\
-\NWobs_\ell_c = \NWstate_\ell_c + w_\ell_c,
-    \quad w_\ell_c \sim \Normal{0}{\NWerr_\ell}
-\end{split}
+The particle filter estimate of vehicle state makes it easy to estimate not only the vehicle's travel time but also any transformations of it. The transformation we need is the inverse of \cref{eq:nw_state_logtransform}, for which we have the posterior distribution
+\begin{equation}\label{eq:pf_log_tt_posterior}
+p(\log(\Vttobs_{\ellc}^m - T_\ell^\text{min}) | \Vobs_{1:c}^m)
+    \approx
+    \sum_{i=1}^{N^m} \Pwt_c
+        \dirac\left(
+            \log(\Vttobs_{\ellc}^m - T_\ell^\text{min}) -
+            \log(\Vttobs_{\ellc}^{\vi m} - T_\ell^\text{min})
+        \right).
+\end{equation}
+The posterior mean, which is used as the travel time observation, is
+\begin{equation}\label{eq:nw_tt_trans_obs_mean}
+\bar\Vttobs_{\ellc}^m =
+    \E{\log(\Vttobs_{\ellc}^m - T_\ell^\text{min}) | \Vobs_{1:c}^m} =
+    \sum_{i=1}^{N^m} \Pwt_c \log(\Vttobs_{\ellc}^{\vi m} - T_\ell^\text{min})
+\end{equation}
+and similarly we can estimate the measurement error from the variance of the distribution,
+\begin{equation}\label{eq:nw_tt_trans_obs_err}
+\left(\Vtterr_{\ellc}^m\right)^2 =
+    \Var{\log(\Vttobs_{\ellc}^m - T_\ell^\text{min}) | \Vobs_{1:c}^m} =
+    \sum_{i=1}^{N^m} \Pwt_c \left(\log(\Vttobs_{\ellc}^{\vi m} - T_\ell^\text{min}) - \bar\Vttobs_{\ellc}^m\right).
 \end{equation}
 
-It is possible to modify \cref{eq:nw_model} to include
-a rate parameter,
-which would be positive going into peak periods
-(increase in travel time),
-and negative coming out of them;
-however, this doubles the size of the state.
-
-
-It is also possible to include a control vector,
-and associated control matrix,
-which would be used to improve the model.
-For example,
-we could use the change in state of adjacent road segments
-to model changes in the current segment.
-
+Finally, we note that the measurement matrix (\cref{sec:kf} on \cpageref{sec:kf}) is unity since the observations are now directly observations of the state we are estimating. Similarly, the transition matrix is also unity, which we get from \cref{eq:nw_state_markov_log}. We now have everything we need to implement a Kalman filter on $\NWstate_{\ellc}^\star$, assuming (for now) that $\NWvar_{\ellc}$ is known.
 
 
 \subsection{Predict step}
 \label{eq:kf_predict}
 
-The state prediction is straightforward if we stick with
-\cref{eq:nw_model}.
-The estimated state has mean $\hat\NWstate_{c|c-1} = \E{\NWstate_c | \NWobs_{0:c-1}}$
-and variance $\NWvar_{c|c-1} = \Var{\NWstate_c | \NWobs_{0:c-1}}$,
+The state prediction is straightforward, since we are assuming travel time is constant over short time periods. The estimated state has mean
+\begin{equation}\label{eq:nw_state_mean_est}
+\hat\NWstate_{\ellc|c-1}^\star =
+    \E{\NWstate_{\ellc}^\star | \NWobs_{\ell \boldsymbol{\cdot}}^\boldsymbol{\cdot}}
+\end{equation}
+and variance
+\begin{equation}\label{eq:nw_state_mean_est}
+\NWstatevar_{\ellc|c-1} =
+    \Var{\NWstate_{\ellc}^\star | \NWobs_{\ell \boldsymbol{\cdot}}^\boldsymbol{\cdot}}
+\end{equation}
 which are predicted using
 \begin{equation}
 \label{eq:nw_kf_predict}
 \begin{split}
-\hat\NWstate_{c|c-1} &=
-    \hat\NWstate_{c-1|c-1} \\
-\NWvar_{c|c-1} &= \NWvar_{c-1|c-1} + \NWnoise_c
+\hat\NWstate_{\ellc|c-1}^\star &=
+    \hat\NWstate_{
+\ellc-1|c-1}^\star \\
+\NWstatevar_{c|c-1} &= \NWstatevar_{c-1|c-1} + \left(\NWtdiff_c\NWnoise_c\right)^2
 \end{split}
 \end{equation}
 What this looks like is shown in \cref{fig:nw_kf1}.
@@ -112,30 +100,6 @@ p + geom_ribbon(aes(ymin = x - err, ymax = x + err),
     geom_path(data = dd, lty = 2, lwd = 1.5, col = "steelblue")
 @
 
-
-The main downside of this is that it really does depend heavily on the data,
-and twice per day we get peak times which
-temporarily increase travel times.
-So, if we have historical data saying that, at time $t_c$,
-the average speed along road segment $\ell$ is $\NWhistmean{\ell}{t_c}$,
-then in the interval $(t_{c-1}, t_c]$ there is a change in speed of
-\begin{equation}
-\label{eq:nw_kf_histchange}
-\NWctrl_\ell_c = \NWhistmean{\ell}{t_c} - \NWhistmean{\ell}{t_{c-1}}
-\end{equation}
-which we can include in the state prediction using
-the \emph{control vector} $\NWctrlvec_c = \tvec{\NWctrl_1_c, \cdots, \NWctrl_L_c}$,
-leading us to an updated state prediction equation
-\begin{equation}
-\label{eq:nw_kf_control}
-\hat\NWstate_{c|c-1} =
-    \hat\NWstate_{c-1|c-1} +
-    \vec{\NWctrlvec}_c
-\end{equation}
-This is demonstrated in \cref{fig:nw_kf2}.
-Since the control vector does not appear in any of the other
-\kf{} equations,
-it is easy to proceed from here.
 
 \subsection{Update step}
 \label{eq:kf_update}
