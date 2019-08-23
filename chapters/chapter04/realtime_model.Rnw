@@ -104,38 +104,23 @@ p + geom_ribbon(aes(ymin = x - err, ymax = x + err),
 \subsection{Update step}
 \label{eq:kf_update}
 
-Updating the \kf{} involves taking the predicted state
-and updating it using ``observations'' of travel time
-along road segments.
-These we have obtained from the \pf{} in \cref{sec:vehicle_travel_times}.
-However, it is possible to have multiple observations per road segment
-in one update period,
-as it is common for buses to travel one behind the other,
-particularly where there are bus lanes.
-Therefore, for each individual road segment,
-we have a vector of observations,
-one for each vehicle $v \in V_{\ell c}$ passing through that segment
-in the time interval $(t_{c-1}, t_c]$,
-\begin{equation}
-\label{eq:nw_seg_obs}
+Updating the \kf{} involves taking the predicted state and updating it using ``observations'' of travel time along road segments. These we have obtained from the \pf{} in \cref{sec:vehicle_travel_times} and transformed to the log-space. However, it is possible to have multiple observations per road segment
+in one update period, as it is common for buses to travel one behind the other, particularly where there are bus lanes. Therefore, for each individual road segment, we have a vector of observations, one for each vehicle $v \in V_{\ell c}$ passing through that segment in the time interval $(t_{c-1}, t_c]$,
+\begin{equation} \label{eq:nw_seg_obs}
 \NWobss_\ell_c = \bigcup_{v\in V_{\ell c}} \NWobss_{\ell c}^v
 \end{equation}
-which can be the empty set $\NWobss_\ell_c = \emptyset$
-if no vehicles travel through a segment in the interval.
+which can be the empty set $\NWobss_\ell_c = \emptyset$ if no vehicles travel through a segment in the interval. For the measurement error $\NWErr$, we account for between-vehicle variability by adding the sources of error,
+\begin{equation}\label{eq:nw_err_sum}
+\NWErr_{\ellc}^m = \NWvar_{\ellc}^2 + \left(\NWerr_{\ellc}^m\right).
+\end{equation}
+\textcolor{red}{
+    (I think this should go a bit later.)
+}
 
 
-In order to update the network,
-we need to account for each observation.
-One way of doing this would be to combine the observations
-into a single estimate and use that;
-alternatively,
-we could use the \emph{\infil{}} \citep{cn},
-which has the advantage of letting us sum up the information
-from multiple observations easily,
-at the cost of requiring the inversion of $\NWvar_c$.
+In order to update the network, we need to account for each observation. One way of doing this would be to combine the observations into a single estimate and use that; alternatively, we could use the \emph{\infil{}} \citep{cn}, which has the advantage of letting us sum up the information from multiple observations easily. Since we are dealing with a univariate state, this is a viable option as ``inverting'' a $1\times1$ matrix is easy to compute.
 
-To employ the \infil{},
-we need to complete four steps:
+To employ the \infil{}, we need to complete four steps:
 \begin{enumerate}
 \item transform the state space into information space,
 \item transform the observations into information,
@@ -144,94 +129,56 @@ we need to complete four steps:
 \end{enumerate}
 
 
-The first step involves converting the
-predicted state vector and covariance matrix into information space.
-This involves the inversion of the covariance matrix $\NWvar_{c|c-1}^{-1}$,
-which can be computationally demanding as $L$ increases:
-\begin{equation}
-\label{eq:nw_if_infspace}
-\begin{split}
-\NWinfmat_{c|c-1} &= \NWvar_{c|c-1}^{-1} \\
-\hat\NWinfvec_{c|c-1} &= \NWvar_{c|c-1}^{-1} \hat\NWstate_{c|c-1}
-\end{split}
+The first step involves converting the predicted state vector and covariance matrix into  nformation space. This involves the inversion of the covariance matrix $\NWvar_{\ellc|c-1}^{-1}$, yielding the information matrix
+\begin{equation}\label{eq:nw_if_inf_matrix}
+\NWinfmat_{\ellc|c-1} &= \NWstatevar_{\ellc|c-1}^{-1}
+\end{equation}
+and information vector
+\begin{equation}\label{eq:nw_if_inf_vector}
+\hat\NWinfvec_{\ellc|c-1} &= \NWstatevar_{\ellc|c-1}^{-1} \hat\NWstate_{c|c-1}
 \end{equation}
 
 
-Converting the observations into information takes the same form,
-and requires inverting the measurement error covariance matrix $\NWerr_{\ell c}$
-of segment $\ell$ and time $t_c$.
-If we assume that the measurement errors are independent across segments,
-then this step is further simplified to
-\begin{equation}
-\label{eq:nw_if_infobs}
-\begin{split}
-\NWobsinfmat_{\ell c}^v &= (\NWerr_{\ell c})^{-1} \\
-\hat\NWobsinfvec_{\ell c}^v &= (\NWerr_{\ell c})^{-1} \hat\NWobs_{\ell c}^v
-\end{split}
+Converting the observations into information follows the same formula. Note first that the error needs to account for both measurement error and between-vehicle error, which, since these are both assumed Gaussian and by definition are independent, the total variance is simply the sum of the two respective variances. The observation information matrix is therefore
+\begin{equation}\label{eq:nw_if_inf_obsmatrix}
+\NWobsinfmat_{\ellc}^m &= (\NWvar_{\ellc} + \NWerr_{\ellc}^m)^{-2}
 \end{equation}
-These can then be recombined to obtain the complete information matrix and vector
-by summing up over vehicles,
-\begin{equation}
-\label{eq:nw_if_obsupdate}
-\begin{split}
-\NWobsinfmat_{\ell c} &= \sum_{v\in V} \NWobsinfmat_{\ell c}^v \\
-\NWobsinfvec_{\ell c} &= \sum_{v \in V} \NWobsinfvec_{\ell c}^v
-\end{split}
+and the observation information vector is
+\begin{equation}\label{eq:nw_if_inf_obsvector}
+\hat\NWobsinfvec_{\ellc}^m &= (\NWvar_{\ellc} + \NWerr_{\ellc})^{-2} \hat\NWobs_{\ellc}^m
+\end{equation}
+Combining these by summation over vehicles yields the complete information matrix and vector for the time period $(t_{c-1},t_c]$, which are, respectively,
+\begin{equation}\label{eq:nw_if_obsupdate_matrix}
+\NWobsinfmat_{\ellc} &= \sum_{m\in V} \NWobsinfmat_{\ellc}^m
+\end{equation}
+and
+\begin{equation}\label{eq:nw_if_obsupdate_vector}
+\NWobsinfvec_{\ellc} &= \sum_{m \in V} \NWobsinfvec_{\ellc}^m
 \end{equation}
 
 
 
-Next, we update the information by simply
-adding the on the observation information matrix and vectors
-\begin{equation}
-\label{eq:nw_if_obsinf}
-\NWobsinfmat_c =
-    \begin{bmatrix}
-        \NWobsinfmat_{1c} & 0 & \cdots & 0 \\
-        0 & \NWobsinfmat_{2c} & \ddots & \vdots \\
-        \vdots & \ddots & \ddots & 0 \\
-        0 & \cdots & 0 & \NWobsinfmat_{L c}
-    \end{bmatrix}
-\quad\text{and}\quad
-\NWobsinfvec_c =
-    \begin{bmatrix}
-        \NWobsinfvec_{1c} \\ \NWobsinfvec_{2c} \\ \vdots \\ \NWobsinfvec_{Lc}
-    \end{bmatrix}
-\end{equation}
-to get
+The state update is now also a case of adding the total information to get
 \begin{equation}
 \label{eq:nw_if_update}
 \begin{split}
-\NWinfmat_{c|c} &= \NWinfmat_{c|c-1} + \NWobsinfmat_c \\
-\hat\NWinfvec_{c|c} &= \hat\NWinfvec_{c|c-1} + \NWobsinfvec_c
+\NWinfmat_{\ellc|c} &= \NWinfmat_{\ellc|c-1} + \NWobsinfmat_{\ellc} \\
+\hat\NWinfvec_{\ellc|c} &= \hat\NWinfvec_{\ellc|c-1} + \NWobsinfvec_{\ellc}
 \end{split}
 \end{equation}
-Note that, in situations where no data is observed for a given segment,
-the information for that segment is zero,
-so we remain with the predicted state.
+Note that, in situations where no data is observed for a given segment, the information for that segment is zero, so we remain with the predicted state.
 
 
-Finally, we need to back-transform the updated information
-back into the state space,
+Finally, we back-transform the information into the state space,
 \begin{equation}
 \label{eq:nw_if_statespace}
 \begin{split}
-\NWvar_{c|c} &= \NWinfmat_{c|c}^{-1} \\
-\hat\NWstate_{c|c} &= \NWinfmat_{c|c}^{-1} \hat\NWinfvec_{c|c}
-\end{split}
+\hat\NWstate_{\ellc|c} &= \NWinfmat_{\ellc|c}^{-1} \hat\NWinfvec_{\ellc|c} \\
+\NWstatevar_{\ellc|c} &= \NWinfmat_{\ellc|c}^{-1}
+\end{split}.
 \end{equation}
 
-Fini.
-
-Now updating the network is simply a case of
-\begin{enumerate}
-\item estimating travel time for each vehicle along segments,
-\item collect observations from all buses into collections for each segment
-    and convert to information
-\item sum up information for all observations (0 if no observations),
-\item update state by adding the information observation to the state information,
-\end{enumerate}
-which is easy to implement using the \pf{} framework
-developed in \cref{cha:vehicle_model}.
+The main constraint on the model is the dependence on $\NWvar_{\ellc}$ and $\NWnoise_{\ellc}$; however, before we consider the estimation of these values, we will first apply the Kalman filter model to the simulated date (for which the parameter values are known).
 
 
+\textcolor{red}{[[ model applied to the simulated data here! ]]}

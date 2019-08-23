@@ -2,25 +2,9 @@
 \section{Estimating network parameters}
 \label{sec:nw_par_est}
 
-In order to get the most reliable forecasts as possible,
-it is necessary to estimate the main parameters in the network model.
-These are the system noise, $\NWnoise_\ell$,
-which describes how volatile travel times throughout the network
-are over time,
-and the measurement error $\NWerr_{\ell c}$,
-which is effectively the between-vehicle variability.
-These are distributed as shown in \cref{eq:nw_model}.
+In order to optimise the \kf{}, it is necessary to estimate the main parameters in the model. These are the system noise, $\NWnoise_\ell$, which describes how volatile travel times throughout the network are over time, and the \emph{between-vehicle} variability $\NWvar_{\ellc}$.
 
-In order to estimate values for $\NWnoise$ and $\NWerr$,
-we need some data.
-We then fit a full Bayesian model to these data,
-using the same model from \cref{eq:nw_model}
-but fitting it using \gls{mcmc} instead of using the \kf{}.
-We do, however, need to place some restraints on the values.
-First, it would make sense for system noise and
-measurement error to have heirarchical distributions,
-with a global mean noise/error and associated variance.
-
+In order to estimate values for $\NWnoise_\ell$ and $\NWvar_{\ellc}$, we need some data to which we can fit a full Bayesian model using the same model from \cref{eq:nw_model} but fitting it using \gls{mcmc} instead of the \kf{}.
 
 
 The first model we fit, N1, uses the transition function
@@ -33,11 +17,8 @@ using the following values and priors:
 \label{eq:nw_model_n1_priors}
 \begin{split}
 \NWmaxtt_\ell &= \Sexpr{floor(610/14)} \\
-\NWstate_{\ell 1} &\sim
-    \GammaD{0.001}{0.001} \\
+\NWstate_{\ell,0}^\star &\sim \Normal{0}{100^2} \\
 \NWvar_\ell^2 &\sim \Uniform{0}{1000} \\
-(\Vtterr_{\ell c}^m)^2 &\sim \GammaD{0.001}{0.001}
-    \quad\forall c \\
 \NWnoise^2 &\sim \GammaD{0.001}{0.001}
 \end{split}
 \end{equation}
@@ -150,15 +131,7 @@ Fitting the model allowed us to estimate values for $\NWvar$ and $\NWnoise$
 for a single road segment.
 It is then possible to fit a \rt{} version of the same model to the same data
 using these tuning parameters to see how well it performs.
-Since the \kf{} does not allow the hierarchical structure we described earlier,
-we combined the between-vehicle noise with measurement error,
-so, from normal theory, the observation variance is simply the
-sum of the two variances,
-\begin{equation}
-    \Vttobs_{\ell c}^m \sim
-        \Normal{\Vtt_{\ell c}^m}{\NWvar_{\ell}^2 + (\Vtterr_{\ell c}^m)^2}
-\end{equation}
-which we can fit using a standard \kf{}.
+
 
 <<nw_model_n1_kf,cache=TRUE,echo=FALSE,fig.height=3,fig.width=6,out.width="0.9\\linewidth",fig.cap="Travel times with KF fit">>=
 source("load_nw_data.R")
@@ -260,6 +233,13 @@ ggplot(kf.fit[-1,], aes(time)) +
     theme_classic() +
     xlab("Time") + ylab("Travel time (seconds)")
 @
+
+
+\subsection{Simulated data}
+\label{nw_par_est_sim}
+
+\subsection{Real data}
+\label{nw_par_est_real}
 
 From \cref{fig:nw_model_n1_kf}, we see a fairly similar pattern
 to the estimate of $\NWstate_{\ell,1:T}$,
