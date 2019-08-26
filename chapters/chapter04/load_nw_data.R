@@ -9,10 +9,10 @@ suppressPackageStartupMessages({
 readProtoFiles("gtfs-realtime.proto")
 
 
-if (!file.exists("archive.zip")) {
-    # download archive from PI
-    source("../../data/fetch_data.R")
-}
+# if (!file.exists("archive.zip")) {
+#     # download archive from PI
+#     source("../../data/fetch_data.R")
+# }
 
 # stop info
 db <- file.path("..", "chapter02", "at_gtfs.sqlite")
