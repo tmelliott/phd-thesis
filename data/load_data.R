@@ -1,12 +1,14 @@
-if (!file.exists("archive.zip")) {
+if (!dir.exists("archive.zip")) {
     source("fetch_data.R")
 }
+archive_dir <- file.path(wd, "archive")
 
-db <- "at_gtfs.sqlite"
-atzip <- "at_gtfs.zip"
+wd <- getwd()
+db <- file.path(wd, "at_gtfs.sqlite")
+atzip <- file.path(wd, "at_gtfs.zip")
 if (!file.exists(db)) {
     nw <- transitr::create_gtfs(atzip, db = db)
     transitr::construct(nw)
 }
-
 nw <- transitr::load_gtfs(db)
+

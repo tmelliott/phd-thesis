@@ -21,4 +21,5 @@ for (date in dates) {
 cat("\nComplete\n")
 
 # simlink the 13th to "archive"
-system("ln -sf archive_2019-08-13.zip archive.zip")
+# system("ln -sf archive_2019-08-13.zip archive.zip")
+unzip("archive_2019-08-13.zip", exdir = "archive")
