@@ -351,7 +351,6 @@ all.fits <- lapply(data.list, function(tts) {
     }
     "
 
-
     t0 <- proc.time()
     n1_fit <-
         jags.model(
@@ -377,7 +376,6 @@ all.fits <- lapply(data.list, function(tts) {
 @
 
 <<nw_model_n2_diag,cache=TRUE,echo=FALSE,fig.width=8,fig.height=9,out.width="\\textwidth",fig.cap="Traceplots of network parameters for each segment.">>=
-
 do.call(egg::ggarrange, c(
     do.call(c, lapply(all.fits, function(n1_samples) {
         list(
@@ -401,7 +399,6 @@ do.call(egg::ggarrange, c(
 @
 
 <<nw_model_n2_resfits,cache=TRUE,echo=FALSE,fig.width=6,fig.height=9,out.width="0.8\\textwidth",fig.cap="Sample of posterior fits to segment travel times.">>=
-
 do.call(egg::ggarrange, c(
     lapply(seq_along(all.fits), function(i) {
         tts <- data.list[[i]]
@@ -427,7 +424,6 @@ do.call(egg::ggarrange, c(
 @
 
 <<nw_model_n2_kf,echo=FALSE,cache=TRUE,fig.width=8,fig.height=9,out.width="\\textwidth",fig.cap="Kalman filter results from real-time fitting, showing travel time estimate (left) and posterior predictive travel time (right).">>=
-
 do.call(egg::ggarrange, c(
     do.call(c, lapply(seq_along(all.fits), function(i) {
         tts <- data.list[[i]]
