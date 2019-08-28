@@ -3,7 +3,7 @@
 
 <<gtfs_info,echo=FALSE>>=
 source("load_gtfs.R")
-updated_at <- as.POSIXct(readLines(".gtfs_date"), tz = "GMT")
+updated_at <- as.POSIXct("2019-08-12 12:00:00", tz = "GMT")
 updated_fmt <- format(updated_at, "%d %B %Y")
 
 # fetch some info about the data

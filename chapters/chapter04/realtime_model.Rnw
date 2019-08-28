@@ -1,32 +1,33 @@
 \section{\Rt{} network model}
 \label{sec:nw_realtime}
 
-For a real-time application, time is the number one constraint. Therefore, we begin by presenting a Kalman filter implementation of the model described in \cref{sec:nw_model}, which, as previously discussed, is a highly efficient estimation method. The first step to using the Kalman filter is to transform the data---that is, the observed travel times---into the same \emph{state space} as $\NWstate_{\ellc}$.
+For a real-time application, time is the number one constraint. Therefore, we begin by presenting a Kalman filter implementation of the model described in \cref{sec:nw_model}, which, as previously discussed, is a highly efficient estimation method.
+%The first step to using the Kalman filter is to transform the data---that is, the observed travel times---into the same \emph{state space} as $\NWstate_{\ellc}$.
 
-The particle filter estimate of vehicle state makes it easy to estimate not only the vehicle's travel time but also any transformations of it. The transformation we need is the inverse of \cref{eq:nw_state_logtransform}, for which we have the posterior distribution
-\begin{equation}\label{eq:pf_log_tt_posterior}
-p(\log(\Vttobs_{\ellc}^m - T_\ell^\text{min}) | \Vobs_{1:c}^m)
-    \approx
-    \sum_{i=1}^{N^m} \Pwt_c
-        \dirac\left(
-            \log(\Vttobs_{\ellc}^m - T_\ell^\text{min}) -
-            \log(\Vttobs_{\ellc}^{\vi m} - T_\ell^\text{min})
-        \right).
-\end{equation}
-The posterior mean, which is used as the travel time observation, is
-\begin{equation}\label{eq:nw_tt_trans_obs_mean}
-\bar\Vttobs_{\ellc}^m =
-    \E{\log(\Vttobs_{\ellc}^m - T_\ell^\text{min}) | \Vobs_{1:c}^m} =
-    \sum_{i=1}^{N^m} \Pwt_c \log(\Vttobs_{\ellc}^{\vi m} - T_\ell^\text{min})
-\end{equation}
-and similarly we can estimate the measurement error from the variance of the distribution,
-\begin{equation}\label{eq:nw_tt_trans_obs_err}
-\left(\Vtterr_{\ellc}^m\right)^2 =
-    \Var{\log(\Vttobs_{\ellc}^m - T_\ell^\text{min}) | \Vobs_{1:c}^m} =
-    \sum_{i=1}^{N^m} \Pwt_c \left(\log(\Vttobs_{\ellc}^{\vi m} - T_\ell^\text{min}) - \bar\Vttobs_{\ellc}^m\right).
-\end{equation}
+% The particle filter estimate of vehicle state makes it easy to estimate not only the vehicle's travel time but also any transformations of it. The transformation we need is the inverse of \cref{eq:nw_state_logtransform}, for which we have the posterior distribution
+% \begin{equation}\label{eq:pf_log_tt_posterior}
+% p(\log(\Vttobs_{\ellc}^m - T_\ell^\text{min}) | \Vobs_{1:c}^m)
+%     \approx
+%     \sum_{i=1}^{N^m} \Pwt_c
+%         \dirac\left(
+%             \log(\Vttobs_{\ellc}^m - T_\ell^\text{min}) -
+%             \log(\Vttobs_{\ellc}^{\vi m} - T_\ell^\text{min})
+%         \right).
+% \end{equation}
+% The posterior mean, which is used as the travel time observation, is
+% \begin{equation}\label{eq:nw_tt_trans_obs_mean}
+% \bar\Vttobs_{\ellc}^m =
+%     \E{\log(\Vttobs_{\ellc}^m - T_\ell^\text{min}) | \Vobs_{1:c}^m} =
+%     \sum_{i=1}^{N^m} \Pwt_c \log(\Vttobs_{\ellc}^{\vi m} - T_\ell^\text{min})
+% \end{equation}
+% and similarly we can estimate the measurement error from the variance of the distribution,
+% \begin{equation}\label{eq:nw_tt_trans_obs_err}
+% \left(\Vtterr_{\ellc}^m\right)^2 =
+%     \Var{\log(\Vttobs_{\ellc}^m - T_\ell^\text{min}) | \Vobs_{1:c}^m} =
+%     \sum_{i=1}^{N^m} \Pwt_c \left(\log(\Vttobs_{\ellc}^{\vi m} - T_\ell^\text{min}) - \bar\Vttobs_{\ellc}^m\right).
+% \end{equation}
 
-Finally, we note that the measurement matrix (\cref{sec:kf} on \cpageref{sec:kf}) is unity since the observations are now directly observations of the state we are estimating. Similarly, the transition matrix is also unity, which we get from \cref{eq:nw_state_markov_log}. We now have everything we need to implement a Kalman filter on $\NWstate_{\ellc}^\star$, assuming (for now) that $\NWvar_{\ellc}$ is known.
+The measurement matrix (\cref{sec:kf} on \cpageref{sec:kf}) is unity since the observations are now directly observations of the state we are estimating. Similarly, the transition matrix is also unity, which we get from \cref{eq:nw_state_markov}. We now have everything we need to implement a Kalman filter on $\NWstate_{\ellc}$, assuming (for now) that $\NWvar_{\ellc}$ is known.
 
 
 \subsection{Predict step}
@@ -34,21 +35,21 @@ Finally, we note that the measurement matrix (\cref{sec:kf} on \cpageref{sec:kf}
 
 The state prediction is straightforward, since we are assuming travel time is constant over short time periods. The estimated state has mean
 \begin{equation}\label{eq:nw_state_mean_est}
-\hat\NWstate_{\ellc|c-1}^\star =
-    \E{\NWstate_{\ellc}^\star | \NWobs_{\ell \boldsymbol{\cdot}}^\boldsymbol{\cdot}}
+\hat\NWstate_{\ellc|c-1} =
+    \E{\NWstate_{\ellc} | \NWobs_{\ell \boldsymbol{\cdot}}^\boldsymbol{\cdot}}
 \end{equation}
 and variance
 \begin{equation}\label{eq:nw_state_mean_est}
 \NWstatevar_{\ellc|c-1} =
-    \Var{\NWstate_{\ellc}^\star | \NWobs_{\ell \boldsymbol{\cdot}}^\boldsymbol{\cdot}}
+    \Var{\NWstate_{\ellc} | \NWobs_{\ell \boldsymbol{\cdot}}^\boldsymbol{\cdot}}
 \end{equation}
 which are predicted using
 \begin{equation}
 \label{eq:nw_kf_predict}
 \begin{split}
-\hat\NWstate_{\ellc|c-1}^\star &=
+\hat\NWstate_{\ellc|c-1} &=
     \hat\NWstate_{
-\ellc-1|c-1}^\star \\
+\ellc-1|c-1} \\
 \NWstatevar_{c|c-1} &= \NWstatevar_{c-1|c-1} + \left(\NWtdiff_c\NWnoise_c\right)^2
 \end{split}
 \end{equation}

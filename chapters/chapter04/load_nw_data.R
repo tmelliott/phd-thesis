@@ -8,65 +8,39 @@ suppressPackageStartupMessages({
 })
 readProtoFiles("gtfs-realtime.proto")
 
-
-# if (!file.exists("archive.zip")) {
-#     # download archive from PI
-#     source("../../data/fetch_data.R")
-# }
-
-# stop info
-db <- file.path("..", "chapter02", "at_gtfs.sqlite")
-if (!file.exists(db)) {
-    curd <- setwd("../chapter02")
-    source("load_data.R")
-    setwd(curd)
-}
+curd <- setwd("../../data")
+source("load_data.R")
+setwd(curd)
 
 con <- dbConnect(SQLite(), db)
-on.exit(dbDisconnect(con))
 
-seg_table <-
-    rbind(
-        c(7151, 7149), # 610m, 50kmh
-        c(8413, 8411), # 385m, 50kmh   *
-        c(7036, 4063), # 6730m, 100kmh *
-        c(7324, 7326), # 530m, 50kmh
-        c(7147, 7145), # 510m, 50kmh   *
-        c(3184, 3186), # 475m, 60kmh
-        c(4674, 4672), # 365m, 50kmh
-        c(5865, 5867), # 445m, 50kmh
-        c(8118, 8120), # 585m, 50kmh   *
-        c(6220, 6779), # 580m, 60kmh
-        c(7189, 7187)  # 330m, 50kmh   *
-    )
-mode(seg_table) <- "character"
+library(dbplyr)
+library(magrittr)
 
-
-
-mu <-
-    c(
-        610 / 14,
-        385 / 14,
-        6730 / 28,
-        530 / 14,
-        510 / 14,
-        475 / 17,
-        365 / 14,
-        445 / 14,
-        585 / 14,
-        580 / 17,
-        330 / 14
-    )
+stop_nodes <- con %>% tbl("stops") %>%
+    select(stop_code, node_id)
+seg_table <- con %>% tbl("road_segments") %>%
+    mutate(min_travel_time = length / 30) %>%
+    left_join(stop_nodes,
+        by = c("node_from" = "node_id"),
+        suffix = c("", "_from")
+    ) %>%
+    left_join(stop_nodes,
+        by = c("node_to" = "node_id"),
+        suffix = c("", "_to")
+    ) %>%
+    rename(
+        stop_from = "stop_code",
+        stop_to = "stop_code_to"
+    ) %>%
+    select(-node_from, -node_to) %>%
+    collect()
 
 
-unlink("symonds_tt.rda")
 file <- "all_tt.rda"
 if (!file.exists(file)) {
-    files <- unzip("archive.zip", list = TRUE)
-    tufiles <- files %>%
-        filter(stringr::str_detect(Name, "^trip")) %>%
-        pull(Name)
-    match_str <- paste("^", seg_table, "-", sep = "", collapse = "|")
+    files <- list.files(archive_dir)
+    tufiles <- files[grepl("^trip", files)]
     # get DEPARTURES from stop_ids[1] and ARRIVALS at stop_ids[2]
     tus <- lapply(tufiles, function(f) {
         file <- unzip("archive.zip", files = f)
@@ -75,7 +49,7 @@ if (!file.exists(file)) {
         # need vehicle, trip, arr/dep time
         lapply(feed$entity, function(e) {
             stu <- e$trip_update$stop_time_update[[1]]
-            if (!grepl(match_str, stu$stop_id)) return(NULL)
+            # if (!grepl(match_str, stu$stop_id)) return(NULL)
             tibble(
                 vehicle_id = e$trip_update$vehicle$id,
                 trip_id = e$trip_update$trip$trip_id,
@@ -90,35 +64,68 @@ if (!file.exists(file)) {
         }) %>% bind_rows
     }) %>% bind_rows %>% distinct
 
+    tripnodes <-
+        con %>% tbl("trips") %>% filter(trip_id %in% !!unique(tus$trip_id)) %>%
+            left_join(con %>% tbl("shape_nodes")) %>%
+            select(trip_id, node_id, node_sequence) %>%
+            collect()
+    tripsegs <- tripnodes %>% group_by(trip_id) %>%
+        do((.) %>% (function(x) {
+            x <- x %>% arrange(node_sequence)
+            tibble(
+                trip_id = x$trip_id[-1],
+                node_from = x$node_id[-nrow(x)],
+                node_to = x$node_id[-1],
+                node_sequence = x$node_sequence[-nrow(x)]
+            )
+        })) %>%
+        left_join(con %>% tbl("road_segments") %>%
+            left_join(con %>% tbl("stops") %>% select(stop_id, node_id) %>%
+                rename(stop_from = stop_id),
+                by = c("node_from" = "node_id")
+            ) %>%
+            left_join(con %>% tbl("stops") %>% select(stop_id, node_id) %>%
+                rename(stop_to = stop_id),
+                by = c("node_to" = "node_id")
+            ) %>% collect() %>%
+            mutate(
+                stop_from = gsub("-.+", "", stop_from),
+                stop_to = gsub("-.+", "", stop_to)
+            )
+        )
     tt_all <- tus %>%
+        mutate(stop_id = gsub("-.+", "", stop_id)) %>%
+        inner_join(tripsegs %>% select(trip_id, stop_from, road_segment_id),
+            by = c("trip_id", "stop_id" = "stop_from")) %>%
+        rename(segment_from = road_segment_id) %>%
+        inner_join(tripsegs %>% select(trip_id, stop_to, road_segment_id),
+            by = c("trip_id", "stop_id" = "stop_to")) %>%
+        rename(segment_to = road_segment_id) %>%
+        mutate(segment_id = ifelse(is.na(arrival_time), segment_from, segment_to)) %>%
+        select(vehicle_id, trip_id, stop_id, arrival_time, departure_time, segment_id) %>%
         gather(key = "type", value = "time",
             arrival_time, departure_time
         ) %>%
-        filter(
-            (type == "departure_time" &
-                sapply(stop_id, function(x) any(stringr::str_detect(x, seg_table[,1])))) |
-            (type == "arrival_time" &
-                sapply(stop_id, function(x) any(stringr::str_detect(x, seg_table[,2]))))
+        mutate(
+            keep_from = stop_id %in% seg_table$stop_from & type == "departure_time",
+            keep_to = stop_id %in% seg_table$stop_to & type == "arrival_time"
         ) %>%
-        select(vehicle_id, trip_id, stop_id, type, time) %>%
-        mutate(stop_id = gsub("-.+", "", stop_id)) %>%
+        filter(keep_from | keep_to) %>%
+        select(vehicle_id, trip_id, stop_id, segment_id, type, time) %>%
         filter(!is.na(time)) %>%
-        group_by(vehicle_id, trip_id, stop_id, type) %>%
+        group_by(vehicle_id, trip_id, segment_id, type) %>%
         summarize(time = first(time)) %>%
         ungroup() %>%
-        mutate(stop_id =
-            ifelse(type == "arrival_time",
-                sapply(stop_id, function(x) seg_table[seg_table[, 2] == x, 1]) %>%
-                    as.character(),
-                stop_id
-            )
-        ) %>%
         spread(key = "type", value = "time") %>%
         mutate(travel_time = arrival_time - departure_time) %>%
-        filter(!is.na(travel_time)) %>%
+        filter(!is.na(travel_time) & travel_time > 0) %>%
         mutate(
             arrival_time = as.POSIXct(arrival_time, origin = "1970-01-01"),
             departure_time = as.POSIXct(departure_time, origin = "1970-01-01")
+        ) %>%
+        left_join(con %>% tbl("road_segments") %>%
+                select("road_segment_id", "length") %>% collect(),
+            by = c("segment_id" = "road_segment_id")
         )
 
     save(tt_all, file = file)
@@ -126,12 +133,10 @@ if (!file.exists(file)) {
     load(file)
 }
 
+# sids <- table(tt_all$segment_id) %>% sort() %>% tail(20) %>% names()
+sids <- c(44, 211, 245, 49, 212, 47)
 
-# library(ggplot2)
-# ggplot(tts, aes(arrival_time, travel_time/60)) + geom_point() +
-#     scale_x_datetime()
-
-tts <- tt_all %>% filter(stop_id == seg_table[1, 1])
+tts <- tt_all %>% filter(segment_id == sids[1])
 t30 <- paste(sep = ":",
     format(tts$arrival_time,
         "%Y-%m-%d %H"),
@@ -139,3 +144,76 @@ t30 <- paste(sep = ":",
         as.integer %>% `%/%`(5) %>% `*`(5) %>%
         stringr::str_pad(2, pad = "0")
 ) %>% as.POSIXct
+
+mu <- (con %>% tbl("road_segments") %>%
+    filter(road_segment_id == !!sids[1]) %>%
+    collect() %>% pull("length")) / 30
+
+
+data.list <- lapply(sids[-1], function(id) {
+    tts <- tt_all %>% filter(segment_id == id)
+    t30 <- paste(sep = ":",
+        format(tts$arrival_time,
+            "%Y-%m-%d %H"),
+        format(tts$arrival_time, "%M") %>%
+            as.integer %>% `%/%`(5) %>% `*`(5) %>%
+            stringr::str_pad(2, pad = "0")
+    ) %>% as.POSIXct
+    attr(tts, "t30") <- t30
+    attr(tts, "mu") <- (con %>% tbl("road_segments") %>%
+        filter(road_segment_id == !!id) %>%
+        collect() %>% pull("length")) / 30
+    tts
+})
+
+
+segdat <- tt_all %>%
+    filter(segment_id %in% sids) %>%
+    mutate(timestamp = departure_time, error = 3) %>%
+    arrange(segment_id, timestamp) %>%
+    select(segment_id, timestamp, travel_time, error, length) %>%
+    mutate(
+        timestamp = as.POSIXct(
+            paste0(
+                format(timestamp, "%Y-%m-%d %H:%M:"),
+                30 * as.integer(format(timestamp, "%S")) %/% 30
+            )
+        ),
+        l = as.integer(as.factor(segment_id)),
+        t = as.integer(timestamp)
+    ) %>%
+    group_by(l) %>%
+    do(
+        (.) %>% mutate(
+            # t0 = as.integer(t == min(t)),
+            c = c(1, diff(t) > 0)
+        )
+    ) %>% ungroup() %>%
+    mutate(
+        c = cumsum(c)
+    )
+
+
+jdata <-
+    list(
+        b = segdat$travel_time,
+        e = segdat$error,
+        # identify index of the BETAs
+        ell = segdat$l,
+        c = segdat$c,
+        c0 = tapply(segdat$c, segdat$l, min) %>% as.integer,
+        c1 = tapply(segdat$c, segdat$l, min) %>% as.integer + 1,
+        cJ = tapply(segdat$c, segdat$l, max) %>% as.integer,
+        delta = do.call(c, tapply(segdat$t, segdat$l, function(tt) {
+                c(0, diff(unique(tt)))
+            })) %>% as.integer,
+        L = length(unique(segdat$segment_id)),
+        N = nrow(segdat),
+        mu = (tapply(segdat$length, segdat$l, min) / 30) %>% as.numeric
+    )
+jdata_t <- do.call(c, tapply(segdat$timestamp, segdat$l, unique))
+names(jdata_t) <- NULL
+
+
+
+dbDisconnect(con)

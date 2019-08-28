@@ -1,9 +1,11 @@
-if (!dir.exists("archive.zip")) {
+wd <- getwd()
+library(RSQLite)
+
+if (!dir.exists("archive")) {
     source("fetch_data.R")
 }
 archive_dir <- file.path(wd, "archive")
 
-wd <- getwd()
 db <- file.path(wd, "at_gtfs.sqlite")
 atzip <- file.path(wd, "at_gtfs.zip")
 if (!file.exists(db)) {

@@ -13,19 +13,19 @@ Vehicles travel along road segment $\ell$ at time $t_c$ with an average travel t
 where $\NWtdiff_c = t_c - t_{c-1}$ is the time since the last update. Essentially, this model allows travel time to ``wander'' around the sate space, responding to both random and systematic changes to traffic conditions.
 
 
-The Gaussian Markov model assumes that the rate of change is constant over time and independent of the value of travel time: this is unlikely to be the case. It would be reasonable to assume that the rate of change is higher when traffic is heavier (that is, larger fluctuations in travel time) compared to when traffic is free-flowing; when traffic is free-flowing, we expect the \emph{between-vehicle} variability to account for changes between vehicles (for example, a cyclist going up a hill). What I'm trying to say is that there is a \emph{multiplicative} relationship between variance and travel time, not an additive one. We also must consider the lower boundary of travel time, which is easily calculated as
-\begin{equation}\label{eq:seg_min_tt}
-T_\ell^\text{min} = \frac{\text{segment length}}{\text{speed limit}}.
-\end{equation}
-One solution to both of these is to replace $\NWstate_{\ellc}$ with $\NWstate_{\ellc}^\star$, such that
-\begin{equation}\label{eq:nw_state_logtransform}
-\NWstate_{\ellc} = T_\ell^\text{min} + e^{\NWstate_{\ellc}^\star}
-\end{equation}
-and modelling $\NWstate_{\ellc}^\star$ as
-\begin{equation}\label{eq:nw_state_markov_log}
-\NWstate_{\ellc}^\star \sim \Normal{\NWstate_{\ellc-1}^\star}{(\NWtdiff_c \NWnoise_c)^2}.
-\end{equation}
-Note that now $\NWnoise_c$ is the rate of change of travel time on the log scale.
+% The Gaussian Markov model assumes that the rate of change is constant over time and independent of the value of travel time: this is unlikely to be the case. It would be reasonable to assume that the rate of change is higher when traffic is heavier (that is, larger fluctuations in travel time) compared to when traffic is free-flowing; when traffic is free-flowing, we expect the \emph{between-vehicle} variability to account for changes between vehicles (for example, a cyclist going up a hill). What I'm trying to say is that there is a \emph{multiplicative} relationship between variance and travel time, not an additive one. We also must consider the lower boundary of travel time, which is easily calculated as
+% \begin{equation}\label{eq:seg_min_tt}
+% T_\ell^\text{min} = \frac{\text{segment length}}{\text{speed limit}}.
+% \end{equation}
+% One solution to both of these is to replace $\NWstate_{\ellc}$ with $\NWstate_{\ellc}^\star$, such that
+% \begin{equation}\label{eq:nw_state_logtransform}
+% \NWstate_{\ellc} = T_\ell^\text{min} + e^{\NWstate_{\ellc}^\star}
+% \end{equation}
+% and modelling $\NWstate_{\ellc}^\star$ as
+% \begin{equation}\label{eq:nw_state_markov_log}
+% \NWstate_{\ellc}^\star \sim \Normal{\NWstate_{\ellc-1}^\star}{(\NWtdiff_c \NWnoise_c)^2}.
+% \end{equation}
+% Note that now $\NWnoise_c$ is the rate of change of travel time on the log scale.
 
 
 When a physical vehicle travels along a road segment, its travel time is influenced by many factors, including (but certainly not limited to) road obstacles (pedestrians crossing the road, cyclists, other vehicles pulling into or out of traffic), driver behaviour (both of the vehicle we are observing and of other road users), lane differences, and queuing traffic. To encapsulate all of this uncertainty, we introduce a single parameter $\NWvar_{\ellc}$, which describes the width of the distribution at the top of \cref{fig:nw_model_hierarchy}, or the \emph{between-vehicle varibility}. The model for the \emph{actual} travel time of a bus $m$ along road segment $\ell$ at time $t_c$ is denoted $\Vtt_{\ellc}^m$, and is assumed to be an observation from the population distribution with mean $\NWstate_{\ellc}$ and variance $\NWvar_{\ellc}^2$,
@@ -41,7 +41,6 @@ Once a vehicle has traversed a segment, we can observe its travel time as $\Vtto
 
 
 To further demonstrate the model, we have included a simulation where all of the parameter values are known (based off of the values estimated in \cref{sec:nw_par_est}). \Cref{fig:nw_sim_data} shows the three stages of the model hierarchy.
-
 
 <<nw_sim_data,echo=FALSE,fig.width=6,fig.height=2,fig.align="center",out.width="0.8\\textwidth",fig.cap="Simulated data",fig.subcap=c('Underlying travel time', 'Actual bus travel times', 'Observed bus travel times'),fig.ncol=1,fig.sep=rep("\\\\", 4)>>=
 source("sim_data.R")
@@ -82,10 +81,9 @@ A plot of observed travel times for a segment are shown in \cref{fig:tt_figure},
 <<tt_figure,echo=FALSE,fig.height=2,fig.width=6,fig.align="center",out.width=".8\\linewidth",fig.cap="Travel times along a road.">>=
 library(ggplot2)
 source("load_nw_data.R")
-
 ggplot(tts, aes(arrival_time, travel_time)) +
     geom_point() +
-    geom_hline(yintercept = 43, lty = 2) +
+    geom_hline(yintercept = mu, lty = 2) +
     theme_classic() +
     xlab("Time") + ylab("Travel time (seconds)")
 @

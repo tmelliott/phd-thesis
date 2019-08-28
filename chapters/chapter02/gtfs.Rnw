@@ -206,7 +206,7 @@ library(transitr)
 nw <- create_gtfs("at_gtfs.zip", db = "at_gtfs.sqlite")
 @
 
-<<transitr_load_gtfs_hidden,echo=FALSE>>=
+<<transitr_load_gtfs_hidden,echo=FALSE,results="hide">>=
 source("load_gtfs.R")
 library(transitr)
 con <- dbConnect(SQLite(), db)
@@ -309,7 +309,6 @@ Personal mobile devices have revolutionised the way we live our lives,
 and developers are constantly creating new apps to help us out.
 Included in these are transit apps,
 which are capable of passing on \rt{} \GTFS{} data to passengers.
-
 
 The most common method of distributing \rt{} data is via an \gls{api}.
 These are, in simple terms, a fixed web address that developers can fetch
