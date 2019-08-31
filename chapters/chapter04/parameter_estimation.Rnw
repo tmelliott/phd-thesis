@@ -476,6 +476,20 @@ ggplot(betas) +
     xlab("Time") + ylab("Travel time (seconds)")
 @
 
+
+The models were fitted, etc etc.
+
+To evaluate, travel time data from the following week, shown in \cref{fig:tt_future_day}, were modelled using a \kf{} implementation of the model.
+
+<<tt_future_day,echo=FALSE,fig.height=2,fig.width=6,fig.align="center",out.width=".8\\linewidth",fig.cap="Travel times along a road one week in the future.">>=
+library(ggplot2)
+source("load_nw_data.R")
+tt_future %>% filter(segment_id == sids[[1]])
+
+@
+
+
+
 <<nw_model_n2_kf,echo=FALSE,cache=TRUE,fig.width=8,fig.height=9,out.width="\\textwidth",fig.cap="Kalman filter results from real-time fitting, showing travel time estimate (left) and posterior predictive travel time (right).">>=
 do.call(egg::ggarrange, c(
     do.call(c, lapply(seq_along(all.fits), function(i) {

@@ -15,8 +15,9 @@ for (date in dates) {
             )
         )
     tfile <- sprintf("archive_%s.zip", format(as.Date(date), "%Y-%m-%d"))
-    if (!file.exists(tfile))
-        system(sprintf('rsync -avP tom@%s:%s %s', pi, hfile, tfile))
+
+    # rsync will decide for itself if the file needs downloading
+    system(sprintf('rsync -avP tom@%s:%s %s', pi, hfile, tfile))
 }
 cat("\nComplete\n")
 
