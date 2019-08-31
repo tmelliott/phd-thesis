@@ -481,10 +481,23 @@ The models were fitted, etc etc.
 
 To evaluate, travel time data from the following week, shown in \cref{fig:tt_future_day}, were modelled using a \kf{} implementation of the model.
 
-<<tt_future_day,echo=FALSE,fig.height=2,fig.width=6,fig.align="center",out.width=".8\\linewidth",fig.cap="Travel times along a road one week in the future.">>=
+<<tt_future_day,echo=FALSE,fig.height=9,fig.width=6,fig.align="center",out.width=".8\\linewidth",fig.cap="Travel times along a road one week in the future.">>=
 library(ggplot2)
 source("load_nw_data.R")
-tt_future %>% filter(segment_id == sids[[1]])
+date0 <- tt_all$arrival_time[1] %>% format("%Y-%m-%d")
+bind_rows(tt_all, tt_future) %>%
+    filter(segment_id %in% sids) %>%
+    mutate(
+        date = as.factor(format(arrival_time, "%Y-%m-%d")),
+        time = as.POSIXct(paste(date0, format(arrival_time, "%H:%M:%S")))
+    ) %>%
+    ggplot() +
+        geom_point(aes(time, travel_time)) +
+        facet_grid(segment_id ~ date, scales = "free") +
+        scale_x_datetime(labels = function(x) format(x, "%H:%M:%S")) +
+        theme_classic() +
+        theme(strip.background = element_blank()) +
+        xlab("Time") + ylab("Travel time (seconds)")
 
 @
 

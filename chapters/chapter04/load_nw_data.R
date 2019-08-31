@@ -127,7 +127,7 @@ data_from_file <- function(file, con, archive_dir = "../../data/archive") {
         load(file)
     }
 
-    tt_all
+    tt_all %>% filter(travel_time < length)
 }
 
 con <- dbConnect(SQLite(), db)
@@ -137,8 +137,16 @@ if (!dir.exists("future_archive"))
     unzip("../../data/archive_2019-08-20.zip", exdir = "future_archive")
 tt_future <- data_from_file("future_tt.rda", con, "future_archive")
 
-# sids <- table(tt_all$segment_id) %>% sort() %>% tail(20) %>% names()
-sids <- c(44, 211, 245, 49, 212, 47)
+
+if (FALSE) {
+    sids <- table(tt_all$segment_id) %>% sort() %>% tail(20) %>% names()
+    library(ggplot2)
+    ggplot(tt_all %>% filter(segment_id %in% !!sids)) +
+        geom_point(aes(arrival_time, travel_time)) +
+        facet_grid(segment_id~., scales = "free_y")
+}
+
+sids <- c(38, 43, 97, 161, 187, 155)
 
 tts <- tt_all %>% filter(segment_id == sids[1])
 t30 <- paste(sep = ":",
@@ -148,6 +156,7 @@ t30 <- paste(sep = ":",
         as.integer %>% `%/%`(5) %>% `*`(5) %>%
         stringr::str_pad(2, pad = "0")
 ) %>% as.POSIXct
+
 
 mu <- (con %>% tbl("road_segments") %>%
     filter(road_segment_id == !!sids[1]) %>%
