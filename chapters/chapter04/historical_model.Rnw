@@ -1,3 +1,156 @@
 \section{Improving forecasts with history}
 \label{sec:nw_hist_model}
 
+The model presented in the previous sections is adequate for estimating the \emph{real-time} state of the network, but when it comes to forecasting road travel times, it becomes unuseful, particularly just before or after a peak period. In the next chapter, we will be predicting arrival time, which will involve making short-term forecasts of travel time. To do so, we will use historical data to detect the average temporal location and magnitude of travel time peaks.
+
+From \cref{nw_par_est_real} we saw that roads typically have a peak effect either in the morning or in the evening, while some are affected by both morning and afternoon traffic. It seems reasonable therefore to have a model which allows a segment to have zero, one, or two peaks, each with varying magnitude (the size of the increase in travel time) and width (how long the peak period is). The temporal location of these peaks is likely to be related, but variable: some roads will experience peak traffic earlier than others, for example.
+
+<<tt_week0_load,cache=TRUE,echo=FALSE,fig.height=9,fig.width=8,fig.align="center",out.width="\\linewidth",fig.cap="Travel times along six roads over one week, coloured by the day of the week. Weekends aren't shown.">>=
+source("load_nw_data.R")
+load("hier_model_samples.rda")
+suppressPackageStartupMessages({
+    library(ggplot2)
+    library(tidybayes)
+    library(RSQLite)
+    library(chron)
+})
+
+dates_week0 <- list.files("../../data", "archive_.+.zip", full.names = TRUE)[1:7]
+
+con <- dbConnect(SQLite(), db)
+data_week0 <- lapply(dates_week0, function(zip_archive) {
+    if (grepl("2019-08-13", zip_archive))
+        return(tt_all)
+    d <- tools::file_path_sans_ext(basename(zip_archive))
+    unzip(zip_archive, exdir = d)
+    on.exit(unlink(d))
+    return(data_from_file(paste0(d, ".rda"), con, d))
+}) %>% bind_rows %>%
+    mutate(
+        timestamp = arrival_time,
+        date = format(timestamp, "%Y-%m-%d"),
+        dow = format(timestamp, "%A") %>%
+            factor(levels = c("Monday", "Tuesday", "Wednesday", "Thursday",
+                              "Friday", "Saturday", "Sunday")),
+        time = as.POSIXct(format(timestamp, "%H:%M:%S"), format = "%H:%M:%S")
+    )
+dbDisconnect(con)
+
+# data_week0 %>% filter(segment_id == sids[[1]]) %>%
+#     ggplot(aes(time, travel_time)) +
+#         geom_point() +
+#         scale_x_datetime(labels = function(t) format(t, "%l%P")) +
+#         facet_grid(dow~.) +
+#         theme_classic() +
+#         theme(strip.background = element_blank()) +
+#         xlab("Time") + ylab("Travel time (seconds)")
+
+data_week0 %>% filter(segment_id %in% sids) %>%
+    filter(!dow %in% c("Saturday", "Sunday")) %>%
+    ggplot(aes(time, travel_time, colour = dow)) +
+        geom_point() +
+        scale_x_datetime(labels = function(t) format(t, "%l%P")) +
+        facet_grid(segment_id~., scales = "free_y") +
+        theme_classic() +
+        theme(strip.background = element_blank()) +
+        xlab("Time") + ylab("Travel time (seconds)") +
+        scale_colour_brewer(palette = "Dark2") +
+        labs(colour = "Day of week")
+
+
+# tt_segment <- segdat %>% filter(segment_id == sids[[1]])
+
+# segment_betas <- n1_samples %>%
+#     spread_draws(beta[c]) %>%
+#     filter(c %in% unique(tt_segment$c)) %>%
+#     median_qi() %>%
+#     mutate(t = unique(tt_segment$t))
+
+# ggplot(tt_segment) +
+#     geom_point(aes(t, travel_time)) +
+#     geom_path(aes(t, beta),
+#         data = segment_betas, colour = "orangered")
+
+# Tfuture <- segment_betas %>% mutate(
+#         T15 = sapply(t,
+#             function(x) {
+#                 # travel time between 30-35mins ahead
+#                 segment_betas %>%
+#                     filter(between(t,
+#                         x + 10*60,
+#                         x + 20*60
+#                     )) %>%
+#                     pull(beta) %>%
+#                     mean
+#             }
+#         ),
+#         T30 = sapply(t,
+#             function(x) {
+#                 # travel time between 30-35mins ahead
+#                 segment_betas %>%
+#                     filter(between(t,
+#                         x + 25*60,
+#                         x + 35*60
+#                     )) %>%
+#                     pull(beta) %>%
+#                     mean
+#             }
+#         )
+#     )
+
+
+
+# egg::ggarrange(
+#     tt_segment %>%
+#         ggplot(aes(t, travel_time)) +
+#             geom_point() +
+#             geom_path(aes(t, beta),
+#                 data = segment_betas,
+#                 colour = "orangered"
+#             ),
+#     Tfuture %>% filter(!is.na(T15)) %>%
+#         ggplot(aes(t, T15)) +
+#             geom_point(),
+#     Tfuture %>% filter(!is.na(T30)) %>%
+#         ggplot(aes(t, T30)) +
+#             geom_point(),
+#     ncol = 1
+# )
+
+@
+
+As in the previous section, we first present the model for a single segment over a week. We are no longer assuming the state is a Markov process; instead, we assume that there is some underlying mean travel time $\mu_\ell$ which the actual travel time fluctuates around. At peak times, there are added morning and evening peak effects, $\rho_{\ell,1}$ and $\rho_{\ell,2}$, respectively. The segment we are examining first exhibits a morning peak, as shown in \cref{fig:tt_week0_load}.
+Weekends are not shown as they do not exhibit ``peak hour'' effects, so we will simply assume constant speed all day\footnote{Future work will look at detecting obvious trends, for example roads around malls may be busier in the middle of the day}.
+
+The size and width of the peak varies according to how much congestion there is on a particular day, but we expect this magnitude to be similar for the same road segment. Therefore, we assume another \emph{hierarchical} relationship, such that on day $d$ along road segment $d$ for peak $i = 1,2$, the temporal location is
+\begin{equation}\label{eq:peak_effect_day_time}
+\tau_{\ell,d,i}\sim\Normal{\mu_{\tau_{\ell,i}}}{\sigma_{\tau_{\ell,i}}^2},
+\end{equation}
+the magnitude is
+\begin{equation}\label{eq:peak_effect_day_size}
+\rho_{\ell,d,i}\sim\Normal{\mu_{\rho_{\ell,i}}}{\sigma_{\rho_{\ell,i}}^2},
+\end{equation}
+and the width (or length) of the effect is
+\begin{equation}\label{eq:peak_effect_day_length}
+\omega_{\ell,d,i}\sim\Normal{\mu_{\omega_{\ell,i}}}{\sigma_{\omega_{\ell,i}}^2}.
+\end{equation}
+We could, of course, allow a relationship between the morning and evening peaks, but this gets too complicated and will in many cases be unrelated.
+
+
+Now the expected travel time at any time of day is given by
+\begin{equation}\label{eq:peak_effect_day_calc}
+\beta_{\ell,d}(t) =
+    \mu_{\ell} + \sum_{i\in\{1,2\}} \pi_{\ell,i}
+    \rho_{\ell,d,i}\exp\left\{{-\frac{(t - \tau_{\ell,d,i})^2}{2\omega_{\ell,d,i}^2}}\right\}
+\end{equation}
+where $\pi_{\ell,i} = \{0,1\}$ indicates whether or not that segment exhibits a peak period.
+
+For the segment parameters, we assume a hierarchical model on the temporal location and width, with hyperparameters common across all segments in the network, while the magnitude will be independent for each segment. This leads to the following model:
+\begin{equation}\label{eq:peak_effect_model}
+\begin{split}
+\mu_{\tau_{\ell,i}} &\sim \Normal{\mu_{\tau_i}}{\sigma_{\tau_i}}\\
+\mu_{\omega_{\ell,i}} &\sim \Normal{\mu_{\omega_i}}{\sigma_{\omega_i}}.
+\end{split}
+\end{equation}
+
+And then we fit the model using JAGS \cite{JAGS}.
