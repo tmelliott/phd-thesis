@@ -1,15 +1,7 @@
 \subsection{Likelihood}
 \label{sec:pf-likelihood}
 
-The second component of \glspl{rbm} is the update step,
-which involves accounting for the likelihood of the data
-given the predicted state, $p(\Vobs_k | \Vstate_k)$.
-In the \pf{}, as discussed in \cref{sec:pf},
-updating is performed by reweighting each of the particles
-based on their individual likelihoods, $p(\Vobs_k | \Vstate\vi_k)$,
-and then, if necessary, peforming weighted resampling with replacement
-(important resampling).
-That is,
+The second component of \gls{rbe} is the update step, which involves accounting for the likelihood of the data given the predicted state, $p(\Vobs_k | \Vstate_k)$. In the \pf{}, as discussed in \cref{sec:pf}, updating is performed by reweighting each of the particles based on their likelihoods, $p(\Vobs_k | \Vstate\vi_k)$, and then, if necessary, performing weighted resampling with replacement (important resampling). That is,
 \begin{equation}
 \label{eq:vehicle_pf_update}
 p(\Vstate_k | \Vobs_{1:k}) \approx
@@ -30,24 +22,10 @@ where
 \end{equation}
 
 
-The likelihood function is where the \pf{} shines in this application.
-the real advantage is in the flexibility of the proposal distribution,
-in that it is not restricted to conform to a fixed number of modes,
-for example when passing $m$ stops in a time interval,
-there will be (assuming constant speed) $2^m$ modes in the proposal distribution,
-two for each stop.
-Also, not all of the modes will have the same width:
-some will be narrow (when the bus doesn't stop),
-others will be wide (when it does stop with unknown dwell time).
+The likelihood function is where the \pf{} shines in this application. The real advantage is in the flexibility of the proposal distribution, in that it is not restricted to conform to a fixed number of modes, for example when passing $m$ stops in a time interval, there are (assuming constant speed) $2^m$ modes in the proposal distribution, two for each stop. Also, not all of the modes have the same width: some are narrow (when the bus doesn't stop), while others are wide (when it does stop with unknown dwell time).
 
 
-
-The \pf{} effectively checks to see how plausible the observation is
-assuming each particle is the truth,
-allowing us to weight each particle by its plausibility.
-Since there are two types of data,
-two likelihood functions are required:
-one for \GPS{} observations, and a second for trip updates.
+The \pf{} effectively checks to see how plausible the observation is assuming each particle is the truth, allowing us to weight each particle by its plausibility. Since there are two types of data, two likelihood functions are required: one for \GPS{} observations, and a second for trip updates.
 
 
 \subsubsection{GPS vehicle locations}

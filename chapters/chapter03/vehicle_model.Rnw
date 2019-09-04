@@ -1,66 +1,24 @@
 \section{\Rt{} vehicle model}
 \label{sec:vehicle_model}
 
-\Rt{} tracking of vehicles has been studied vigorously,
-particularly for robotics applications and self driving cars \citep{cn}.
-However, most of these use data that has a (very) high sampling rate,
-often more than one per second.
-In transit data, this is not the case;
-instead, our models need to be able to deal with data that is updated
-once every 10--30~seconds or, in some cases, even longer.
+Real-time tracking of vehicles has been studied vigorously, particularly for robotics applications and self-driving cars \citep{cn}. However, most of these use data that has a (very) high sampling rate, often more than once per second. In transit data, this is not the case; instead, our models need to be able to deal with data that is updated once every 10--30~seconds or, in some cases, even longer.
 
 
-The two main problems with low frequency sampling are that,
-firstly, the possible locations a vehicle can be at grows exponentially,
-so the prediction part of the \gls{rbe} algorithm (see \cref{sec:recursive-bayes})
-can struggle to cover all of the possible trajectories the vehicle might take---%
-remembering that this is a key part of what we are trying to estimate!
-The second problem, related to the first,
-is that it is very easy to \emph{lose} the vehicle in the predict step,
-resulting in degradation of the filter and having to reinitialize.
-This is bad because it means we lose any information about travel times
-in that period.
+The two main problems with low-frequency sampling are that, firstly, the possible locations a vehicle can be at grows exponentially, so the prediction part of the \gls{rbe} algorithm (see \cref{sec:recursive-bayes}) can struggle to cover all of the possible trajectories the vehicle might take---remembering that this is a vital part of what we are trying to estimate! The second problem, related to the first, is that it is very easy to \emph{lose} the vehicle in the prediction step, resulting in degradation of the filter and having to reinitialize. This loss is problematic because it means we lose information about recent travel times.
 
 
-The \kf{} is a fast estimation method, however it has a higher chance of failure
-in our application due to the above reasons,
-and it assumes the state is Gaussian, which is often not the case,
-for example at bus stops---the bus may or may not stop,
-so there will be at least two plausible locations for the prediction.
-The \pf{}, while having a much higher computational cost,
-is much more flexible and capable of accounting for a larger range of
-plausible trajectories, as mentioned by \cite{Hans_2015},
-who also used a \pf{} to model buses.
+
+The Kalman filter is a fast estimation method, however it has a higher chance of failure in our application due to the above reasons, and it assumes the state is Gaussian, which is often not the case, for example at bus stops---the bus may or may not stop, so there is likely to be at least two plausible locations for the prediction. The particle filter, while having a much higher computational cost, is much more flexible and capable of accounting for a broader set of plausible trajectories, as mentioned by \cite{Hans_2015}, who also used a particle filter to model buses.
 
 
-The vehicle model itself implements a simplified estimation of bus behaviour,
-allowing us to infer the vehicle's trajectory between consecutive observations.
-The foundation of this model is a simple dynamic vehicle tracking model,
-in which the vehicle's unknown state, $\Vstate$,
-is infered using a sequence of GPS coordinates.
-The path of the vehicle is known,
-so the state uses the \emph{distance traveled}, $\Vdist_k$, along the route at time $\Vtime_k$.
-We are also interested in the \emph{speed} of the vehicle, $\Vspeed_k$
-Therefore, the underlying, unknown, and \emph{unobservable} state of each vehicle is denoted
+
+The vehicle model itself implements a simplified estimation of bus behaviour, allowing us to infer the vehicle's trajectory between consecutive observations. The foundation of this model is a simple dynamic vehicle tracking model, in which the vehicle's unknown state, $\Vstate_k$, is inferred using a sequence of GPS coordinates. The path of the vehicle is known, so the state uses the \emph{distance traveled}, $\Vdist_k$, along the route at time $\Vtime_k$. We are also interested in the \emph{speed} of the vehicle, $\Vspeed_k$\footnote{This is the derivative of the graph of distance travelled versus time at time $t_k$}. Therefore, the underlying, unknown, and \emph{unobservable} state of each vehicle is denoted
 \begin{equation}
 \label{eq:vehicle_state}
 \Vstate_k = \tvec{\Vdist_k, \Vspeed_k}
 \end{equation}
 
-As discussed, we chose to implement a Bayes' filter model,
-implemented using a \pf{},
-to estimate the \rt{} state of each vehicle.
-To do so, we need a \emph{transition function} $\Vtrans$
-to predict the future state
-$p(\Vstate_k | \Vstate_{k-1})$,
-and a likelihood and measurement function $\Vmeas$
-to update the state given an observation
-$p(\Vstate_k | \Vobs_{1:k})$.
-The vehicle model is, in it's simplest form,
-composed of the state $\Vstate$, the transition function $\Vtrans$
-with system noise $\Vnoise$---which represents the change in speed per second---%
-as well as the observation $\Vobs$, measurement function $\Vmeas$
-and measurement---or \gls{gps}---error, $\GPSerr$,
+As discussed, we chose to implement a Bayes' filter model, implemented using a particle filter, to estimate the real-time state of each vehicle. To do so, we need a \emph{transition function} $\Vtrans$ to predict the future state $p(\Vstate_k | \Vstate_{k-1})$, and a likelihood and measurement function $\Vmeas$ to update the state after observing a vehicle location, $p(\Vobs_{1:k} | \Vstate_k)$. The vehicle model is, in it's simplest form, composed of the state $\Vstate$, the transition function $\Vtrans$ with system noise $\Vnoise$---which represents the rate of change in speed---as well as the observation $\Vobs_k$, measurement function $\Vmeas$ and measurement---or \gls{gps}---error, $\GPSerr$,
 \begin{equation}
 \label{eq:vehicle_model}
 \begin{split}
@@ -69,48 +27,21 @@ and measurement---or \gls{gps}---error, $\GPSerr$,
 \end{split}
 \end{equation}
 
-The \pf{} permits a lot of flexibility in how each of the components are specified.
-The transition function $\Vtrans$, for example,
-can implement a complex simulation of bus behaviour,
-while the measurement function $\Vmeas$ can be constructed
-to use \emph{points} that can easily be
-mapped between one and two dimensions.
+
+The particle filter permits much flexibility in how each of the components is specified. The transition function $\Vtrans$, for example, can implement a complex simulation of bus behaviour, while the measurement function $\Vmeas$ can be constructed to use \emph{points} that can easily be mapped between one and two dimensions.
 
 
-We will now discuss the details of the vehicle model components separately.
-The model of bus behaviour for the transition function is covered in
-\cref{sec:vehicle_model_trans},
-and presents several models which will be compared later
-in \cref{sec:vehicle_travel_times}.
-Then, in \cref{sec:pf-likelihood},
-the necessary measurement function and likelihood for the data
-will be constructed.
-Details of the actual implementation have been left for
-\cref{sec:particle-filter}.
+We now discuss the details of the vehicle model components separately. The model of bus behaviour for the transition function is covered in \cref{sec:vehicle_model_trans}, and presents several models compared later in \cref{sec:vehicle_travel_times}. Then, in \cref{sec:pf-likelihood}, the measurement function and likelihood for the data are presented. Details of the actual implementation are given in \cref{sec:particle-filter}.
 
 
 
 \subsection{Vehicle transition model}
 \label{sec:vehicle_model_trans}
 
-Transit vehicle behaviour is both predictable and volatile.
-Unlink the majority of vehicle tracking applications,
-transit vehicles travel along a known \emph{path},
-which is stored as a sequence of \gls{gps} coordinates
-referred to in \GTFS{} as the \emph{shape}.
-However, the position along this two-dimensional line,
-and the speed at which it is travelling, is unknown.
-Estimation of each of these is therefore necessary
-in order to estimate travel time along road segments:
-the position along the shape tells us which road segment the vehicle is on,
-and the speed tells us about the travel time.
+Transit vehicle behaviour is both predictable and volatile. Unlike the majority of vehicle tracking applications, transit vehicles travel along a known \emph{path}, which is stored as a sequence of \gls{gps} coordinates referred to in \GTFS{} as the \emph{shape}. However, the position along this two-dimensional line, as well as the speed at which it is travelling, are unknown. Estimation of each of these is, therefore, necessary to estimate travel time along road segments: the position along the shape tells us which road segment the vehicle is on, and the speed tells us about the travel time.
 
 
-In this section, we develop a model of bus behaviour incrementally,
-starting off with a simple distance and speed model
-before incorporating stops and intersections.
-The overall goal is to \emph{predict} the state of the vehicle,
-which, using the particle filter, is given by
+In this section, we develop a model of bus behaviour incrementally, starting with a simple distance and speed model before incorporating stops and intersections. The overall goal is to \emph{predict} the state of the vehicle, which, using the particle filter, is given by
 \begin{equation}
 \label{eq:vehicle_pf_predict}
 p(\Vstate_k | \Vstate_{k-1}) \approx
@@ -118,62 +49,32 @@ p(\Vstate_k | \Vstate_{k-1}) \approx
     \Pwt_{k-1}
     \dirac\left(\Vstate_k - f(\Vstate\vi_{k-1}, \Vtdiff_k, \Vnoise_k)\right)
 \end{equation}
-where $\Vtdiff_k = \Vtime_k - \Vtime_{k-1}$
-and the system noise $\Vnoise$ is constant over time.
+where $\Vtdiff_k = \Vtime_k - \Vtime_{k-1}$ and the system noise $\Vnoise$ is constant over time.
 
 
 \subsubsection{General vehicle behaviour (Model A)}
 \label{sec:vehicle_model_behaviour}
 
-Since the \pf{} is applying the transition function to points,
-rather than distributions (as is the case with the \kf{}),
-each particle can be transitioned independently according to physics,
-in this case Newton's Laws of Motion \cite{cn},
-which allows us to predict the distance travelled of an object
-after travelling for $\Vtdiff_k$~seconds at a speed of $\Vspeed_k$,
+Since the \pf{} is applying the transition function to points, rather than distributions (as is the case with the \kf{}), each particle can be transitioned independently according to physics, in this case, a simple motion model, which allows us to predict the distance travelled of an object after travelling for $\Vtdiff_k$~seconds at a speed of $\Vspeed_k$,
 \begin{equation}
 \label{eq:vehicle_model_newton}
 \Vdist_k = \Vdist_{k-1} + \Vtdiff_k\Vspeed_k.
 \end{equation}
-This same basic model was used by the likes of
-\cite{Cathey_2003,cn}.
+Previous work, such as that of \cite{Cathey_2003,cn}, used this same basic model.
 
 
-The second part of the model to consider is the noise variation.
-Clearly, vehicles do not travel at a constant speed,
-instead they accelerate and decelerate according to the traffic conditions,
-driver behaviour, and other factors (bus stops and intersections are
-explicitely examined later).
-Presented below are three increasingly generalised models,
-from a constant speed between observations and stops,
-to random speed and random acceleration.
+The second part of the model to consider is the variance of the noise. Vehicles do not travel at a constant speed; instead, they accelerate and decelerate according to the traffic conditions, driver behaviour, and other factors (bus stops and intersections are explicitly examined later). Presented below are three increasingly generalised models, from a constant speed between observations and stops to random speed and random acceleration.
 
-In the first model (A1) we assume a constant speed $\Vspeed_k$
-in the interval $(\Vtime_{k-1}, \Vtime_k)$,
+
+In the first model (A1) we assume a constant speed $\Vspeed_k$ in the interval $(\Vtime_{k-1}, \Vtime_k]$,
 \begin{equation}
 \Vspeed_k \sim \TNormal{\Vspeed_{k-1}}{\Vnoise}{0}{30}
 \end{equation}
-where $\TNormal{\mu}{\sigma}{a}{b}$ is the normal distribution
-truncated to the interval $(a, b)$.
-In this case, vehicle speed was truncated to ensure it is
-both positive and under 30~m/s,
-which is 108~km/h (the maximum road speed in Auckland is 100~km/h).
-The truncation point could, of course,
-be reduced in a majority of roads throughout Auckland,
-but this information was not straightforward/free to obtain.
-Having sampled a new speed (to ensure system variability, see \cref{sec:pf}),
-the vehicle travels forward according to \cref{eq:vehicle_model_newton}.
+where $\TNormal{\mu}{\sigma}{a}{b}$ is the Normal distribution truncated to the interval $(a, b)$. In this case, vehicle speed was truncated to ensure it is both positive and under 30~m/s, which is 108~km/h (the maximum road speed in Auckland is 100~km/h). The truncation point could, of course, be reduced in a majority of roads throughout Auckland, but this information was not straightforward or free to obtain. Having sampled a new speed (to ensure system variability, see \cref{sec:pf}), the vehicle travels forward according to \cref{eq:vehicle_model_newton}.
 
 
-In order to compute the vehicle's travel time along a road segment,
-the start and end times of travel along the segment,
-$\Vsegstart_\ell$ and $\Vsegend_\ell$,
-respectively, are interpolated.
-The end time of travel along segment $\ell - 1$ is the same as the
-start time of travel along segment $\ell$,
-so given segment $\ell$ begins at $\Tsegd_\ell$~meters along the route shape,
-then whenever $\Tsegd_\ell \in (\Vdist_{k-1},  \leq \Vdist_k]$,
-the relevant segment start and end times are computed as
+
+To compute the vehicle's travel time along a road segment, the start and end times of travel along the segment, $\Vsegstart_\ell$ and $\Vsegend_\ell$, respectively, are interpolated. The end time of travel along segment $\ell - 1$ is the same as the start time of travel along segment $\ell$, so given segment $\ell$ begins at $\Tsegd_\ell$~meters along the route shape, then whenever $\Tsegd_\ell \in (\Vdist_{k-1},  \leq \Vdist_k]$, the relevant segment start and end times are computed as
 \begin{equation}
 \label{eq:vehicle_model_a1_tt_interp}
 \Vsegend_{\ell-1} = \Vsegstart_\ell =
@@ -181,9 +82,7 @@ the relevant segment start and end times are computed as
 \end{equation}
 
 
-Travel times are straightforward to compute in this model
-once both start and end times of travel along a segment $\ell$
-have been interpolated,
+Travel times are straightforward to compute in this model after interpolating both start and end times of travel along a segment $\ell$,
 \begin{equation}
 \label{eq:vehicle_model_a1_tt}
 \Vtt_\ell = \Vsegend_\ell - \Vsegstart_\ell.
@@ -191,42 +90,26 @@ have been interpolated,
 
 
 
-A second model (A2) allows the vehicle speed to follow a random walk
-between observations rather than remaining constant.
-That is,
+A second model (A2) allows the vehicle speed to follow a random walk between observations rather than remaining constant. That is,
 \begin{equation}
 \Vspeed_s \sim \TNormal{\Vspeed_{s-1}}{\Vnoise}{0}{30},\quad
 \Vtime_s \in (\Vtime_{k-1}, \Vtime_k].
 \end{equation}
-In order to simultaneously compute segment travel times,
-the distance is also iteratively updated each second
-by modifying \cref{eq:vehicle_model_newton} (removing the $\Vdtiff_k$ parameter)
+In order to simultaneously compute segment travel times, the distance is iteratively updated once per second by modifying \cref{eq:vehicle_model_newton} (removing the $\Vdtiff_k$ parameter) for $s = \{t_{k-1}, t_{k-1} + 1, \ldots, t_k - 1, t_k \}$
 \begin{equation}
 \Vdist_s = \Vdist_{s-1} + \Vspeed_s.
 \end{equation}
-Once the particle enters segment $\ell$ ($\Vdist_s \geq \Tsegd_\ell$),
-the travel time $\Vtt_\ell$ is incremented by one second each
-iteration until the particle leaves the segment
-($\Vdist_s \geq \Tsegd_\ell + \Tseglen_\ell$).
+Once the particle enters segment $\ell$ ($\Vdist_s \geq \Tsegd_\ell$), the travel time $\Vtt_\ell$ is incremented by one second each iteration until the particle leaves the segment ($\Vdist_s \geq \Tsegd_\ell + \Tseglen_\ell$).
 
 
-In the third model (A3),
-the process is generalised even further by adding another parameter
-to the vehicle state,
-the acceleration $\Vaccel_k$ at time $\Vtime_k$.
-This allows more realistical modelling of vehicle behaviour,
-and it was this model we used to generate the simulated data below.
-Given an acceleration and again following Newton's Laws,
-vehicle speed is updated by
+
+In the third model (A3), the process is generalised even further by adding another parameter to the vehicle state, the acceleration $\Vaccel_k$ at time $\Vtime_k$. This process allows more realistic modelling of vehicle behaviour, and it was this model we used to generate the simulated data below. Given an acceleration and again following the motion laws, the vehicle speed is updated by
 \begin{equation}
 \label{eq:vehicle_model_accel}
 \Vspeed_s = \Vspeed_{s-1} + \Vaccel_{s}
 \end{equation}
 
-The acceleration noise distribution needed to be truncated
-in such as was as to to ensure
-the vehicle's speed remained positive and less than 30~m/s,
-which from \cref{eq:vehicle_model_accel} yields the inequality
+The acceleration noise distribution needed to be truncated in such a way as to ensure the vehicle's speed remained positive and less than 30~m/s, which from \cref{eq:vehicle_model_accel} yields the inequality
 \begin{equation}
 - \Vspeed_{s-1} \leq \Vaccel_s \leq 30 - \Vspeed_{s-1}
 \end{equation}
@@ -238,56 +121,33 @@ resulting in the acceleration distribution
 Computing the travel time of the vehicle along road segments
 was done in the same way as for model A2.
 
-\subsubsection{Bus stops}
-\label{sec:vehicle_model_stops}
 
-The main feature of transit vehicle behaviour that distinguishes it from
-other vehicle tracking applications is the presense of known stopping locations,
-or \emph{bus stops},
-which are therefore an integral component of our model.
-however, modelling stopping behaviour in \rt{} is a difficult problem,
-particularly when the observations are sparse,
-or frequently observed (only) at bus stops (\cref{sec:realtime-data}).
+\subsubsection{Nodes: bus stops and intersections}
+\label{sec:vehicle_model_nodes}
+
+\textcolor{red}{Re-write this section as a ``node''-based operation, with cases for stops or intersections.}
+
+The main feature of transit vehicle behaviour that distinguishes it from other vehicle tracking applications is the presence of known stopping locations, or \emph{bus stops}, which are therefore an integral component of our model. However, modelling stopping behaviour in \rt{} is a difficult problem, particularly when the observations are sparse, or frequently observed (only) at bus stops (\cref{sec:realtime-data}).
 
 
-The main difficulty here is related to the way in which the data are observed,
-which was discussed in \cref{sec:vp_data}.
-It is quite common for \GPS{} to only be observed at bus stops,
-a location at which there is positive probability of landing.
-Thus, it makes sense that the maximum likelihood estimate of the
-trajectory between two bus stops puts the maximum possible time
-\emph{at the stop}, resulting in maximum speed between stops.
-Early iterations of our model succummed to this problem
-until we implemented a somewhat strict likelihood function
-on the trip updates (see \cref{sec:lhood_trip}).
+
+The main difficulty here is related to how the data are observed, which was discussed in \cref{sec:vp_data}. It is quite common only to observe \GPS{} positions at bus stops, a location at which there is a positive probability of being. Thus, it makes sense that the maximum likelihood estimate of the trajectory between two bus stops puts the maximum possible time \emph{at the stop}, resulting in maximum speed between stops. Early iterations of our model succumbed to this problem until we implemented a likelihood function on the trip updates (see \cref{sec:lhood_trip}).
 
 
-The typical behaviour at bus stops is that a bus will stop
-if there are passengers signalling to get on or off the bus.
-Probabilistically, we say that a bus servicing route $r$
-will stop at bus stop $m \in \{1, \ldots, \Nstop_r\}$
-with some unknown probability $\Prstop_m$.
-In those situations when the bus does not stop,
-the behaviour follows model A.
-Conversely, when it does stop, it follows the following behaviour:
+
+The typical behaviour at bus stops is that a bus stops if passengers are signalling to get on or off the bus. Probabilistically, we say that a bus servicing route $r$ stops at bus stop $m \in \{2, \ldots, \Nstop_r - 1\}$\footnote{the bus always stops at the first and last stops} with some unknown probability $\Prstop_m$. In situations where the bus does not stop, the behaviour follows model A; otherwise, it follows the following behaviour:
 \begin{enumerate}
 \item deceleration on approach to stop, doors open,
 \item passengers alight and board, and
-\item doors close, acceleration into traffic flow.
+\item doors close, acceleration into the traffic flow.
 \end{enumerate}
-Following the work by \cite{Hans_2015},
-steps 1 and 3 above are combined into a single constant parameter $\mindwell$,
-which represents the \emph{minimum dwell time} at a stop.
+Following the work by \cite{Hans_2015}, steps 1 and 3 above are combined into a single constant parameter $\mindwell$, which represents the \emph{minimum dwell time} at a stop.
 
-Step 2 is modelled as the service time of the stop,
-that is the time to allow passengers to alight and board.
-As we have no \rt{} data on passenger counts available in Auckland,
-we rely on the flexibility of the \pf{} to estimate
-dwell time in \rt{}.
-Using a truncated normal distribution
-with mean $\mindwell + \dwell_m$ and variance $\dwellvar_m$,
-with a point mass of $1-\Prstop_m$ on zero,
-as shown in \cref{fig:eta_dwell_times}.
+
+
+Step 2 is modelled as the service time of the stop; that is the time to allow passengers to alight and board. As we have no \rt{} data on passenger counts available in Auckland, we rely on the flexibility of the \pf{} to estimate dwell time in \rt{}. Using a truncated normal distribution with mean $\mindwell + \dwell_m$ and variance $\dwellvar_m$, with a point mass of $1-\Prstop_m$ on zero, as shown in \cref{fig:eta_dwell_times}.
+
+
 
 <<eta_dwell_times, echo=FALSE, fig.height=3,fig.cap="Dwell time at bus stop $m$">>=
 suppressPackageStartupMessages(library(tidyverse))
@@ -314,13 +174,11 @@ tibble(x = xx, y = yy) %>%
     theme(panel.grid = element_blank())
 @
 
-So, for a given vehicle approaching stop $m$,
-the dwell time associated with that stop
-can be expressed as a function of
+So, for a given vehicle approaching stop $m$, the dwell time associated with that stop can be expressed as a function of
 \begin{equation}
 \label{eq:stop_dwell_model}
 \Istop_m \sim \Bern{\Prstop_m}\quad\text{and}\quad
-\pserve_m \sim \TNormal{\dwell_m}{\dwellvar_m}{\gamma}{\infty}
+\pserve_m \sim \TNormal{\dwell_m}{\dwellvar_m}{0}{\infty}
 \end{equation}
 giving the dwell time $\pdwell_m$ as
 \begin{equation}
@@ -334,25 +192,16 @@ giving the dwell time $\pdwell_m$ as
 \subsubsection{Intersections}
 \label{sec:vehicle_model_intersections}
 
-Unlike route paths and bus stops which are known,
-intersections are, for the most part, unknown,
-as there is no readily available, up-to-date information about
-the locations of intersections.
-We can, however, develop our model to allow for intersections,
-which can then be created by
+Unlike route paths and bus stops which are known, intersections are, for the most part, unknown, as there is no readily available, up-to-date information about the locations of intersections. We can, however, develop our model to allow for intersections, which can then be created by
 \begin{itemize}
 \item importing from an external source,
-\item detecting intersections using shape files (\cref{sec:route-segments}), or
+\item detecting intersections using shapefiles (\cref{sec:route-segments}), or
 \item using historical GPS data to find locations of high bus density.
 \end{itemize}
-Each of these methods have their benefits and downfalls,
-but this is not the topic of this thesis.
+Each of these methods has their benefits and downfalls, but this is not the topic of this thesis.
 
 
-To model intersections,
-we use a similar approach as for bus stops,
-however we remove the minimum dwell time
-and simply use an exponential distribution for the wait times,
+To model intersections, we use an approach similar to the one used for bus stops, but removing the minimum dwell time and using an exponential distribution for the wait times,
 \begin{equation}
 \Iint_\ell \sim \Bern{\rho_\ell}\quad\text{and}\quad
 \pcwait_\ell \sim \Exp{\intwait_\ell^{-1}}
@@ -363,15 +212,8 @@ giving the wait time $\pwait_\ell$ as
 \pwait_\ell = \Iint_\ell \pcwait_\ell.
 \end{equation}
 
-Another complication with intersections is that
-it is possible for a vehicle to be stuck in a queue
-and need to wait multiple light phases before getting through the intersection.
-While it should be sufficient to simply include this
-in the segment's travel time,
-due to the issues discussed in \cref{sec:vp_data},
-it is possible for a vehicle to be queuing up
-and report its location as \emph{at the intersection},
-rather than in the queue.
+
+Another complication with intersections is that it is possible for a vehicle to be stuck in a queue and need to wait for multiple light phases before getting through the intersection. While it should be sufficient to include this in the segment's travel time, due to the issues discussed in \cref{sec:vp_data}, it is possible for a vehicle to be queuing up and report its location as \emph{at the intersection}, rather than in the queue.
 
 
 \textcolor{red}{

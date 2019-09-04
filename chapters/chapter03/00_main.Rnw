@@ -2,25 +2,10 @@
 \chapter{Modelling a transit vehicle}
 \label{cha:vehicle_model}
 
-The \rt{} position data of vehicles is only a small piece
-of the information required to model network travel times.
-The main purpose of this section is to develop a model
-that can interpolate the trajectory of a vehicle between observations,
-thus providing estimates of the time taken to travel along road segments.
-This needs to account for any intermediate bus stops and, ideally,
-any intersections along the route.
+The real-time position data of vehicles is only a small piece of the information required to model network travel times. The primary purpose of this section is to develop a model that can interpolate the trajectory of a vehicle between observations, thus providing estimates of the time taken to travel along road segments. These travel times need to account for any intermediate bus stops and, ideally, any intersections along the route.
 
 
-In this chapter, we develop a model of the observed data $\Vobs$ for each vehicle,
-using the GTFS network developed in section~\ref{sec:route-segments}.
-We have chosen to implement it in \rt{} using a \pf{},
-which allows much more flexibility in the model,
-which is detailed in \cref{sec:vehicle_model}.
-Following this, travel time estimation is implemented using the results
-from the \pf{} model,
-and the models compared using a simulation in \cref{sec:vehicle_travel_times}.
-The design and implementation of the \pf{} is discussed later in
-section~\ref{sec:particle-filter}.
+In this chapter, we develop a model of the observed data $\Vobs$ for each vehicle, using the GTFS network developed in \cref{sec:route-segments}. We have chosen to implement it in real-time using a particle filter, which allows much more flexibility in the model, which is detailed in \cref{sec:vehicle_model}. The main goal of this chapter is to use the vehicle model to estimate vehicle travel times along road segments in the network, so the model comparisons in \cref{sec:vehicle_travel_times} use travel time estimation as the selection criteria. The design and implementation of the particle filter are discussed later in \cref{sec:particle-filter}.
 
 
 
