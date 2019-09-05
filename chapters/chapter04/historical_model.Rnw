@@ -5,24 +5,213 @@ The model presented in the previous sections is adequate for estimating the \emp
 
 From \cref{nw_par_est_real} we saw that roads typically have a peak effect either in the morning or in the evening, while some are affected by both morning and afternoon traffic. It seems reasonable therefore to have a model which allows a segment to have zero, one, or two peaks, each with varying magnitude (the size of the increase in travel time) and width (how long the peak period is). The temporal location of these peaks is likely to be related, but variable: some roads will experience peak traffic earlier than others, for example.
 
-<<tt_week0_load,cache=TRUE,echo=FALSE,fig.height=9,fig.width=8,fig.align="center",out.width="\\linewidth",fig.cap="Travel times along six roads over one week, coloured by the day of the week. Weekends aren't shown.">>=
+<<tt_week0_load,cache=TRUE,echo=FALSE,fig.height=8,fig.width=8,fig.align="center",out.width="\\linewidth",fig.cap="Travel times along six roads over one week, coloured by the day of the week.">>=
 library(ggplot2)
 source("load_week_data.R")
 
 data_week0 %>% filter(segment_id %in% sids) %>%
-    filter(!dow %in% c("Saturday", "Sunday")) %>%
+    mutate(weekday = factor(
+        ifelse(dow %in% c("Saturday", "Sunday"), "weekend", "weekday")
+    )) %>%
+    # filter(!dow %in% c("Saturday", "Sunday")) %>%
     ggplot(aes(time, travel_time, colour = dow)) +
         geom_point() +
+        # geom_smooth(aes(colour = NULL),span = 0.2) +
         scale_x_datetime(labels = function(t) format(t, "%l%P")) +
-        facet_grid(segment_id~., scales = "free_y") +
+        facet_grid(segment_id~weekday, scales = "free_y") +
         theme_classic() +
-        theme(strip.background = element_blank()) +
+        theme(strip.background = element_blank(), legend.position = "bottom") +
         xlab("Time") + ylab("Travel time (seconds)") +
         scale_colour_brewer(palette = "Dark2") +
         labs(colour = "Day of week")
 
 @
 
+Early work fitting hierarchical Bayesian models to this data were not promising, as it involved too much manual work tuning the parameters and checking the results. Since our goal is to obtain a generalised framework which can be run automatically, we had to try an alternative.
+
+From \cref{fig:tt_week0_load} it is clear that along each segment, there is a consistent pattern, with some variability between days as far as the temporal location and magnitude of the ``peak'' on weekday; weekends are fairly consistent, although this is only two days' worth of data. Our first approach is to develop a nearest-neighbour grid, which takes current time and road state (travel time) as input, and outputs the mean and uncertainty of travel time in 10, 20, or 30~minutes. The first step is to aggregate observations into 5~minute intervals and take the mean travel time in each interval. Then, we take a duplicate of these travel times and shift if backward 10, 20, and 30~minutes, so now each row has the current state, and future predicted states too.
+
+
+<<tt_week0_grid_fit,cache=TRUE,echo=FALSE>>=
+library(ggplot2)
+source("load_week_data.R")
+library(FNN)
+
+seg_fits <-
+    lapply(sids, function(sid) {
+        week0_smry <- data_week0 %>%
+            filter(segment_id == sid) %>%
+            mutate(
+                weekday = factor(
+                    ifelse(dow %in% c("Saturday", "Sunday"), "weekend", "weekday")
+                ),
+                t_int = as.integer(format(time, "%H")) +
+                    5 * (as.integer(format(time, "%M")) %/% 5) / 60
+            ) %>%
+            group_by(t_int, date) %>%
+            summarise(mean = mean(travel_time), e = sd(travel_time), weekday = first(weekday)) %>%
+            ungroup() %>% group_by(date) %>%
+            do((.) %>% mutate(
+                tt10 = c(mean[-(1:2)], rep(NA, 2)),
+                tt20 = c(mean[-(1:4)], rep(NA, 4)),
+                tt30 = c(mean[-(1:6)], rep(NA, 6))
+            )) %>%
+            ungroup()
+
+        week0_train <- week0_smry %>%
+            filter(weekday == "weekday") %>%
+            select(t_int, mean, tt30) %>%
+            filter(!is.na(tt30))
+
+        weekX_test <- with(week0_train,
+            expand.grid(
+                # every 5 mins
+                t_int = seq(5, 24, by = 5/60),
+                mean = seq(min(mean), max(mean), length = 100)
+            )
+        ) %>% as_tibble
+
+        fit <- knn.reg(week0_train %>% select(-tt30) %>% scale(),
+            weekX_test %>% scale(), y = week0_train %>% pull(tt30),
+            k = 10
+        )
+        weekX_test %>% as_tibble() %>%
+            mutate(pred = fit$pred, segment_id = sid)
+    }) %>% bind_rows
+save(seg_fits, file = "seg_fits.rda")
+@
+
+<<tt_week0_grid,cache=TRUE,echo=FALSE,message=FALSE,warning=FALSE,fig.height=10,fig.width=8,fig.align="center",out.width="\\linewidth",fig.cap="Predicted travel time (lighter is longer) in 30 minutes from the current time, given the current state (y-axis).">>=
+library(ggplot2)
+load("seg_fits.rda")
+
+seg_fits %>% group_by(segment_id) %>%
+    do({
+        fit <- (.)
+        vc <- viridis::viridis(
+            max(round(fit$pred)) - min(round(fit$pred)) + 1,
+            option = "A"
+        )
+        fit %>% mutate(col = vc[pred-min(pred)+1])
+    }) %>%
+    ggplot(aes(t_int, mean)) +
+        geom_raster(aes(fill = I(col)), interpolate = TRUE) +
+        # scale_fill_viridis_c(option = "A") +
+        scale_x_continuous(expand = c(0, 0)) +
+        scale_y_continuous(expand = c(0, 0)) +
+        facet_grid(segment_id~., scales = "free_y") +
+        theme_classic() +
+        theme(legend.position = "none") +
+        xlab("Time t") + ylab("Road state (seconds)")
+@
+
+The next step is to evaluate the predictive power of this approach. We do this by taking the next week of data (shown in \cref{fig:tt_week1_load}) and using the fitted estimates to predict the state in 30~minutes, and then comparing this to the actual state in 30~minutes. Then, we calculate the \gls{rmse}
+\begin{equation}\label{eq:rmse}
+\text{RMSE} = \sqrt{\frac{1}{N}\sum_{i=1}^N \left(X_i - \hat X_i\right)^2}
+\end{equation}
+for comparison with other predictive methods (for example, just using the mean).
+
+
+<<tt_week1_load,cache=TRUE,echo=FALSE,message=FALSE,warning=FALSE,fig.height=8,fig.width=8,fig.align="center",out.width="\\linewidth",fig.cap="Travel times along six roads over the course of two weeks, showing only week days.">>=
+library(ggplot2)
+source("load_week_data.R")
+load("seg_fits.rda")
+
+bind_rows(
+    data_week0 %>% mutate(week = "week 1"),
+    data_week1 %>% mutate(week = "week 2")
+) %>%
+    filter(segment_id %in% sids) %>%
+    filter(!dow %in% c("Saturday", "Sunday")) %>%
+    ggplot(aes(time, travel_time, colour = dow)) +
+        geom_point() +
+        # geom_smooth(aes(colour = NULL),span = 0.2) +
+        scale_x_datetime(labels = function(t) format(t, "%l%P")) +
+        facet_grid(segment_id~week, scales = "free_y") +
+        theme_classic() +
+        theme(strip.background = element_blank(), legend.position = "bottom") +
+        xlab("Time") + ylab("Travel time (seconds)") +
+        scale_colour_brewer(palette = "Dark2") +
+        labs(colour = "Day of week")
+
+@
+
+<<tt_week1_pred,cache=TRUE,message=FALSE,warning=FALSE,echo=FALSE,fig.height=8,fig.width=8,fig.align="center",out.width="\\linewidth",fig.cap="Forecasted travel times in 30 minutes versus actual travel times in 30 minutes along segments.">>=
+suppressPackageStartupMessages({
+    library(ggplot2)
+    library(purrr)
+})
+source("load_week_data.R")
+load("seg_fits.rda")
+
+seg_preds <-
+    lapply(sids, function(sid) {
+        week1_smry <- data_week1 %>%
+            filter(segment_id == sid) %>%
+            mutate(
+                weekday = factor(
+                    ifelse(dow %in% c("Saturday", "Sunday"), "weekend", "weekday")
+                ),
+                t_int = as.integer(format(time, "%H")) +
+                    5 * (as.integer(format(time, "%M")) %/% 5) / 60
+            ) %>%
+            group_by(t_int, date) %>%
+            summarise(mean = mean(travel_time), e = sd(travel_time), weekday = first(weekday)) %>%
+            ungroup() %>% group_by(date) %>%
+            do((.) %>% mutate(
+                tt10 = c(mean[-(1:2)], rep(NA, 2)),
+                tt20 = c(mean[-(1:4)], rep(NA, 4)),
+                tt30 = c(mean[-(1:6)], rep(NA, 6))
+            )) %>%
+            ungroup() %>%
+            mutate(segment_id = sid) %>% filter(weekday == "weekday") %>%
+            select(segment_id, date, t_int, mean, e, tt30)
+    }) %>% bind_rows %>% group_by(segment_id) %>%
+    do({
+        seg_x <- (.)
+        cv <- seg_fits %>%
+            filter(segment_id == seg_x$segment_id[1]) %>%
+            pull(mean) %>% unique()
+        seg_x %>% mutate(
+            mean_original = mean,
+            mean = cut(seg_x$mean, c(0, cv, Inf),
+                labels = c(cv[1], cv), right = FALSE) %>%
+                as.character() %>% as.integer
+        )
+    }) %>%
+    left_join(seg_fits, by = c("segment_id", "t_int", "mean"))
+
+egg::ggarrange(
+    ggplot(seg_preds, aes(pred, tt30, colour = date)) +
+        geom_point() +
+        geom_smooth(aes(colour = NULL)) +
+        facet_wrap(segment_id~., scales = "free", ncol = 1) +
+        scale_colour_brewer(palette = "Dark2") +
+        xlab("Predicted travel time (sec)") +
+        ylab("Observed travel time (sec") +
+        theme_classic() +
+        theme(legend.position = "none", strip.background = element_blank()) +
+        geom_abline(slope = 1, intercept = 0),
+    ggplot(seg_preds, aes(mean_original, tt30, colour = date)) +
+        geom_point() +
+        geom_smooth(aes(colour = NULL)) +
+        facet_wrap(segment_id~., scales = "free", ncol = 1) +
+        scale_colour_brewer(palette = "Dark2") +
+        xlab("Predicted travel time (sec)") +
+        ylab("Observed travel time (sec") +
+        theme_classic() +
+        theme(strip.background = element_blank()) +
+        geom_abline(slope = 1, intercept = 0),
+    ncol = 2
+)
+
+RMSE_forecast <- sqrt(mean(with(seg_preds, pred - tt30)^2, na.rm = TRUE))
+RMSE_equal <- sqrt(mean(with(seg_preds, mean_original - tt30)^2, na.rm = TRUE))
+@
+
+
+
+\pagebreak
 As in the previous section, we first present the model for a single segment over a week. We are no longer assuming the state is a Markov process; instead, we assume that there is some underlying mean travel time $\mu_\ell$ which the actual travel time fluctuates around. At peak times, there are added morning and evening peak effects, $\rho_{\ell,1}$ and $\rho_{\ell,2}$, respectively. The segment we are examining first exhibits a morning peak, as shown in \cref{fig:tt_week0_load}.
 Weekends are not shown as they do not exhibit ``peak hour'' effects, so we will simply assume constant speed all day\footnote{Future work will look at detecting obvious trends, for example roads around malls may be busier in the middle of the day}.
 
@@ -58,7 +247,7 @@ library(rstan)
 options(mc.cores = 3L)
 rstan_options(auto_write = TRUE)
 
-wd0 <- data_week0 %>% filter(segment_id == sids[[1]])
+wd0 <- data_week0 %>% filter(segment_id == sids[[2]])
 wd0_stan <-
     list(
         b = wd0$travel_time,
@@ -83,47 +272,7 @@ week0_fit <-
         # }
     )
 
-week0_fit
-
-
-week_model <- "
-model{
-    for (i in 1:N) {
-        b_hat[i] <- mu +
-            week[i] * p[1] * rho[d[i],1] *
-                exp(-pow(t[i] - tau[d[i],1], 2) * 0.5 * pow(omega[d[i],1], -2)) +
-            week[i] * p[2] * rho[d[i],2] *
-                exp(-pow(t[i] - tau[d[i],2], 2) * 0.5 * pow(omega[d[i],2], -2))
-        b[i] ~ dnorm(b_hat[i], pow(err, -2))
-    }
-
-    mu ~ dunif(0, 500)
-    mu_tau[1] ~ dnorm(9, pow(3, -2))
-    mu_tau[2] ~ dnorm(18, pow(3, -2))
-    for (j in 1:2) {
-        p[j] ~ dbern(pi[j])
-        pi[j] ~ dbeta(0.001, 0.001)
-
-        mu_rho[j] ~ dnorm(100, 0.001)
-        sigma_rho[j] ~ dgamma(0.1, 0.1)
-
-        mu_omega[j] ~ dunif(0.1, 3)
-        # sigma_omega[j] ~ dgamma(0.001, 0.001)
-
-        sigma_tau[j] ~ dgamma(0.1, 0.1)
-
-        for (l in 1:M) {
-            rho[l,j] ~ dnorm(mu_rho[j], pow(sigma_rho[j], -2))
-            #omega[l,j] ~ dnorm(mu_omega[j], pow(sigma_omega[j], -2))T(0,)
-            omega[l,j] <- mu_omega[j]
-            tau[l,j] ~ dnorm(mu_tau[j], pow(sigma_tau[j], -2))
-        }
-    }
-
-    err ~ dgamma(0.001, 0.001)
-}"
-
-save(week0_samples, file = "week0_samples.rda")
+save(week0_fit, file = "week0_samples.rda")
 @
 
 <<tt_week0_seg1_pars,echo=FALSE,cache=TRUE,fig.height=9,fig.width=6,out.width="\\linewidth",fig.cap="Model output parameters for single segment.",eval=FALSE>>=
@@ -149,6 +298,12 @@ egg::ggarrange(
             geom_path() +
             facet_wrap(~j, scales = "free_y"),
     week0_fit %>%
+        spread_draws(sigma_tau, sigma_rho) %>%
+        gather(key = "par", value = "value", sigma_tau, sigma_rho) %>%
+        ggplot(aes(.iteration, value, colour = as.factor(.chain), group = .chain)) +
+            geom_path() +
+            facet_wrap(~par, scales = "free_y"),
+    week0_fit %>%
         spread_draws(omega[j]) %>%
         ggplot(aes(.iteration, omega, colour = as.factor(.chain), group = .chain)) +
             geom_path() +
@@ -172,9 +327,14 @@ load("week0_samples.rda")
 library(ggplot2)
 library(tidybayes)
 
-mu <- week0_fit %>% spread_draws(mu) %>% pull(mu) %>% median
-peak_pars <- week0_fit %>% spread_draws(pi[j], rho[j], tau[j], omega[j]) %>%
-    median_qi() %>% select(j, pi, rho, tau, omega)
+mu <- week0_fit %>% spread_draws(mu) %>% pull(mu) %>% median + mean(wd0_stan$b)
+pi <- week0_fit %>% spread_draws(pi[j]) %>% median_qi() %>% pull(pi)
+tau <- week0_fit %>% spread_draws(tau[j,d]) %>% median_qi() %>% pull(tau) %>%
+    matrix(nrow = 2, byrow = TRUE)
+rho <- week0_fit %>% spread_draws(rho[j,d]) %>% median_qi() %>% pull(rho) %>%
+    matrix(nrow = 2, byrow = TRUE)
+omega <- week0_fit %>% spread_draws(omega[j]) %>% median_qi() %>% pull(omega)
+
 xx <- seq(5, 24, length = 1000)
 calc_tt <- function(t, mu, week, p, tau, omega, rho) {
     p <- as.integer(p)
@@ -185,19 +345,22 @@ calc_tt <- function(t, mu, week, p, tau, omega, rho) {
     y
 }
 
-plot(calc_tt(xx, mu, 1, peak_pars$pi>0.5, peak_pars$tau, peak_pars$omega, peak_pars$rho))
-
 fit_df <-
     tibble(
         x = rep(xx, 7),
+        d = rep(1:7, each = length(xx)),
         dow = rep(1:7, each = length(xx)),
-    ) %>% mutate(
-        y = calc_tt(x, mu, dow < 6,
-                peak_pars$pi > 0.5, peak_pars$tau, peak_pars$omega, peak_pars$rho
+    ) %>%
+    group_by(d) %>%
+    do((.) %>%
+        mutate(
+            y = calc_tt(x, mu, dow[1] < 6,
+                pi > 0.5, tau[,d[1]], omega, rho[,d[1]]
             )
+        )
     )
 
-data_week0 %>% filter(segment_id == sids[[1]]) %>%
+data_week0 %>% filter(segment_id == sids[[2]]) %>%
     mutate(
         t = as.integer(format(time, "%H")) +
             as.integer(format(time, "%M")) / 60,
