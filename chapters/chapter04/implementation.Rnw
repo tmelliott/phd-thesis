@@ -1,3 +1,18 @@
 \section{Particulars of the \rt{} implementation}
 \label{sec:nw_implementation}
 
+After stepping through the real-time model, estimation of its parameters, and improvement of forecats using historical data, the last remaining piece of the network model is to implement it in real-time within our iterative program, implemented in C++ and accessed through the \verb+transitr+ package. The first step is, of course, to load the historical data and model both the real-time parameters using JAGS, and the forecast values using k-NN regression. These are then inserted into the same database in which we store all of the GTFS and network data.
+
+
+The network is implemented as independent objects of class \verb+Segment+, which are initialised when the program is first started with their model parameter values loaded---if available---from the database. The network state itself is implemented using the \verb+Eigen+ C++ library, allowing us to store the state vector and uncertainty matrix as an \verb+Eigen::Vector+ and \verb+Eigen::Matrix+, respectively. The library includes all other common (and uncommon) vector and matrix operations, for example multiplication. Even though the current state is one-dimentional, we may in future wish to extend this to include, say, the rate of change of travel time, which could better model peak periods. This would then involve a length-two state vector and $2\times2$ uncertainty matrix.
+
+
+The following sections discuss the initialisation, data-extraction, update, and prediction steps as implemented within our package, as well as some final details on the real-time performance.
+
+
+\subsection{Initialisation}
+\label{sec:nw_implementation_init}
+
+The initialisation phase of the network is quite important, since in many cases it will be the only piece of information available for travel time and arrival time predictions, at least until some vehicles have traversed it and updated its state. Therefore, to initialise the segment, we check if there is any historical data available for it: if there is, we simply set $\NWstate_{\ellc}$ to be the historical mean travel time at time $t_c$ (as we estimated in \cref{sec:nw_hist_model}). To initialise the uncertainty, we use $\NWstatevar_{\ell 0} = \sqrt{\NWstate_{\ellc}}$ for no reason other than it scales nicely with the length of the segment, without being too dependent on the actual travel conditions which we have not yet observed.
+
+Another part of initialisation is setting the constraint for the \emph{minimum travel time}. Since we do not know the speed limit along most road segments, the best we can do is to use the maximum speed limit, 100~km/h, which is approximately 30~m/s. Thus for segment $\ell$ with length $\Tseglen_\ell$, the minimum travel time is $\lfloor\frac{\Tseglen_\ell}{30}\rfloor$, using the floor operator.
