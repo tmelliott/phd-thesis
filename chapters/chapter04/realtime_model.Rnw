@@ -182,4 +182,108 @@ Finally, we back-transform the information into the state space,
 The main constraint on the model is the dependence on $\NWvar_{\ellc}$ and $\NWnoise_{\ellc}$; however, before we consider the estimation of these values, we will first apply the Kalman filter model to the simulated date (for which the parameter values are known).
 
 
-\textcolor{red}{[[ model applied to the simulated data here! ]]}
+<<nw_simdata_fit,echo=FALSE,cache=TRUE,message=FALSE,warning=FALSE,fig.width=6,fig.height=2,fig.align="center",out.width="\\textwidth",fig.cap="Fitted KF to simulated data.",fig.subcap=c('Estimted mean travel time.', 'Predictive distribution of travel times.'),fig.ncol=1,fig.sep=rep("\\\\", 4)>>=
+source("sim_data.R")
+library(tidyverse)
+sim <- get_simulation()
+
+t <- sim$t
+th <- t %/% 1
+tm <- (((t %% 1) * 60) %/% 5) * 5
+t30 <- th + tm / 60
+N <- nrow(length(sim$b))
+M <- length(unique(t30))
+kf.fit <-
+    tibble(
+        time = sort(unique(t30)),
+        delta = c(0, diff(sort(unique(t30))))/60*5,
+        beta = rep(NA_real_, (M)),
+        beta_hat = rep(NA_real_, (M)),
+        P = rep(NA_real_, (M)),
+        P_hat = rep(NA_real_, (M)),
+        B_hat = 1 / P_hat,
+        b_hat = beta_hat / P_hat,
+        B = 1 / P,
+        b = beta / P
+    )
+
+kf.fit$beta[1] <- sim$pars$mu + exp(sim$truth$b[1])
+kf.fit$P[1] <- 500
+
+# q value is about 5, var(exp(sim$truth$b)) = 730 -> every 5min
+q <- 5
+phi <- sim$pars$phi
+mu <- 14
+
+# convert all data to information
+kf.data <-
+    tibble(
+        time = t30,
+        t = as.integer(as.factor(t30)),
+        b = sim$b - mu,
+        E = 5.0
+    ) %>% mutate(
+        I = 1 / (E^2 + phi^2),
+        i = b / (E^2 + phi^2)
+    ) %>% arrange(t)
+
+kf.fit <- kf.fit %>%
+    left_join(
+        kf.data %>% group_by(t) %>%
+            summarize(time = first(time), Z = sum(I), z = sum(i)),
+        by = "time"
+    )
+
+t0 <- proc.time()
+for (i in 2:M) {
+    # predict
+    kf.fit$beta_hat[i] <- kf.fit$beta[i-1]
+    kf.fit$P_hat[i] <- kf.fit$P[i-1] + (kf.fit$delta[i] + q)^2
+
+    # update
+    kf.fit$B_hat[i] <- 1 / kf.fit$P_hat[i]
+    kf.fit$b_hat[i] <- kf.fit$beta_hat[i] / kf.fit$P_hat[i]
+    kf.fit$B[i] <- kf.fit$B_hat[i] + kf.fit$Z[i]
+    kf.fit$b[i] <- kf.fit$b_hat[i] + kf.fit$z[i]
+
+    # untransform
+    kf.fit$beta[i] <- kf.fit$b[i] / kf.fit$B[i]
+    kf.fit$P[i] <- 1 / kf.fit$B[i]
+}
+time_kf <- proc.time () - t0
+
+library(ggplot2)
+
+truth <- tibble(time = sim$truth$t, b = sim$pars$mu + exp(sim$truth$b))
+ggplot(kf.fit[-1,], aes(time)) +
+    # geom_point(aes(y = mu + b), data = kf.data) +
+    geom_ribbon(aes(
+            ymin = mu + truncnorm::qtruncnorm(0.025, 0, Inf, beta_hat, sqrt(P_hat)),
+            ymax = mu + truncnorm::qtruncnorm(0.975, 0, Inf, beta_hat, sqrt(P_hat))
+        ),
+        fill = "blue", alpha = 0.2) +
+    geom_path(aes(y = mu + beta_hat), col = "blue") +
+    geom_ribbon(aes(
+            ymin = mu + truncnorm::qtruncnorm(0.025, 0, Inf, beta, sqrt(P)),
+            ymax = mu + truncnorm::qtruncnorm(0.975, 0, Inf, beta, sqrt(P))
+        ),
+        fill = "red", alpha = 0.2) +
+    geom_path(aes(y = mu + beta), col = "red") +
+    geom_path(aes(y = b), data = truth, lty = 2) + #, colour = "limegreen") +
+    theme_classic() +
+    xlab("Time") + ylab("Travel time (seconds)")
+
+ggplot(kf.fit[-1,], aes(time)) +
+    geom_point(aes(y = mu + b), data = kf.data) +
+    geom_ribbon(aes(
+            ymin = mu + truncnorm::qtruncnorm(0.025, 0, Inf, beta, sqrt(P) + phi),
+            ymax = mu + truncnorm::qtruncnorm(0.975, 0, Inf, beta, sqrt(P) + phi)
+        ),
+        fill = "red", alpha = 0.2) +
+    geom_path(aes(y = mu + beta), col = "red") +
+    theme_classic() +
+    xlab("Time") + ylab("Travel time (seconds)")
+
+@
+
+The \kf{} was fitted to the simulated data using the same values of $\NWnoise$ and $\NWvar$ that were used to generate the data, with the estimates of $\hat\NWstate_{c|c-1}$ and $\hat\NWstate_{c|c}$ shown by solid blue and red lines in \cref{fig:nw_simdata_fit1}, respectively, along with the associated uncertainty as estimated by $\NWstatevar_{c|c-1}$ and $\NWstatevar_{c|c}$, with the simulated true mean shown by a dashed black line. We see that the 95\% credible interval mostly captures the true value of $\NWstate_{c}$, with some difficulty around the peak. \Cref{fig:nw_simdata_fit2} shows the posterior estimate of $\hat\NWstate_{c|c}$ along with the posterior predictive distribution of $\NWobs_c^m$; that is, using the 95\% region defined by the sum of $\NWstatevar_{c|c}$ and $\NWvar^2$, the latter of which is known from the simulation. Almost all of the observation points lie within the 95\% predictive region, which affirms that, given we know the network parameters $\NWnoise$ and $\NWvar$, we can recover the underlying network state by using a \kf{} in \rt{}.
