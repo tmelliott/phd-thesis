@@ -1,39 +1,13 @@
 \section{\Rt{} network model}
 \label{sec:nw_realtime}
 
-For a real-time application, time is the number one constraint. Therefore, we begin by presenting a Kalman filter implementation of the model described in \cref{sec:nw_model}, which, as previously discussed, is a highly efficient estimation method.
-%The first step to using the Kalman filter is to transform the data---that is, the observed travel times---into the same \emph{state space} as $\NWstate_{\ellc}$.
-
-% The particle filter estimate of vehicle state makes it easy to estimate not only the vehicle's travel time but also any transformations of it. The transformation we need is the inverse of \cref{eq:nw_state_logtransform}, for which we have the posterior distribution
-% \begin{equation}\label{eq:pf_log_tt_posterior}
-% p(\log(\Vttobs_{\ellc}^m - T_\ell^\text{min}) | \Vobs_{1:c}^m)
-%     \approx
-%     \sum_{i=1}^{N^m} \Pwt_c
-%         \dirac\left(
-%             \log(\Vttobs_{\ellc}^m - T_\ell^\text{min}) -
-%             \log(\Vttobs_{\ellc}^{\vi m} - T_\ell^\text{min})
-%         \right).
-% \end{equation}
-% The posterior mean, which is used as the travel time observation, is
-% \begin{equation}\label{eq:nw_tt_trans_obs_mean}
-% \bar\Vttobs_{\ellc}^m =
-%     \E{\log(\Vttobs_{\ellc}^m - T_\ell^\text{min}) | \Vobs_{1:c}^m} =
-%     \sum_{i=1}^{N^m} \Pwt_c \log(\Vttobs_{\ellc}^{\vi m} - T_\ell^\text{min})
-% \end{equation}
-% and similarly we can estimate the measurement error from the variance of the distribution,
-% \begin{equation}\label{eq:nw_tt_trans_obs_err}
-% \left(\Vtterr_{\ellc}^m\right)^2 =
-%     \Var{\log(\Vttobs_{\ellc}^m - T_\ell^\text{min}) | \Vobs_{1:c}^m} =
-%     \sum_{i=1}^{N^m} \Pwt_c \left(\log(\Vttobs_{\ellc}^{\vi m} - T_\ell^\text{min}) - \bar\Vttobs_{\ellc}^m\right).
-% \end{equation}
-
-The measurement matrix (\cref{sec:kf} on \cpageref{sec:kf}) is unity since the observations are now directly observations of the state we are estimating. Similarly, the transition matrix is also unity, which we get from \cref{eq:nw_state_markov}. We now have everything we need to implement a Kalman filter on $\NWstate_{\ellc}$, assuming (for now) that $\NWvar_{\ellc}$ is known.
+For a real-time application, time is the number one constraint. Therefore, we begin by presenting a Kalman filter implementation of the model described in \cref{sec:nw_model}, which, as previously discussed, is a highly efficient estimation method. From \cref{sec:kf} we know we need the transition and measurement matrices; however since we are assuming a stationary Markov process \cref{eq:nw_state_markov}, the transition matrix is unity. Similarly, the measurement matrix (\cref{sec:kf} on \cpageref{sec:kf}) is unity since the observations are now directly observations of the state we are estimating. So, assuming that $\NWvar_{\ellc}$ and $\NWnoise_{\ell}$ are known, we now have everything we need to implement a Kalman filter on $\NWstate_{\ellc}$.
 
 
 \subsection{Predict step}
 \label{eq:kf_predict}
 
-The state prediction is straightforward, since we are assuming travel time is constant over short time periods. The estimated state has mean
+The state prediction is straightforward, since we assume travel time is constant over short time periods. The estimated state has mean
 \begin{equation}\label{eq:nw_state_mean_est}
 \hat\NWstate_{\ellc|c-1} =
     \E{\NWstate_{\ellc} | \NWobs_{\ell \boldsymbol{\cdot}}^\boldsymbol{\cdot}}
@@ -55,7 +29,8 @@ which are predicted using
 \end{equation}
 What this looks like is shown in \cref{fig:nw_kf1}.
 
-<<nw_kf,message=FALSE,echo=FALSE,fig.height=3,fig.width=8,fig.cap="Network state prediction, with the state history mean and variance shown by the black line and shaded gray region, respectively. The predicted mean is shown by a red dot, and the shaded pink region represents predicted state variance. The dashed blue line in the bottom plot represents the historical mean travel time as a function of time.",fig.subcap=c("Constant travel time model", "Historical change based model"),cache=TRUE,fig.ncol=1>>=
+
+<<nw_kf,message=FALSE,echo=FALSE,fig.height=2.5,fig.width=8,fig.cap="A network state prediction with the previous state mean and variance shown by the black line and shaded grey region, respectively. The red dot represents the predicted mean, with the accompanying pink region for the uncertainty of the predicted state. The dashed blue line in (b) represents the historical mean travel time over time, and the state prediction follows this.",fig.subcap=c("Constant travel time model", "Historical change based model"),cache=TRUE,fig.ncol=1,out.width="0.8\\textwidth",fig.align="center">>=
 suppressPackageStartupMessages(library(tidyverse))
 set.seed(345)
 d <- tibble(
@@ -105,23 +80,25 @@ p + geom_ribbon(aes(ymin = x - err, ymax = x + err),
 \subsection{Update step}
 \label{eq:kf_update}
 
-Updating the \kf{} involves taking the predicted state and updating it using ``observations'' of travel time along road segments. These we have obtained from the \pf{} in \cref{sec:vehicle_travel_times} and transformed to the log-space. However, it is possible to have multiple observations per road segment
-in one update period, as it is common for buses to travel one behind the other, particularly where there are bus lanes. Therefore, for each individual road segment, we have a vector of observations, one for each vehicle $v \in V_{\ell c}$ passing through that segment in the time interval $(t_{c-1}, t_c]$,
+Updating the \kf{} involves taking the predicted state and updating it using \emph{observations} of travel time along road segments. These we obtained from the \pf{} in \cref{sec:vehicle_travel_times}. However, it is possible to have multiple observations per road segment in one update period, as it is common for buses to travel one behind the other, particularly where there are bus lanes. Therefore, for each individual road segment, we have a vector of observations, one for each vehicle $v \in V_{\ell c}$ passing through that segment in the time interval $(t_{c-1}, t_c]$,
 \begin{equation} \label{eq:nw_seg_obs}
 \NWobss_\ell_c = \bigcup_{v\in V_{\ell c}} \NWobss_{\ell c}^v
 \end{equation}
-which can be the empty set $\NWobss_\ell_c = \emptyset$ if no vehicles travel through a segment in the interval. For the measurement error $\NWErr$, we account for between-vehicle variability by adding the sources of error,
-\begin{equation}\label{eq:nw_err_sum}
-\NWErr_{\ellc}^m = \NWvar_{\ellc}^2 + \left(\NWerr_{\ellc}^m\right).
-\end{equation}
-\textcolor{red}{
-    (I think this should go a bit later.)
-}
+which can be the empty set $\NWobss_\ell_c = \emptyset$ if no vehicles travel through a segment in the interval.
+
+% For the measurement error $\NWErr$, we account for between-vehicle variability by adding the sources of error,
+% \begin{equation}\label{eq:nw_err_sum}
+% \NWErr_{\ellc}^m = \NWvar_{\ellc}^2 + \left(\NWerr_{\ellc}^m\right).
+% \end{equation}
+% \textcolor{red}{
+%     (I think this should go a bit later.)
+% }
 
 
-In order to update the network, we need to account for each observation. One way of doing this would be to combine the observations into a single estimate and use that; alternatively, we could use the \emph{\infil{}} \citep{cn}, which has the advantage of letting us sum up the information from multiple observations easily. Since we are dealing with a univariate state, this is a viable option as ``inverting'' a $1\times1$ matrix is easy to compute.
+To update the network, we need to account for each observation. One way of doing this would be to combine the observations into a single estimate and use that; instead, we use the \emph{\infil{}} \citep{cn}, which allows the summation of information from multiple observations. The information filter involves inverting the state uncertainty $\NWstatevar$; however, this is a simple computation due to having a one-dimensional state---if we were to estimate the state of all segments simultaneously, inverting the $L\times L$ uncertainty matrix would be computationally demanding, or even impossible.
 
-To employ the \infil{}, we need to complete four steps:
+
+To employ the \infil{}, we need to
 \begin{enumerate}
 \item transform the state space into information space,
 \item transform the observations into information,
@@ -159,7 +136,7 @@ and
 
 
 
-The state update is now also a case of adding the total information to get
+The state update is now just a case of adding the total information,
 \begin{equation}
 \label{eq:nw_if_update}
 \begin{split}

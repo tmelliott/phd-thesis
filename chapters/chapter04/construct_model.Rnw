@@ -2,39 +2,30 @@
 \label{sec:nw_model}
 
 
-The relationship between the underlying travel time and the value we estimate (back in chapter \cref{cha:vehicle_model}) involves two steps. First, we must describe the relationship between the underlying travel time and the \emph{actual} time taken. Secondly, we define the relationship between \emph{actual} and \emph{observed} (or, more specifically, estimated) travel time. This type of model is often called a \emph{heirarchical Bayesian model} and is demonstrated graphically in \cref{fig:nw_model_hierarchy}.
+The relationship between the underlying travel time and the value we estimate (back in \cref{cha:vehicle_model}) involves two steps. First, we must describe the relationship between the underlying travel time and the \emph{actual} time taken. Second, we define the relationship between \emph{actual} and \emph{observed} (or, more specifically, estimated) travel time. This type of model is referred to as a \emph{heirarchical Bayesian model} and is demonstrated graphically in \cref{fig:nw_model_hierarchy}.
 
-Let us first consider the state of the network at time $t_c$, which we denote $\boldsymbol{\NWstate}_c = [\NWstate_{1c}, \cdots, \NWstate_{Lc}]$, a vector containing the current real-time travel times of vehicles along all $L$ roads in the network. However, modelling this entire state would increase computational demand as $L$ gets large, so, for now, we have only considered each road segment $\ell$ \emph{independently} (see later in \cref{} for a discussion of the implications of this).
 
-Vehicles travel along road segment $\ell$ at time $t_c$ with an average travel time of $\NWstate_{\ellc}$~seconds, which changes with an average rate of $\NWnoise_\ell$. Assuming the underlying road state is a Markov process, the evolution of travel time, at its simplest level, can be described by
+Let us first consider the state of the network at time $t_c$, which we denote
+\begin{equation}\label{eq:nw_state}
+\boldsymbol{\NWstate}_c = \left[\NWstate_{1,c}\ \cdots\ \NWstate_{L,c}\right]^\top,
+\end{equation}
+a vector containing the current real-time travel times of vehicles along all $L$ roads in the network. However, modelling the full state would increase computational demand as $L$ gets large, so, for now, we only consider each road segment $\ell$ \emph{independently} (see later in \cref{} for a discussion of the implications of this).
+
+
+Vehicles travel along road segment $\ell$ at time $t_c$ with an average travel time of $\NWstate_{\ellc}$~seconds, which changes with an average rate of $\NWnoise_\ell$. Assuming the underlying road state is a Markov process, the model for the evolution of travel time is
 \begin{equation}\label{eq:nw_state_markov}
 \NWstate_{\ellc} \sim \Normal{\NWstate_{\ellc-1}}{(\NWtdiff_c \NWnoise_c)^2}
 \end{equation}
-where $\NWtdiff_c = t_c - t_{c-1}$ is the time since the last update. Essentially, this model allows travel time to ``wander'' around the sate space, responding to both random and systematic changes to traffic conditions.
+where $\NWtdiff_c = t_c - t_{c-1}$ is the time since the last update. This model allows travel time to follow temporal trends (peak hour traffic, for example) as well as react to real-time events, such as accidents or weather events.
 
 
-% The Gaussian Markov model assumes that the rate of change is constant over time and independent of the value of travel time: this is unlikely to be the case. It would be reasonable to assume that the rate of change is higher when traffic is heavier (that is, larger fluctuations in travel time) compared to when traffic is free-flowing; when traffic is free-flowing, we expect the \emph{between-vehicle} variability to account for changes between vehicles (for example, a cyclist going up a hill). What I'm trying to say is that there is a \emph{multiplicative} relationship between variance and travel time, not an additive one. We also must consider the lower boundary of travel time, which is easily calculated as
-% \begin{equation}\label{eq:seg_min_tt}
-% T_\ell^\text{min} = \frac{\text{segment length}}{\text{speed limit}}.
-% \end{equation}
-% One solution to both of these is to replace $\NWstate_{\ellc}$ with $\NWstate_{\ellc}^\star$, such that
-% \begin{equation}\label{eq:nw_state_logtransform}
-% \NWstate_{\ellc} = T_\ell^\text{min} + e^{\NWstate_{\ellc}^\star}
-% \end{equation}
-% and modelling $\NWstate_{\ellc}^\star$ as
-% \begin{equation}\label{eq:nw_state_markov_log}
-% \NWstate_{\ellc}^\star \sim \Normal{\NWstate_{\ellc-1}^\star}{(\NWtdiff_c \NWnoise_c)^2}.
-% \end{equation}
-% Note that now $\NWnoise_c$ is the rate of change of travel time on the log scale.
-
-
-When a physical vehicle travels along a road segment, its travel time is influenced by many factors, including (but certainly not limited to) road obstacles (pedestrians crossing the road, cyclists, other vehicles pulling into or out of traffic), driver behaviour (both of the vehicle we are observing and of other road users), lane differences, and queuing traffic. To encapsulate all of this uncertainty, we introduce a single parameter $\NWvar_{\ellc}$, which describes the width of the distribution at the top of \cref{fig:nw_model_hierarchy}, or the \emph{between-vehicle varibility}. The model for the \emph{actual} travel time of a bus $m$ along road segment $\ell$ at time $t_c$ is denoted $\Vtt_{\ellc}^m$, and is assumed to be an observation from the population distribution with mean $\NWstate_{\ellc}$ and variance $\NWvar_{\ellc}^2$,
+As already mentioned, there are many factors which can affect how long it takes for a vehicle to travel along a road segment. To encapsulate this uncertainty, we introduce a single parameter $\NWvar_{\ellc}$, which describes the width of the distribution at the top of \cref{fig:nw_model_hierarchy}, or the \emph{between-vehicle varibility}. The model for the \emph{actual} travel time of a bus $m$ along road segment $\ell$ at time $t_c$ is denoted $\Vtt_{\ellc}^m$, and is assumed to be an observation from the population distribution with mean $\NWstate_{\ellc}$ and variance $\NWvar_{\ellc}^2$,
 \begin{equation}\label{eq:nw_vehicle_tt}
 \Vtt_{\ellc}^m \sim \Normal{\NWstate_{\ellc}}{\NWvar_{\ellc}^2}.
 \end{equation}
 
 
-Once a vehicle has traversed a segment, we can observe its travel time as $\Vttobs_{\ellc}^m$, which we estimated in \cref{eq:pf_travel_time_mean} back on \cpageref{eq:pf_travel_time_mean}. We assume the measurement is made with error $\Vtterr_{\ellc}^m$, as demonstrated in \cref{fig:nw_model_hierarchy} as the second level of the hierarchy, which can also be expressed as
+Once a vehicle has traversed a segment, we observe its travel time as $\Vttobs_{\ellc}^m$, as estimated in \cref{eq:pf_travel_time_mean} on \cpageref{eq:pf_travel_time_mean}. We assume the measurement is made with uncertainty $\Vtterr_{\ellc}^m$, as demonstrated in \cref{fig:nw_model_hierarchy} as the second level of the hierarchy, which is expressed as
 \begin{equation}\label{eq:nw_tt_obs_dist}
 \Vttobs_{\ellc}^m \sim \Normal{\Vtt_{\ellc}^m}{(\Vtterr_{\ellc}^m)^2}.
 \end{equation}
@@ -42,7 +33,8 @@ Once a vehicle has traversed a segment, we can observe its travel time as $\Vtto
 
 To further demonstrate the model, we have included a simulation where all of the parameter values are known (based off of the values estimated in \cref{sec:nw_par_est}). \Cref{fig:nw_sim_data} shows the three stages of the model hierarchy.
 
-<<nw_sim_data,echo=FALSE,fig.width=6,fig.height=2,fig.align="center",out.width="0.8\\textwidth",fig.cap="Simulated data",fig.subcap=c('Underlying travel time', 'Actual bus travel times', 'Observed bus travel times'),fig.ncol=1,fig.sep=rep("\\\\", 4)>>=
+
+<<nw_sim_data,echo=FALSE,fig.width=6,fig.height=2,fig.align="center",out.width="0.8\\textwidth",fig.cap="Simulated data",fig.subcap=c('Underlying travel time', 'Actual bus travel times', 'Observed bus travel times with vertial lines representing measurement error.'),fig.ncol=1,fig.sep=rep("\\\\", 4)>>=
 source("sim_data.R")
 sim <- get_simulation()
 
@@ -75,7 +67,8 @@ p + geom_path(
 
 @
 
-A plot of observed travel times for a segment are shown in \cref{fig:tt_figure}, which can be compared to the simulated data. The most notable feature of the real data is the peak-hour spike. This is an extreme example, but can be attributed to the location---Symonds Street overbridge---where there is often a (very long) queue of buses from many routes which converge there on the central city. Regardless, we will use the simulated data to evaluate the model under ``nice'' conditions, and then test it on this real data.
+
+Observed travel times for a real segment, displayed in \cref{fig:tt_figure}, shows some similarities to the simulated data, with one notable difference: the peak-hour spike. This spike is due to the location of the road, the Symonds Street overbridge\footnote{Anyone familiar with the area will understand the importance of this road}: there is often a (very long) queue of buses from many routes converging there on the central city. In this section, we use the simulated data to evaluate the model under ``nice'' conditions and then test it on this real data to see how well it copes with these types of phenomenon.
 
 
 <<tt_figure,echo=FALSE,fig.height=2,fig.width=6,fig.align="center",out.width=".8\\linewidth",fig.cap="Travel times along a road.">>=
