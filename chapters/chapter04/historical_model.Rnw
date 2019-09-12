@@ -1,11 +1,11 @@
 \section{Improving forecasts with history}
 \label{sec:nw_hist_model}
 
-The model presented in the previous sections is adequate for estimating the \emph{real-time} state of the network, but when it comes to forecasting road travel times, it becomes unuseful, particularly just before or after a peak period. In the next chapter, we will be predicting arrival time, which will involve making short-term forecasts of travel time. To do so, we will use historical data to detect the average temporal location and magnitude of travel time peaks.
+The model presented in \cref{sec:nw_model,sec:nw_realtime,sec:nw_par_est} is adequate for estimating the \emph{real-time} state of the network, but when it comes to forecasting road travel times, it becomes unuseful, particularly just before or after a peak period. The next chapter involves predicting arrival times, which involves making short-term forecasts of travel time. Using historical data is one way of improving prediction, particularly around peak times.
 
-From \cref{nw_par_est_real} we saw that roads typically have a peak effect either in the morning or in the evening, while some are affected by both morning and afternoon traffic. It seems reasonable therefore to have a model which allows a segment to have zero, one, or two peaks, each with varying magnitude (the size of the increase in travel time) and width (how long the peak period is). The temporal location of these peaks is likely to be related, but variable: some roads will experience peak traffic earlier than others, for example.
+From \cref{nw_par_est_real} we showed that roads typically have a peak effect either in the morning or in the evening, while some are affected by both morning and afternoon traffic. It seems reasonable therefore to have a model which allows a segment to have zero, one, or two peaks, each with varying magnitude (the size of the increase in travel time) and width (how long the peak period is). The temporal location of these peaks is likely to be related, but variable: some roads will experience peak traffic earlier than others, for example.
 
-<<tt_week0_load,cache=TRUE,echo=FALSE,fig.height=8,fig.width=8,fig.align="center",out.width="\\linewidth",fig.cap="Travel times along six roads over one week, coloured by the day of the week.">>=
+<<tt_week0_load,cache=TRUE,echo=FALSE,fig.height=8,fig.width=8,fig.align="center",out.width="\\textwidth",fig.cap="Travel times along six roads over one week, coloured by the day of the week.">>=
 library(ggplot2)
 source("load_week_data.R")
 
@@ -27,9 +27,9 @@ data_week0 %>% filter(segment_id %in% sids) %>%
 
 @
 
-Early work fitting hierarchical Bayesian models to this data were not promising, as it involved too much manual work tuning the parameters and checking the results. Since our goal is to obtain a generalised framework which can be run automatically, we had to try an alternative.
+Early work fitting hierarchical Bayesian models to this data were not promising, as it involved too much manual work tuning the parameters and checking the results. Since our goal is to obtain a generalised framework which can be run automatically, we sought an alternative.
 
-From \cref{fig:tt_week0_load} it is clear that along each segment, there is a consistent pattern, with some variability between days as far as the temporal location and magnitude of the ``peak'' on weekday; weekends are fairly consistent, although this is only two days' worth of data. Our first approach is to develop a nearest-neighbour grid, which takes current time and road state (travel time) as input, and outputs the mean and uncertainty of travel time in 10, 20, or 30~minutes. The first step is to aggregate observations into 5~minute intervals and take the mean travel time in each interval. Then, we take a duplicate of these travel times and shift if backward 10, 20, and 30~minutes, so now each row has the current state, and future predicted states too.
+From \cref{fig:tt_week0_load} it is clear that along each segment, there is a consistent pattern, with some variability between days as far as the temporal location and magnitude of the ``peak'' on weekdays; weekends are fairly consistent, although this is only two days' worth of data. Our first approach is to develop a nearest-neighbour grid, which takes time and road state (travel time) as input, and outputs the mean (and uncertainty) of travel time in 10, 20, or 30~minutes from the current time. The first step is to aggregate observations into 5~minute intervals and take the mean travel time in each interval. Then, we take a duplicate of these travel times and shift if backward 10, 20, and 30~minutes, so now each row has the current state, and future predicted states too. For any missing periods, we interpolated by using the meal of the adjacent times.
 
 
 <<tt_week0_grid_fit,cache=TRUE,echo=FALSE>>=
@@ -94,34 +94,59 @@ seg_fits <-
 save(seg_fits, file = "seg_fits.rda")
 @
 
+The resulting ``nearest-neighbour'' grid is shown in \cref{fig:tt_week0_grid}. The lighter areas represent higher travel times,
+
+
 <<tt_week0_grid,cache=TRUE,echo=FALSE,message=FALSE,warning=FALSE,fig.height=10,fig.width=8,fig.align="center",out.width="\\linewidth",fig.cap="Predicted travel time (lighter is longer) in 30 minutes from the current time, given the current state (y-axis).">>=
 library(ggplot2)
+library(tidyverse)
 load("seg_fits.rda")
 
-seg_fits %>% group_by(segment_id) %>%
-    do({
-        fit <- (.)
-        vc <- viridis::viridis(
-            max(round(fit$pred)) - min(round(fit$pred)) + 1,
-            option = "A"
-        )
-        fit %>% mutate(col = vc[pred-min(pred)+1])
-    }) %>%
-    ggplot(aes(t_int, mean)) +
-        geom_raster(aes(fill = I(col)), interpolate = TRUE) +
-        scale_x_continuous(expand = c(0, 0)) +
-        scale_y_continuous(expand = c(0, 0)) +
-        facet_grid(segment_id~., scales = "free_y") +
-        theme_classic() +
-        theme(legend.position = "none") +
-        xlab("Time t") + ylab("Road state (seconds)")
+sids <- unique(seg_fits$segment_id)
+do.call(egg::ggarrange,
+    c(
+        lapply(seq_along(sids), function(l) {
+            sid <- sids[l]
+            seg_fits %>% filter(segment_id == sid) %>%
+                ggplot(aes(t_int, mean, z = pred)) +
+                    geom_raster(aes(fill = pred), interpolate = TRUE) +
+                    scale_fill_viridis_c(option = "A") +
+                    scale_x_continuous(expand = c(0, 0)) +
+                    scale_y_continuous(expand = c(0, 0)) +
+                    theme_classic() +
+                    # geom_contour(colour = "black") +
+                    # scale_colour_viridis_c() +
+                    labs(fill = "Prediction") +
+                    xlab("Time t") + ylab("Road state (seconds)")
+        }),
+        list(ncol = 1)
+    )
+)
+
+# seg_fits %>% group_by(segment_id) %>%
+#     do({
+#         fit <- (.)
+#         vc <- viridis::viridis(
+#             max(round(fit$pred)) - min(round(fit$pred)) + 1,
+#             option = "A"
+#         )
+#         fit %>% mutate(col = vc[pred-min(pred)+1])
+#     }) %>%
+#     ggplot(aes(t_int, mean)) +
+#         geom_raster(aes(fill = I(col)), interpolate = TRUE) +
+#         scale_x_continuous(expand = c(0, 0)) +
+#         scale_y_continuous(expand = c(0, 0)) +
+#         facet_grid(segment_id~., scales = "free_y") +
+#         theme_classic() +
+#         theme(legend.position = "none") +
+#         xlab("Time t") + ylab("Road state (seconds)")
 @
 
-The next step is to evaluate the predictive power of this approach. We do this by taking the next week of data (shown in \cref{fig:tt_week1_load}) and using the fitted estimates to predict the state in 30~minutes, and then comparing this to the actual state in 30~minutes. Then, we calculate the \gls{rmse}
+The next step is to evaluate the predictive power of this approach. We do this by taking the second week of data (shown in \cref{fig:tt_week1_load}) and use the fitted estimates to predict the state in 30~minutes, and then compare this to the actual state in 30~minutes. Then, the \gls{rmse} is
 \begin{equation}\label{eq:rmse}
 \text{RMSE} = \sqrt{\frac{1}{N}\sum_{i=1}^N \left(X_i - \hat X_i\right)^2}
 \end{equation}
-for comparison with other predictive methods (for example, just using the mean).
+which is used to compare other methods (for example, just using the mean).
 
 
 
@@ -230,11 +255,11 @@ RMSE_equal <- sqrt(mean(with(seg_preds, mean_original - tt30)^2, na.rm = TRUE))
 Forecasts 30~minutes into the future are shown in \cref{fig:tt_week1_pred} for both the grid-search method, as well as the na\"ive method of using the current mean travel time as the predictor. The comparative \gls{rmse} values are displayed in \cref{tab:tt_pred_rmse}, although these are not too different because there is a lot of inherent uncertainty, but shows that we do have a slight increase in predictive performance.
 
 
-Most importantly, however, is the linear curve (shown in blue in \cref{fig:tt_week1_pred}) compared to the line of equality, in black. The interpretation is that, the more accurate the predictions on average, the closer the blue trend line will be to the black line of equality. For our forecast model, we see that in 5 out of 6 segments the two lines are very close, compared to the na\"ive estimate in which case the predictions are often too high or too low. The only problematic segment is 97, which, looking again at \cref{fig:tt_week1_load}, is caused by an unnormally late peak period. This could have been caused by rain or a road accident.
+Most importantly, however, is the linear curve (shown in blue in \cref{fig:tt_week1_pred}) compared to the line of equality, in black. The interpretation is that, the more accurate the predictions on average, the closer the blue trend line will be to the black line of equality. For our forecast model, we see that in 5 out of 6 segments the two lines are very close, compared to the na\"ive estimate in which case the predictions are often too high or too low. The only problematic segment is 97, which, looking again at \cref{fig:tt_week1_load}, is caused by an unnormally late peak period, due to, for example, heavy rain or (more likely) a road accident.
 
-
-There is clearly a need for an even more complex forecasting model, which can detect how far into a peak the traffic currently is; but not today.
-
+\textcolor{red}{
+Need a better forecasting model (i.e., modelling the state derivative of the state as well, to get the ``rate of change'' of travel time, and then matching nearest historical data based on a combination of current travel time and rate), but that's lower priority \ldots
+}
 
 <<tt_pred_rmse,echo=FALSE,results="asis",cache=TRUE>>=
 

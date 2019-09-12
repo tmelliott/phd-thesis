@@ -619,4 +619,4 @@ egg::ggarrange(
 @
 
 
-The results show that the $\NWstate$ values estimates with JAGS nicely fit the data, whereas in contrast the \kf{} estimates are slightly less well suited to fitting the peaks, and respond slower to changes in travel time. The posterior predictive region covers most of the points, and is not excessively large, in all of the segments.
+The results show that the $\NWstate$ values estimated with JAGS nicely fit the data, whereas in contrast the \kf{} estimates are slightly less well suited to fitting the peaks, and respond slower to changes in travel time. The posterior predictive region covers most of the points, and is not excessively large, in all of the segments.
