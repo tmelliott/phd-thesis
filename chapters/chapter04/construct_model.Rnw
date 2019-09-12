@@ -43,16 +43,16 @@ p <- ggplot() +
     xlab("Time (hour)") + ylab("Travel time (seconds)") +
     theme_classic()
 
-p + geom_path(aes(sim$truth$t, sim$pars$mu + exp(sim$truth$beta)))
+p + geom_path(aes(sim$truth$t, sim$truth$beta))
 
 p + geom_path(
-        aes(sim$truth$t, sim$pars$mu + exp(sim$truth$beta)),
+        aes(sim$truth$t, sim$truth$beta),
         alpha = 0.5
     ) +
     geom_point(aes(sim$t, sim$B))
 
 p + geom_path(
-        aes(sim$truth$t, sim$pars$mu + exp(sim$truth$beta)),
+        aes(sim$truth$t, sim$truth$beta),
         alpha = 0.5
     ) +
     geom_segment(

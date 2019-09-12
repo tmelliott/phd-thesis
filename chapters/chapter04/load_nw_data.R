@@ -222,7 +222,8 @@ jdata <-
             })) %>% as.integer,
         L = length(unique(segdat$segment_id)),
         N = nrow(segdat),
-        mu = (tapply(segdat$length, segdat$l, min) / 30) %>% as.numeric
+        # mu = (tapply(segdat$length, segdat$l, min) / 30) %>% as.numeric
+        mu = tapply(segdat$travel_time, segdat$l, median) %>% as.numeric
     )
 jdata_t <- do.call(c, tapply(segdat$timestamp, segdat$l, unique))
 names(jdata_t) <- NULL

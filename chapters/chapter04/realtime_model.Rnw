@@ -86,14 +86,6 @@ Updating the \kf{} involves taking the predicted state and updating it using \em
 \end{equation}
 which can be the empty set $\NWobss_\ell_c = \emptyset$ if no vehicles travel through a segment in the interval.
 
-% For the measurement error $\NWErr$, we account for between-vehicle variability by adding the sources of error,
-% \begin{equation}\label{eq:nw_err_sum}
-% \NWErr_{\ellc}^m = \NWvar_{\ellc}^2 + \left(\NWerr_{\ellc}^m\right).
-% \end{equation}
-% \textcolor{red}{
-%     (I think this should go a bit later.)
-% }
-
 
 To update the network, we need to account for each observation. One way of doing this would be to combine the observations into a single estimate and use that; instead, we use the \emph{\infil{}} \citep{cn}, which allows the summation of information from multiple observations. The information filter involves inverting the state uncertainty $\NWstatevar$; however, this is a simple computation due to having a one-dimensional state---if we were to estimate the state of all segments simultaneously, inverting the $L\times L$ uncertainty matrix would be computationally demanding, or even impossible.
 
@@ -159,21 +151,18 @@ Finally, we back-transform the information into the state space,
 The main constraint on the model is the dependence on $\NWvar_{\ellc}$ and $\NWnoise_{\ellc}$; however, before we consider the estimation of these values, we will first apply the Kalman filter model to the simulated date (for which the parameter values are known).
 
 
-<<nw_simdata_fit,echo=FALSE,cache=TRUE,message=FALSE,warning=FALSE,fig.width=6,fig.height=2,fig.align="center",out.width="\\textwidth",fig.cap="Fitted KF to simulated data.",fig.subcap=c('Estimted mean travel time.', 'Predictive distribution of travel times.'),fig.ncol=1,fig.sep=rep("\\\\", 4)>>=
+<<nw_simdata_fit,echo=FALSE,message=FALSE,warning=FALSE,fig.width=6,fig.height=2,fig.align="center",out.width=".8\\textwidth",fig.cap="Fitted KF to simulated data.",fig.subcap=c('Estimated mean travel time.', 'Predictive distribution of travel times.'),fig.ncol=1,fig.sep=rep("\\\\", 4)>>=
 source("sim_data.R")
 library(tidyverse)
 sim <- get_simulation()
 
-t <- sim$t
-th <- t %/% 1
-tm <- (((t %% 1) * 60) %/% 5) * 5
-t30 <- th + tm / 60
+t30 <- sim$t30
 N <- nrow(length(sim$b))
 M <- length(unique(t30))
 kf.fit <-
     tibble(
         time = sort(unique(t30)),
-        delta = c(0, diff(sort(unique(t30))))/60*5,
+        delta = c(0, diff(sort(unique(t30)))) * 60 * 60,
         beta = rep(NA_real_, (M)),
         beta_hat = rep(NA_real_, (M)),
         P = rep(NA_real_, (M)),
@@ -184,13 +173,12 @@ kf.fit <-
         b = beta / P
     )
 
-kf.fit$beta[1] <- sim$pars$mu + exp(sim$truth$b[1])
+kf.fit$beta[1] <- sim$truth$beta[1]
 kf.fit$P[1] <- 500
 
-# q value is about 5, var(exp(sim$truth$b)) = 730 -> every 5min
-q <- 5
+q <- sim$pars$q
 phi <- sim$pars$phi
-mu <- 14
+mu <- sim$pars$mu
 
 # convert all data to information
 kf.data <-
@@ -198,7 +186,7 @@ kf.data <-
         time = t30,
         t = as.integer(as.factor(t30)),
         b = sim$b - mu,
-        E = 5.0
+        E = 3.0
     ) %>% mutate(
         I = 1 / (E^2 + phi^2),
         i = b / (E^2 + phi^2)
@@ -215,7 +203,7 @@ t0 <- proc.time()
 for (i in 2:M) {
     # predict
     kf.fit$beta_hat[i] <- kf.fit$beta[i-1]
-    kf.fit$P_hat[i] <- kf.fit$P[i-1] + (kf.fit$delta[i] + q)^2
+    kf.fit$P_hat[i] <- kf.fit$P[i-1] + (kf.fit$delta[i] * q)^2
 
     # update
     kf.fit$B_hat[i] <- 1 / kf.fit$P_hat[i]
@@ -231,9 +219,8 @@ time_kf <- proc.time () - t0
 
 library(ggplot2)
 
-truth <- tibble(time = sim$truth$t, b = sim$pars$mu + exp(sim$truth$b))
+truth <- tibble(time = sim$truth$t, b = sim$truth$b)
 ggplot(kf.fit[-1,], aes(time)) +
-    # geom_point(aes(y = mu + b), data = kf.data) +
     geom_ribbon(aes(
             ymin = mu + truncnorm::qtruncnorm(0.025, 0, Inf, beta_hat, sqrt(P_hat)),
             ymax = mu + truncnorm::qtruncnorm(0.975, 0, Inf, beta_hat, sqrt(P_hat))
