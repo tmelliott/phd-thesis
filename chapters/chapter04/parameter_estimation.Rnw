@@ -9,11 +9,11 @@ To use the Kalman in any meaningful way, we first need to estimate the system no
 For the first step in the modelling process, we fit the following hierarchical model:
 \begin{align}
 \label{eq:nw_model_simple}
-\Vttobs_{\ellc}^m &\sim \Normal{\Vtt_{\ellc}^m}{\Vtterr_{\ellc}^m} &
+\Vttobs_{\ellc}^m &\sim \Normal{\Vtt_{\ellc}^m}{(\Vtterr_{\ellc}^m)^2} &
 \NWstate_{\ell,0} &\sim \Normal{0}{100^2} \nonumber \\
-\Vtt_{\ellc}^m &\sim \Normal{\NWstate_{\ellc}}{\NWvar_{\ell}} &
+\Vtt_{\ellc}^m &\sim \Normal{\NWstate_{\ellc}}{\NWvar_{\ell}^2} &
 \NWvar_\ell^2 &\sim \Uniform{0}{1000} \\
-\NWstate_{\ellc} &\sim \Normal{\NWstate_{\ell-1,c}}{\NWnoise_{\ell}} &
+\NWstate_{\ellc} &\sim \Normal{\NWstate_{\ell-1,c}}{(\NWtdiff_c \NWnoise_{\ell})^2} &
 \NWnoise^2 &\sim \GammaD{0.001}{0.001} \nonumber
 \end{align}
 For the observation error, as in the previous section, we assumed this to be constant for all observations, $\Vtterr_{\ellc}^m = 3$. The model implementation was performed from R using the \verb+rjags+ package \citep{rjags}. The model output was processed using the \verb+tidybayes+ package \citep{tidybayes} and graphed using \verb+ggplot2+ \citep{ggplot2}. The \verb+coda+ package was used to assess the model's convergence results \citep{coda}.
@@ -289,7 +289,7 @@ The following hierarchical model makes use of the log-linear relationship, using
 \NWstate_{\ell0} &\sim \Normal{0}{10^2} \\
 \Vtt_{\ellc}^m &\sim \Normal{\NWstate_{\ellc}}{\NWvar_{\ell}^2} &
 \theta_{0,1} &\sim \Normal{0}{10^2} \\
-\NWstate_{\ellc} &\sim \Normal{\NWstate_{\ellc-1}}{\NWnoise_{\ell}^2} &
+\NWstate_{\ellc} &\sim \Normal{\NWstate_{\ellc-1}}{(\NWtdiff_c \NWnoise_{\ell})^2} &
 \sigma_\psi &\sim \GammaD{0.001}{0.001} \\
 \NWvar_{\ell} &\sim \Normal{\theta_0 + \theta_1\log\left(\bar\beta_\ell\right)}{\sigma_\psi^2} &
 \mu_q &\sim \LogNormal{0}{10^2} \\
