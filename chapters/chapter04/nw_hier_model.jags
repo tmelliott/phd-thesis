@@ -4,16 +4,24 @@ model{
         B[i] ~ dnorm(mu[ell[i]] + beta[c[i]], pow(phi[ell[i]], -2))
     }
 
-    for (l in 1:L) {
-        beta[c0[l]] ~ dunif(0, 500)
+    for (l in long_segs) {
+        beta[c0[l]] ~ dnorm(0, 0.1)
         for (j in c1[l]:cJ[l]) {
             beta[j] ~ dnorm(beta[j-1], pow(delta[j] * q[l], -2))
         }
+    }
 
+    for (l in short_segs) {
+        beta[c0[l]] ~ dnorm(0, 0.01)
+        for (j in c1[l]:cJ[l]) {
+            beta[j] <- beta[j-1]
+        }
+    }
+
+    for (l in 1:L) {
         phi[l] <- exp(log_phi[l])
         log_phi[l] ~ dnorm(log_mu_phi_ell[l], pow(sig_phi, -2))
         log_mu_phi_ell[l] <- theta[1] + theta[2] * log(mu[l])
-
 
         q[l] ~ dnorm(mu_q, pow(sig_q, -2))T(0,)
     }

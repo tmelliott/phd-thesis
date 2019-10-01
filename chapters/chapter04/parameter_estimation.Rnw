@@ -47,6 +47,7 @@ egg::ggarrange(
             ylab(expression(psi)),
     ncol = 1
 )
+
 @
 
 
@@ -258,7 +259,7 @@ wd <- setwd("../../data")
 source("load_data.R")
 setwd(wd)
 con <- dbConnect(SQLite(), db)
-Nseg <- con %>% tbl("road_segments") %>% tally() %>% collect() %>% pluck("n")
+Nseg <- con %>% tbl("road_segments") %>% tally() %>% collect() %>% pull("n")
 @
 
 To assess how effective this method is for estimating $\NWvar$ and $\NWnoise$, we selected five other road segments around Auckland and repeated the above process. However, instead of fitting the same model independently over segments,  we decided to use a hierarchical Bayesian model on the parameters, since it seems reasonable that, while they wont be the same over all segments, there will be an underlying population distribution. This will allow us to obtain estimates of the parameter values without explicitly needing to model every road (of which there are \Sexpr{format(Nseg, big.mark=",")}). Additionally, if we look at a graph of travel time versus variance (\cref{fig:tt_var_err}), we see that, on the log scale, these have an approximately linear relationship.

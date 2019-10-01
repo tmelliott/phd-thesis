@@ -1,4 +1,4 @@
-\subsection{Estimating link travel times}
+\section{Estimating link travel times}
 \label{sec:trip_state_link}
 
 

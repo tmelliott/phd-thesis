@@ -1,0 +1,85 @@
+\subsection{Arrival time simulation}
+\label{sec:arrival_simulation}
+
+To assess the performance of our method, we first prepared a simulation which uses known travel time states for upcoming road segments. From this, we are able to present each component of the predictive model individually.
+
+
+<<arrival_simulation,echo=FALSE,cache=TRUE,fig.height=6,fig.width=6,fig.align="center",out.width=".8\\textwidth",fig.cap="ETAs from simulation.",fig.subcap=c("First few stops", "Last few stops"),fig.ncol=1,fig.sep=rep("\\\\", 2)>>=
+set.seed(11019)
+suppressPackageStartupMessages(library(tidyverse))
+suppressPackageStartupMessages(library(ggridges))
+L <- 50
+SegD <- c(0, cumsum(round(runif(L, 16, 500))))
+M <- length(SegD)
+NWstate <- round(diff(SegD) / 12)
+NWstatevar <- round(runif(L, 2, 5), 2)
+NWvar <- exp(-2.4 + 1.4 * log(NWstate))
+
+pi <- c(1, round(runif(M-2, 0.45, 0.54), 1), 1)
+gamma <- 6
+tau <- c(20, 5)
+
+N <- 1000
+t_state <-
+    cbind(
+        rnorm(N, 200, 5),
+        rnorm(N, 12, 2)
+    )
+
+## particle filter estimates of arrival time
+ETA <- matrix(NA, N, M)
+for (i in 1:nrow(t_state)) {
+    X <- t_state[i,]
+    cur_stop <- max(which(SegD <= X[1]))
+    if (cur_stop == M) break
+    next_stop <- cur_stop + 1
+    t_next <- (SegD[next_stop] - X[1]) / X[2]
+    ETA[i, next_stop] <- t_next
+    if (next_stop == M) break
+    l <- (next_stop + 1):M - 1
+    ttl <- rnorm(length(l), NWstate[l], NWstatevar[l] + NWvar[l])
+    dwelll <- rbinom(length(l), 1, pi[l]) *
+        (gamma + truncnorm::rtruncnorm(length(l), 0, Inf, tau[1], tau[2]))
+    ETA[i, l+1] <- t_next + cumsum(ttl + dwelll)
+}
+
+ETAtbl <- ETA
+colnames(ETAtbl) <- paste0("stop", 1:M)
+ETAtbl <- as_tibble(ETAtbl) %>%
+    gather(key = stop, value = eta) %>%
+    filter(!is.na(eta)) %>%
+    mutate(stop = factor(stop, levels = paste0("stop", 2:M), labels = 2:M)) %>%
+    mutate(stop_index = as.integer(as.character(stop)))
+
+ETAdist <-
+    expand.grid(
+        stop = 2:M,
+        time = seq(min(ETA, na.rm = TRUE), max(ETA, na.rm = TRUE), length = 1001)
+    ) %>% as_tibble %>%
+    left_join(
+        ETAtbl %>% group_by(stop) %>%
+            summarize(mean = mean(eta), sd = sd(eta)) %>%
+            mutate(stop = as.integer(stop)+1),
+        by = "stop"
+    ) %>%
+    mutate(density = dnorm(time, mean, sd)) %>%
+    mutate(stop = factor(stop, levels = 2:M))
+
+ETAtbl %>% filter(stop_index < 10) %>%
+    ggplot(aes(eta/60)) +
+        geom_histogram(fill = "gray", bins = 100) +
+        # geom_path(aes(time/60, density),
+        #     data = ETAdist %>% arrange(time)) +
+        facet_grid(stop ~ ., scales = "free_y") +
+        theme_classic() +
+        xlab("ETA (minutes)") + ylab("Stop Index")
+
+ETAtbl %>% filter(stop_index > 44) %>%
+    ggplot(aes(eta/60)) +
+        geom_density(fill = "gray") +
+        # geom_path(aes(time/60, density),
+        #     data = ETAdist %>% arrange(time)) +
+        facet_grid(stop ~ ., scales = "free_y") +
+        theme_classic() +
+        xlab("ETA (minutes)") + ylab("Stop Index")
+@

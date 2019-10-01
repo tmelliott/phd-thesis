@@ -1,35 +1,17 @@
-\section{Estimating current and future trip state}
+\section{Trip state}
 \label{sec:trip_state}
 
-Each trip in the \gls{gtfs} feed has a designated start time,
-so it is possible to obtain a list of trips
-that are expected to be running at at time of day.
-For any one given trip,
-we wish to know the current state of that trip,
-enabling the prediction of arrival times for it.
-The state vector for a trip $\Tripr$ exists of
-the time an observation was last seen for it, $\Tript$,
-the current (last visited) stop index $\TripStop$,
-an indicator whether the vehicle has departed from that stop,
-$\TripDep$,
-the current segment index $\TripSeg$,
-and (percent) progress along that segment $\SegProg$,
+
+The idea behind having yet another sate is that, in some cases, there is no vehicle associated with a trip, in which case we want to use a combination of schedule and real-time transit network information to generate \glspl{eta}, as well as handle the missing vehicle appropriately.
+
+At any time $t$, we can obtain a list of trips that are scheduled to be running, where we define as between 30~minutes prior to the first scheduled departure and 60~minutes after the last scheduled arrival. For each trip within this window, we represent its state by the time of the last vehicle observation associated with it, $\Tript$, the current stop index stop index $\TripStop$, an indicator whether the vehicle has departed from that stop, $\TripDep$, the current segment index $\TripSeg$, and (percent) progress along that segment $\SegProg$,
 \begin{equation}
 \label{eq:trip_state}
 \Tripr = \tvec{\Tript, \TripStop, \TripDep, \TripSeg, \SegProg}
 \end{equation}
 
-How the various state components are estimated
-depends on how---and indeed if---the vehicle was last observed
-for the trip,
-which is covered in \cref{sec:trip_state_est}.
-Having obtained an estimate of the trips state,
-it is then possible to estimate the other parameters
-necessary for arrival time prediction:
-the link travel times (\cref{sec:trip_state_link})
-and stop dwell times (\cref{sec:trip_state_dwell}).
+How the various state components are estimated depends on how---and indeed if---the vehicle was last observed for the trip. Having obtained an estimate of the trip's state, it is then possible to estimate the link travel times (\cref{sec:trip_state_link}) which will be used for arrival time estimation (\cref{sec:?}).
 
 
 \input{DIRNAME/trip_state_est.tex}
-\input{DIRNAME/trip_state_link.tex}
-\input{DIRNAME/trip_state_dwell.tex}
+

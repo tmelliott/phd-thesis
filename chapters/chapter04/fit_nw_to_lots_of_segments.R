@@ -1,7 +1,7 @@
 source("load_nw_data.R")
 
 tids <- tt_all %>%
-    filter(segment_id %in% sids[1]) %>%
+    filter(segment_id %in% sids) %>%
     pull(trip_id) %>% unique
 segdat_all <- tt_all %>%
     filter(trip_id %in% tids) %>%
@@ -27,12 +27,24 @@ segdat_all <- tt_all %>%
     ) %>% ungroup() %>%
     mutate(
         c = cumsum(c)
-    )
+    ) %>%
+    group_by(l) %>%
+    do(
+        (.) %>% mutate(
+            travel_time_centered = travel_time - mean(travel_time),
+            n_in_seg = length(travel_time)
+        )
+    ) %>% ungroup()
 
+## only segments with enough data
+# library(ggplot2)
+# ggplot(segdat_all, aes(timestamp, travel_time_centered)) +
+#     geom_point(aes(colour = n_in_seg > 30)) +
+#     facet_wrap(~l, scales = "free_y")
 
 jdata_all <-
     list(
-        b = segdat_all$travel_time,
+        b = segdat_all$travel_time_centered,
         e = segdat_all$error,
         # identify index of the BETAs
         ell = segdat_all$l,
@@ -45,8 +57,9 @@ jdata_all <-
             })) %>% as.integer,
         L = length(unique(segdat_all$segment_id)),
         N = nrow(segdat_all),
-        # mu = (tapply(segdat$length, segdat$l, min) / 30) %>% as.numeric
-        mu = tapply(segdat_all$travel_time, segdat_all$l, median) %>% as.numeric
+        mu = tapply(segdat_all$travel_time, segdat_all$l, median) %>% as.numeric,
+        long_segs = segdat_all %>% filter(n_in_seg > 30) %>% pull(l) %>% unique,
+        short_segs = segdat_all %>% filter(n_in_seg <= 30) %>% pull(l) %>% unique
     )
 jdata_all_t <- do.call(c, tapply(segdat_all$timestamp, segdat_all$l, unique))
 names(jdata_all_t) <- NULL
@@ -56,19 +69,34 @@ names(jdata_all_t) <- NULL
 library(rjags)
 library(tidybayes)
 
-jm_all <-
-    jags.model(
-        "nw_hier_model.jags",
-        # quiet = !interactive(),
-        data = jdata_all,
-        n.chains = 4,
-        n.adapt = 100000
-    )
+jm_all_file <- "jm_all_samples.rda"
+if (file.exists(jm_all_file)) {
+    jm_all <-
+        jags.model(
+            "nw_hier_model.jags",
+            # quiet = !interactive(),
+            data = jdata_all,
+            n.chains = 4,
+            n.adapt = 100000
+        )
 
-jm_all_samples <-
-    coda.samples(jm_all,
-        variable.names = c("phi", "q", "theta", "sig_phi", "mu_q", "sig_q"),
-        n.iter = 10000,
-        thin = 10
-    )
+    jm_all_samples <-
+        coda.samples(jm_all,
+            variable.names = c("phi", "q", "theta", "sig_phi", "mu_q", "sig_q"),
+            n.iter = 10000,
+            thin = 10
+        )
+    save(jm_all_samples, file = jm_all_file)
+} else {
+    load(jm_all_file)
+}
+
+
+# library(coda)
+# gelman.diag(jm_all_samples)
+
+# library(ggplot2)
+# ggplot(segdat_all, aes(timestamp, travel_time_centered)) +
+#     geom_point(aes(colour = n_in_seg > 30)) +
+#     facet_wrap(~l, scales = "free_y")
 
