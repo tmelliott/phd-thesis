@@ -1,5 +1,79 @@
-\section{Estimating link travel times}
+\section{Trip travel times}
 \label{sec:trip_state_link}
+
+
+<<trip_segments,cache=FALSE,echo=FALSE,fig.height=2.5,fig.width=8,fig.cap="A diagram of a route, showing road segment and stop indices.">>=
+suppressPackageStartupMessages(library(tidyverse))
+
+df <-
+    tibble(
+        x = 1:8,
+        y = rep(-, 8)
+    )
+dx <- 3.4
+
+g1 <- ggplot(df, aes(x, y)) +
+    geom_path(
+        aes(
+            lty = ifelse(x <= dx, "travelled", "untravelled")
+        ),
+        data = bind_rows(df, tibble(x = c(dx, dx + 0.05), y = 1)) %>%
+            arrange(x)
+    ) +
+    geom_point(
+        aes(
+            fill = factor(ifelse(x < dx, "visited", "upcoming"),
+                levels = c("visited", "upcoming"))
+        ),
+        shape = 21,
+        size = 4
+    ) +
+    scale_fill_manual(
+        name = "Stop",
+        values = c("visited" = "black", "upcoming" = "white")
+    ) +
+    scale_linetype_manual(
+        name = "Route",
+        values = c("travelled" = 1, "untravelled" = 2)
+    )
+
+df2 <-
+    tibble(
+        x = c(2.2, 4.8),
+        y = rep(0, 2)
+    )
+dx2 <- 3.2
+
+df3 <- tibble(x = c(2.2, 2.8, 4, 4.8), y = 0)
+
+g2 <- g1 +
+    ylim(-1, 2) +
+    geom_path(
+        aes(
+            linetype = ifelse(x <= dx2, "travelled", "untravelled")
+        ),
+        data = bind_rows(df2, tibble(x = c(dx2, dx2 + 0.05), y = 0)) %>% arrange(x)
+    ) +
+    geom_point(
+        aes(fill = factor(c("visited", "upcoming"), levels = c("visited", "upcoming"))),
+        shape = 21,
+        size = 4,
+        data = df2
+    ) +
+    geom_point(
+        data = df3[2:3,]
+    ) +
+    geom_segment(
+        aes(x = c(2.2, 4.8), y = c(0, 0), xend = 3:4, yend = c(1, 1)),
+        data = df2,
+        linetype = 3
+    )
+
+g2 +
+    theme_void()
+
+@
+
 
 
 Link travel times are the important factor of bus prediction

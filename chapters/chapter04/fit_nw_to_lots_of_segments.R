@@ -70,7 +70,7 @@ library(rjags)
 library(tidybayes)
 
 jm_all_file <- "jm_all_samples.rda"
-if (file.exists(jm_all_file)) {
+if (!file.exists(jm_all_file)) {
     jm_all <-
         jags.model(
             "nw_hier_model.jags",
@@ -91,6 +91,22 @@ if (file.exists(jm_all_file)) {
     load(jm_all_file)
 }
 
+## Write results to database
+con <- dbConnect(SQLite(), "~/Documents/uni/transitr/at_gtfs.db")
+# dbReadTable(con, "segment_parameters")
+qphi <- jm_all_samples %>%
+    spread_draws(phi[l], q[l]) %>%
+    group_by(l) %>%
+    summarize(phi = mean(phi), q = mean(q)) %>%
+    left_join(
+        segdat_all %>% group_by(segment_id) %>% summarize(l = min(l)),
+        by = "l"
+    ) %>%
+    select(segment_id, q, phi)
+dbWriteTable(con, "segment_parameters", qphi, overwrite = TRUE)
+dbDisconnect(con)
+
+jm_all_samples %>% spread_draws(theta[i]) %>% mean_qi
 
 # library(coda)
 # gelman.diag(jm_all_samples)
