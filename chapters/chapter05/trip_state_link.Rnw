@@ -8,7 +8,7 @@ suppressPackageStartupMessages(library(tidyverse))
 df <-
     tibble(
         x = 1:8,
-        y = rep(-, 8)
+        y = rep(1, 8)
     )
 dx <- 3.4
 
