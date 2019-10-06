@@ -91,6 +91,10 @@ if (!file.exists(jm_all_file)) {
     load(jm_all_file)
 }
 
+segtt <- segdat_all %>%
+    group_by(segment_id) %>%
+    summarize(tt = mean(travel_time), tt_var = var(travel_time))
+
 ## Write results to database
 con <- dbConnect(SQLite(), "~/Documents/uni/transitr/at_gtfs.db")
 # dbReadTable(con, "segment_parameters")
@@ -103,6 +107,7 @@ qphi <- jm_all_samples %>%
         by = "l"
     ) %>%
     select(segment_id, q, phi)
+segpars <- left_join(qphi, segtt, by = "segment_id")
 dbWriteTable(con, "segment_parameters", qphi, overwrite = TRUE)
 dbDisconnect(con)
 
