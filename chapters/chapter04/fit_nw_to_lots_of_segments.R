@@ -108,7 +108,7 @@ qphi <- jm_all_samples %>%
     ) %>%
     select(segment_id, q, phi)
 segpars <- left_join(qphi, segtt, by = "segment_id")
-dbWriteTable(con, "segment_parameters", qphi, overwrite = TRUE)
+dbWriteTable(con, "segment_parameters", segpars, overwrite = TRUE)
 dbDisconnect(con)
 
 jm_all_samples %>% spread_draws(theta[i]) %>% mean_qi
