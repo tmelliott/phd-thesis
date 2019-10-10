@@ -69,6 +69,10 @@ names(jdata_all_t) <- NULL
 library(rjags)
 library(tidybayes)
 
+# source("load_week_data.R")
+# data_week0 %>% group_by(segment_id) %>%
+#     summarize(tt_mean = mean(travel_time), tt_var = var(travel_time))
+
 jm_all_file <- "jm_all_samples.rda"
 if (!file.exists(jm_all_file)) {
     jm_all <-
