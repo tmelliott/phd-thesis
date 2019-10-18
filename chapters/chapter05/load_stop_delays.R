@@ -54,33 +54,36 @@ if (!file.exists(stop_delays_file)) {
 }
 
 ## clean stop delays (by day/trip)
-
-delays <- stop_delays %>%
-    mutate(
-        time = as.POSIXct(time, origin = "1970-01-01"),
-        date = format(time, "%Y-%m-%d")
-    )# %>%
-
-delays %>%
-    group_by(date, trip_id) %>%
-    group_modify(~{
-        # .y <- tibble(date = "2019-08-12", trip_id = delays$trip_id[15])
-        # .x <- delays %>% filter(date == .y$date & trip_id == .y$trip_id)
-        vs <- table(.x$vehicle_id)
-        x <- .x %>% filter(vehicle_id == names(vs)[which.max(vs)]) %>%
-            arrange(time, type) %>% unique() %>%
-            mutate(
-                z = cumsum(c(1, diff(stop_sequence) < 0))
-            )
-        if (all(table(x$z) == 1)) return(NULL)
-        x %>%
-            filter(z == which.max(table(z))) %>%
-            select(-z) %>%
-            group_by(stop_sequence) %>%
-            summarize(
-                stop_id = first(stop_id),
-                time = first(time),
-                delay = first(delay)
-            )
-    })
+if (file.exists("delays.rda")) {
+    load("delays.rda")
+} else {
+    delays <- stop_delays %>%
+        mutate(
+            time = as.POSIXct(time, origin = "1970-01-01"),
+            date = format(time, "%Y-%m-%d")
+        ) %>%
+        unique() %>%
+        group_by(date, trip_id) %>%
+        group_modify(~{
+            # .y <- tibble(date = "2019-08-12", trip_id = delays$trip_id[15])
+            # .x <- delays %>% filter(date == .y$date & trip_id == .y$trip_id)
+            vs <- table(.x$vehicle_id)
+            x <- .x %>% filter(vehicle_id == names(vs)[which.max(vs)]) %>%
+                arrange(time, type) %>% unique() %>%
+                mutate(
+                    z = cumsum(c(1, diff(stop_sequence) < 0))
+                )
+            if (all(table(x$z) == 1)) return(x %>% filter(FALSE))
+            x %>%
+                filter(z == which.max(table(z))) %>%
+                select(-z) %>%
+                group_by(stop_sequence) %>%
+                summarize(
+                    stop_id = first(stop_id),
+                    time = first(time),
+                    delay = first(delay)
+                )
+        })
+    save(delays, file = "delays.rda")
+}
 
