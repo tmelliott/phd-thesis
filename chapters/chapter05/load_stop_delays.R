@@ -1,7 +1,3 @@
-curd <- setwd("../../data")
-source("load_data.R")
-setwd(curd)
-
 ## load trip info
 suppressPackageStartupMessages({
     library(magrittr)
@@ -91,15 +87,13 @@ if (file.exists("delays.rda")) {
     save(delays, file = "delays.rda")
 }
 
-delays <- delays %>%
-    filter(between(delay, -30*60, 2*60*60))
-
-library(ggplot2)
-ggplot(delays, aes(delay/60, stop_sequence)) +
-    geom_hex()
+# library(ggplot2)
+# ggplot(delays, aes(delay/60, stop_sequence)) +
+#     geom_hex()
 
 ## explorateur
 smry <- delays %>%
+    filter(between(delay, -30*60, 2*60*60)) %>%
     group_by(trip_id, stop_id) %>%
     summarize(
         stop_sequence = first(stop_sequence),
@@ -108,9 +102,26 @@ smry <- delays %>%
         n = n()
     )
 
-## and also default values
+smry2 <- delays %>%
+    filter(between(delay, -30*60, 2*60*60)) %>%
+    group_by(stop_sequence) %>%
+    summarize(
+        avg_delay = mean(delay),
+        sd_delay = sqrt(var(delay)),
+        n = n()
+    )
+
+smry <- smry %>%
+    left_join(
+        smry2 %>% select(stop_sequence, sd_delay) %>% rename(err = sd_delay),
+        by = "stop_sequence"
+    ) %>%
+    mutate(
+        sd_delay = ifelse(is.na(sd_delay), err, sd_delay)
+    ) %>%
+    select(-err)
 
 library(RSQLite)
-con <- dbConnect(SQLite(), db)
+con <- dbConnect(SQLite(), "../../../transitr/at_gtfs.db")
 dbWriteTable(con, "stop_delays", smry, overwrite = TRUE)
 dbDisconnect(con)
