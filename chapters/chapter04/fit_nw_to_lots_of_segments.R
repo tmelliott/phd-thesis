@@ -97,7 +97,25 @@ if (!file.exists(jm_all_file)) {
 
 segtt <- segdat_all %>%
     group_by(segment_id) %>%
-    summarize(tt = mean(travel_time), tt_var = var(travel_time))
+    summarize(
+        tt = mean(travel_time), 
+        tt_var = var(travel_time), 
+        n = n()
+    )
+
+var_lm <- lm(sqrt(tt_var) ~ tt, data = segtt)
+# with(segtt, plot(tt, sqrt(tt_var)))
+
+segtt <- segtt %>%
+    mutate(
+        tt_var = ifelse(
+            is.na(.data$tt_var), 
+            predict(var_lm, newdata = segtt), 
+            .data$tt_var
+        ),
+        tt_se = sqrt(tt_var / n)
+    )
+# with(segtt, plot(tt, tt_se))
 
 ## Write results to database
 con <- dbConnect(SQLite(), "~/Documents/uni/transitr/at_gtfs.db")
