@@ -76,6 +76,8 @@ g2 +
 
 
 
+
+
 Link travel times are the important factor of bus prediction
 missing from the current Auckland \gls{rti} system.
 Knowing how long the bus will take to travel between stops,

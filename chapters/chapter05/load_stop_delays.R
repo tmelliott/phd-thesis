@@ -122,6 +122,6 @@ smry <- smry %>%
     select(-err)
 
 library(RSQLite)
-con <- dbConnect(SQLite(), "../../../transitr/at_gtfs.db")
+con <- dbConnect(SQLite(), "../../../WIP/at_gtfs.db")
 dbWriteTable(con, "stop_delays", smry, overwrite = TRUE)
 dbDisconnect(con)
