@@ -53,12 +53,17 @@ Then, the route itself can be extracted from the database \ldots
 
 <<pf_param_gps,cache=TRUE,message=FALSE,echo=FALSE,fig.width=8,fig.height=3,fig.cap="Distribution of distance from observation to nearest point on the route, truncated to 10~m.">>=
 suppressPackageStartupMessages(library(tidyverse))
+
+curd <- setwd("../../data")
+source("load_data.R")
+setwd(curd)
+
 load("vps.rda")
 vps <- vps %>% distinct
 
 library(RSQLite)
 suppressPackageStartupMessages(library(dbplyr))
-con <- dbConnect(SQLite(), "fulldata.db")
+con <- dbConnect(SQLite(), db)
 # for each ROUTE, fetch the shape
 rids <- unique(vps$route_id)
 routeshape <- con %>% tbl('trips') %>%
@@ -254,5 +259,3 @@ since there isn't really anything else to go on
         \item then look at that distribution
     \end{itemize}
 }
-
-
