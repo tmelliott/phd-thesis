@@ -35,13 +35,14 @@ To further demonstrate the model, we have included a simulation where all of the
 
 
 <<nw_sim_data,echo=FALSE,fig.width=6,fig.height=2,fig.align="center",out.width="0.8\\textwidth",fig.cap="Simulated data",fig.subcap=c('Underlying travel time', 'Actual bus travel times', 'Observed bus travel times with vertial lines representing measurement error.'),fig.ncol=1,fig.sep=rep("\\\\", 4)>>=
-source("sim_data.R")
+source("scripts/sim_data.R")
 sim <- get_simulation()
 
 library(ggplot2)
 p <- ggplot() +
-    xlab("Time (hour)") + ylab("Travel time (seconds)") +
-    theme_classic()
+    xlab("Time (hour)") + ylab("Speed (m/s)") +
+    theme_classic() +
+    ylim(0, 50 / 3.6)
 
 p + geom_path(aes(sim$truth$t, sim$truth$beta))
 
@@ -73,7 +74,7 @@ Observed travel times for a real segment, displayed in \cref{fig:tt_figure}, sho
 
 <<tt_figure,echo=FALSE,fig.height=2,fig.width=6,fig.align="center",out.width=".8\\linewidth",fig.cap="Travel times along a road.">>=
 library(ggplot2)
-source("load_nw_data.R")
+source("scripts/load_nw_data.R")
 ggplot(tts, aes(arrival_time, travel_time)) +
     geom_point() +
     geom_hline(yintercept = mu, lty = 2) +

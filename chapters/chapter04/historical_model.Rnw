@@ -7,7 +7,7 @@ From \cref{nw_par_est_real} we showed that roads typically have a peak effect ei
 
 <<tt_week0_load,cache=TRUE,echo=FALSE,fig.height=8,fig.width=8,fig.align="center",out.width="\\textwidth",fig.cap="Travel times along six roads over one week, coloured by the day of the week.">>=
 library(ggplot2)
-source("load_week_data.R")
+source("scripts/load_week_data.R")
 
 data_week0 %>% filter(segment_id %in% sids) %>%
     mutate(weekday = factor(
@@ -34,7 +34,7 @@ From \cref{fig:tt_week0_load} it is clear that along each segment, there is a co
 
 <<tt_week0_grid_fit,cache=TRUE,echo=FALSE>>=
 library(ggplot2)
-source("load_week_data.R")
+source("scripts/load_week_data.R")
 library(FNN)
 
 seg_fits <-
@@ -91,7 +91,7 @@ seg_fits <-
         weekX_test %>% as_tibble() %>%
             mutate(pred = fit$pred, segment_id = sid)
     }) %>% bind_rows
-save(seg_fits, file = "seg_fits.rda")
+save(seg_fits, file = "data/seg_fits.rda")
 @
 
 The resulting ``nearest-neighbour'' grid is shown in \cref{fig:tt_week0_grid}. The lighter areas represent higher travel times,
@@ -100,7 +100,7 @@ The resulting ``nearest-neighbour'' grid is shown in \cref{fig:tt_week0_grid}. T
 <<tt_week0_grid,cache=TRUE,echo=FALSE,message=FALSE,warning=FALSE,fig.height=10,fig.width=8,fig.align="center",out.width="\\linewidth",fig.cap="Predicted travel time (lighter is longer) in 30 minutes from the current time, given the current state (y-axis).">>=
 library(ggplot2)
 library(tidyverse)
-load("seg_fits.rda")
+load("data/seg_fits.rda")
 
 sids <- unique(seg_fits$segment_id)
 do.call(egg::ggarrange,
@@ -152,8 +152,8 @@ which is used to compare other methods (for example, just using the mean).
 
 <<tt_week1_load,cache=TRUE,echo=FALSE,message=FALSE,warning=FALSE,fig.height=8,fig.width=8,fig.align="center",out.width="\\linewidth",fig.cap="Travel times along six roads over the course of two weeks, showing only week days.">>=
 library(ggplot2)
-source("load_week_data.R")
-load("seg_fits.rda")
+source("scripts/load_week_data.R")
+load("data/seg_fits.rda")
 
 bind_rows(
     data_week0 %>% mutate(week = "week 1"),
@@ -178,8 +178,8 @@ suppressPackageStartupMessages({
     library(ggplot2)
     library(purrr)
 })
-source("load_week_data.R")
-load("seg_fits.rda")
+source("scripts/load_week_data.R")
+load("data/seg_fits.rda")
 
 seg_preds <-
     lapply(sids, function(sid) {

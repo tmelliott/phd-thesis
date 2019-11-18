@@ -152,7 +152,7 @@ The main constraint on the model is the dependence on $\NWvar_{\ellc}$ and $\NWn
 
 
 <<nw_simdata_fit,echo=FALSE,message=FALSE,warning=FALSE,fig.width=6,fig.height=2,fig.align="center",out.width=".8\\textwidth",fig.cap="Fitted KF to simulated data.",fig.subcap=c('Estimated mean travel time.', 'Predictive distribution of travel times.'),fig.ncol=1,fig.sep=rep("\\\\", 4)>>=
-source("sim_data.R")
+source("scripts/sim_data.R")
 library(tidyverse)
 sim <- get_simulation()
 

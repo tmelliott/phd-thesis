@@ -266,7 +266,7 @@ To assess how effective this method is for estimating $\NWvar$ and $\NWnoise$, w
 
 <<tt_var_err,echo=FALSE,fig.width=6,fig.height=3,out.width="0.8\\textwidth",fig.align="center",fig.cap="Log transform of mean travel time and variance of travel time along all segments throughout the network.">>=
 library(ggplot2)
-source("load_nw_data.R")
+source("scripts/load_nw_data.R")
 
 tt_all %>% group_by(segment_id) %>%
     filter(travel_time > length / 30 & travel_time < length / 2) %>%
@@ -301,7 +301,7 @@ We initially attempted to fit the segment noise parameter $\NWnoise_{\ell}$ usin
 
 <<nw_model_n2_segplots,echo=FALSE,cache=TRUE,fig.width=8,fig.height=9,out.width=".8\\textwidth",fig.cap="Travel times along six roads throughout Auckland on two consecutive Tuesdays.",fig.align="center">>=
 library(ggplot2)
-source("load_nw_data.R")
+source("scripts/load_nw_data.R")
 
 date0 <- tt_all$arrival_time[1] %>% format("%Y-%m-%d")
 bind_rows(tt_all, tt_future) %>%
@@ -321,7 +321,7 @@ bind_rows(tt_all, tt_future) %>%
 @
 
 <<nw_model_nw_jagsfits,echo=FALSE,cache=TRUE,message=FALSE>>=
-source("load_nw_data.R")
+source("scripts/load_nw_data.R")
 suppressPackageStartupMessages({
     library(dplyr)
     library(rjags)
@@ -375,12 +375,12 @@ n1_samples <-
         thin = 10
     )
 
-save(n1_samples, file = "hier_model_samples.rda")
+save(n1_samples, file = "data/hier_model_samples.rda")
 @
 
 <<nw_model_n2_diag,cache=TRUE,message=FALSE,echo=FALSE,fig.width=8,fig.height=4.5,out.width="\\textwidth",fig.cap="Traceplots of top-level network parameters.",fig.align="center">>=
-source("load_nw_data.R")
-load("hier_model_samples.rda")
+source("scripts/load_nw_data.R")
+load("data/hier_model_samples.rda")
 
 pmin <- ggplot(NULL, aes(x = .iteration, colour = as.factor(.chain), group = .chain)) +
     xlab("Iteration") +
@@ -419,7 +419,7 @@ egg::ggarrange(
 
 
 <<nw_model_n2_smry,cache=TRUE,echo=FALSE,results="asis">>=
-load("hier_model_samples.rda")
+load("data/hier_model_samples.rda")
 library(tibble)
 
 smry <- summary(n1_samples)
@@ -458,8 +458,8 @@ As for the segment-specific parameters, the traceplots for these are shown in \c
 
 
 <<nw_model_n2_diag_2,cache=TRUE,echo=FALSE,fig.width=8,fig.height=7,out.width="\\textwidth",fig.cap="Traceplots of network parameters for each segment.">>=
-source("load_nw_data.R")
-load("hier_model_samples.rda")
+source("scripts/load_nw_data.R")
+load("data/hier_model_samples.rda")
 
 pmin <- ggplot(NULL, aes(x = .iteration, colour = as.factor(.chain), group = .chain)) +
     xlab("Iteration") +
@@ -493,8 +493,8 @@ The posterior mean of $\NWnoise$ and $\NWvar$ for each segment was then used to 
 <<nw_model_n2_kf,echo=FALSE,cache=TRUE,fig.width=8,fig.height=7,out.width="\\textwidth",fig.cap="Results for the hierarchical approach to modelling travel times. The training data is shown on the left, with a sample of posterior fits. On the right is the test data with the results of the Kalman filter estimation, showing travel time estimate, its uncertainty (red), and the posterior predictive region for vehicle travel times (grey).">>=
 library(ggplot2)
 library(tidybayes)
-source("load_nw_data.R")
-load("hier_model_samples.rda")
+source("scripts/load_nw_data.R")
+load("data/hier_model_samples.rda")
 
 kf_fits <- lapply(seq_along(sids), function(l) {
     sid <- sort(sids)[l]
