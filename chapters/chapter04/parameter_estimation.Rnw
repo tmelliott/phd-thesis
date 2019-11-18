@@ -418,6 +418,7 @@ if (!file.exists(nwsfile)) {
 source("scripts/load_nw_data.R")
 load("data/hier_model_samples.rda")
 
+
 pmin <-
     ggplot(NULL,
         aes(x = .iteration, colour = as.factor(.chain), group = .chain)
@@ -442,16 +443,16 @@ egg::ggarrange(
             data = n1_samples %>% spread_draws(sig_phi)
         ) +
         ylab(expression(sigma[psi])),
-    pmin +
-        geom_path(aes(y = mu_q),
-            data = n1_samples %>% spread_draws(mu_q)
-        ) +
-        ylab(expression(mu[q])),
-    pmin +
-        geom_path(aes(y = sig_q),
-            data = n1_samples %>% spread_draws(sig_q)
-        ) +
-        ylab(expression(sigma[q])),
+    #pmin +
+    #    geom_path(aes(y = mu_q),
+    #        data = n1_samples %>% spread_draws(mu_q)
+    #    ) +
+    #    ylab(expression(mu[q])),
+    #pmin +
+    #    geom_path(aes(y = sig_q),
+    #        data = n1_samples %>% spread_draws(sig_q)
+    #    ) +
+    #    ylab(expression(sigma[q])),
     ncol = 2, byrow = FALSE
 )
 @
@@ -463,11 +464,11 @@ library(tibble)
 
 smry <- summary(n1_samples)
 gd <- coda::gelman.diag(n1_samples)
-vn <- c("theta[1]", "theta[2]", "sig_phi", "mu_q", "sig_q")
+vn <- c("theta", "sig_phi")#, "mu_q", "sig_q")
 restbl <-
     tibble(
-        Parameter = c("\\theta_0", "\\theta_1", "\\sigma_\\psi",
-                      "\\mu_q", "\\sigma_q"),
+        Parameter = c("\\theta", "\\sigma_\\psi"),
+                      #"\\mu_q", "\\sigma_q"),
         Mean = smry$statistics[vn, "Mean"],
         `2.5\\%` = smry$quantiles[vn, "2.5%"],
         `50\\%` = smry$quantiles[vn, "50%"],
@@ -504,7 +505,6 @@ pmin <- ggplot(NULL, aes(x = .iteration, colour = as.factor(.chain), group = .ch
     xlab("Iteration") +
     theme_classic() +
     theme(legend.position = "none", strip.background = element_blank())
-
 egg::ggarrange(
     pmin +
         geom_path(aes(y = phi),
@@ -529,7 +529,7 @@ The posterior mean of $\NWnoise$ and $\NWvar$ for each segment was then used to 
 
 
 
-<<nw_model_n2_kf,echo=FALSE,cache=TRUE,fig.width=8,fig.height=7,out.width="\\textwidth",fig.cap="Results for the hierarchical approach to modelling travel times. The training data is shown on the left, with a sample of posterior fits. On the right is the test data with the results of the Kalman filter estimation, showing travel time estimate, its uncertainty (red), and the posterior predictive region for vehicle travel times (grey).">>=
+<<nw_model_n2_kf,echo=FALSE,cache=TRUE,fig.width=8,fig.height=7,out.width="\\textwidth",fig.cap="Results for the hierarchical approach to modelling road speed. The training data is shown on the left, with a sample of posterior fits. On the right is the test data with the results of the Kalman filter estimation, showing speed estimate, its uncertainty (red), and the posterior predictive region for vehicle speeds (grey).">>=
 library(ggplot2)
 library(tidybayes)
 source("scripts/load_nw_data.R")
@@ -563,22 +563,22 @@ kf_fits <- lapply(seq_along(sids), function(l) {
         )
 
 
-    kf.fit$beta[1] <- median(tts$travel_time)
-    kf.fit$P[1] <- 500
+    kf.fit$beta[1] <- median(tts$length / tts$travel_time)
+    kf.fit$P[1] <- 5
 
     q_phi <- n1_samples %>% spread_draws(q[l], phi[l]) %>%
         filter(l == !!l) %>% median_qi()
     q <- q_phi$q
     phi <- q_phi$phi
-    mu <- floor(tts$length[1] / 30)
+    mu <- jdata$mu[l]
 
     # convert all data to information
     kf.data <-
         tibble(
             time = t30,
             t = as.integer(as.factor(t30)),
-            b = tts$travel_time - mu,
-            E = 3.0
+            b = tts$length / tts$travel_time,
+            E = 0.8
         ) %>% mutate(
             I = 1 / (E^2 + phi^2),
             i = b / (E^2 + phi^2)
@@ -621,39 +621,44 @@ betas <- n1_samples %>% spread_draws(beta[i]) %>%
         mu = jdata$mu[l]
     )
 
+speed_trans <- scales::trans_new(
+    "speed",
+    function(x) x*3.6,
+    function(x) x/3.6
+)
+
 egg::ggarrange(
     ggplot(betas) +
-        geom_point(aes(timestamp, travel_time),
+        geom_point(aes(timestamp, length / travel_time),
             data = segdat,
             colour = "black", size = 0.5) +
-        geom_path(aes(t, mu + beta, group = .draw),
+        geom_path(aes(t, beta, group = .draw),
             colour = "red", alpha = 0.5) +
         facet_wrap(~l, scales = "free_y", ncol = 1) +
         theme_classic() +
         theme(strip.background = element_blank()) +
-        xlab("Time") + ylab("Travel time (seconds)"),
+        xlab("Time") + ylab("Speed (m/s)"),
 
     ggplot(kf_fits %>% mutate(l = as.integer(as.factor(segment_id))), aes(time)) +
         facet_wrap(~l, scale = "free_y", ncol = 1) +
-        geom_point(aes(arrival_time, y = travel_time),
+        geom_point(aes(arrival_time, y = length / travel_time),
             data = tt_future %>% filter(segment_id %in% sids) %>%
                 mutate(l = as.integer(as.factor(segment_id))),
         ) +
         geom_ribbon(aes(
-                ymin = mu + truncnorm::qtruncnorm(0.025, 0, Inf, beta, sqrt(P) + phi),
-                ymax = mu + truncnorm::qtruncnorm(0.975, 0, Inf, beta, sqrt(P) + phi)
+                ymin = truncnorm::qtruncnorm(0.025, 0, mu, beta, sqrt(P) + phi),
+                ymax = truncnorm::qtruncnorm(0.975, 0, mu, beta, sqrt(P) + phi)
             ),
             fill = "black", alpha = 0.2) +
         geom_ribbon(aes(
-                ymin = mu + truncnorm::qtruncnorm(0.025, 0, Inf, beta, sqrt(P)),
-                ymax = mu + truncnorm::qtruncnorm(0.975, 0, Inf, beta, sqrt(P))
+                ymin = truncnorm::qtruncnorm(0.025, 0, mu, beta, sqrt(P)),
+                ymax = truncnorm::qtruncnorm(0.975, 0, mu, beta, sqrt(P))
             ),
             fill = "red", alpha = 0.2) +
-        geom_path(aes(y = mu + beta), col = "red") +
+        geom_path(aes(y = beta), col = "red") +
         theme_classic() +
         theme(strip.background = element_blank()) +
-        xlab("Time") + ylab("Travel time (seconds)"),
-
+        xlab("Time") + ylab("Speed (m/s)"),
     ncol = 2
 )
 @
