@@ -1,15 +1,14 @@
 model {
     for (i in 1:N) {
         b[i] ~ dnorm(B[i], pow(E, -2))
-        B[i] ~ dnorm(mu + beta[t[i]], pow(phi, -2))
+        B[i] ~ dnorm(beta[t[i]], pow(phi, -2))T(0,mu)
     }
 
-    beta[1] ~ dunif(0, 500)
+    beta[1] ~ dunif(0, mu)
     for (j in 2:M) {
-        beta[j] ~ dnorm(beta[j-1], pow(delta[j-1] * q, -2))T(0,)
+        beta[j] ~ dnorm(beta[j-1], pow(delta[j-1] * q, -2))T(0,mu)
     }
 
     phi ~ dgamma(0.01, 0.01)
     q ~ dgamma(0.01, 0.01)
-    E <- 3
 }

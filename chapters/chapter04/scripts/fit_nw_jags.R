@@ -5,12 +5,13 @@ source("scripts/load_nw_data.R")
 
 segdata <-
     list(
-        b = tts$travel_time,
+        b = tts$length / tts$travel_time,
         t = as.integer(as.factor(t30)),
         delta = diff(sort(unique(as.integer(t30)))),
         N = nrow(tts),
         M = length(unique(t30)),
-        mu = mu[1]
+        mu = 60 / 3.6,
+        E = 0.8
     )
 
 
@@ -40,3 +41,10 @@ if (!file.exists(nw_fit_rda)) {
     load(nw_fit_rda)
     time_mcmc <- attr(n1_samples, "time")
 }
+
+# n1_samples %>% spread_draws(beta[t]) %>%
+#     sample_draws(50) %>%
+#     mutate(time = sort(t30)[t]) %>%
+#     arrange(time) %>%
+#     ggplot(aes(time, beta, group = .draw)) +
+#         geom_path()

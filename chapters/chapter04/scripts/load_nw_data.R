@@ -182,7 +182,7 @@ data.list <- lapply(sids[-1], function(id) {
 
 segdat <- tt_all %>%
     filter(segment_id %in% sids) %>%
-    mutate(timestamp = departure_time, error = 3) %>%
+    mutate(timestamp = departure_time, error = 0.8) %>%
     arrange(segment_id, timestamp) %>%
     select(segment_id, timestamp, travel_time, error, length) %>%
     mutate(
@@ -209,7 +209,7 @@ segdat <- tt_all %>%
 
 jdata <-
     list(
-        b = segdat$travel_time,
+        b = segdat$length / segdat$travel_time,
         e = segdat$error,
         # identify index of the BETAs
         ell = segdat$l,
@@ -223,7 +223,7 @@ jdata <-
         L = length(unique(segdat$segment_id)),
         N = nrow(segdat),
         # mu = (tapply(segdat$length, segdat$l, min) / 30) %>% as.numeric
-        mu = tapply(segdat$travel_time, segdat$l, median) %>% as.numeric
+        mu = c(50, 60, 80, 80, 50, 50) / 3.6
     )
 jdata_t <- do.call(c, tapply(segdat$timestamp, segdat$l, unique))
 names(jdata_t) <- NULL

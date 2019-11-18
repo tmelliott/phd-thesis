@@ -3,7 +3,7 @@ library(tidybayes)
 library(tidyverse)
 
 source("scripts/sim_data.R")
-simdata <- get_simulation()
+simdata <- get_simulation(mu = 50, q = 0.002, phi = 0.8 * 3.6^2, e = 10, beta0 = 30)
 
 simdata_jags <-
     list(
@@ -12,7 +12,8 @@ simdata_jags <-
         delta = diff(sort(unique(simdata$t30))) * 60 * 60,
         N = length(simdata$b),
         M = length(unique(simdata$t30)),
-        mu = 50
+        mu = 60,
+        E = simdata$pars$e
     )
 
 sim_rda <- "data/sim_results.rda"

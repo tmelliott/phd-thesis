@@ -34,15 +34,21 @@ Once a vehicle has traversed a segment, we observe its travel time as $\Vttobs_{
 To further demonstrate the model, we have included a simulation where all of the parameter values are known (based off of the values estimated in \cref{sec:nw_par_est}). \Cref{fig:nw_sim_data} shows the three stages of the model hierarchy.
 
 
-<<nw_sim_data,echo=FALSE,fig.width=6,fig.height=2,fig.align="center",out.width="0.8\\textwidth",fig.cap="Simulated data",fig.subcap=c('Underlying travel time', 'Actual bus travel times', 'Observed bus travel times with vertial lines representing measurement error.'),fig.ncol=1,fig.sep=rep("\\\\", 4)>>=
+<<nw_sim_data,echo=FALSE,fig.width=6,fig.height=2,fig.align="center",out.width="0.8\\textwidth",fig.cap="Simulated data showing average vehicle speed along a road. The right hand axis is shown as a guide for readers not familiar with speeds measured in meters per second.",fig.subcap=c('Underlying average vehicle speed', 'Actual bus speeds (averaged over road segment)', 'Observed average bus speeds, with vertial lines representing measurement error.'),fig.ncol=1,fig.sep=rep("\\\\", 4)>>=
 source("scripts/sim_data.R")
-sim <- get_simulation()
+sim <- get_simulation(mu = 50, q = 0.002, phi = 0.8*3.6^2, e = 10, beta0 = 30)
 
 library(ggplot2)
 p <- ggplot() +
     xlab("Time (hour)") + ylab("Speed (m/s)") +
     theme_classic() +
-    ylim(0, 50 / 3.6)
+    scale_y_continuous(
+        sec.axis = sec_axis(
+            ~.*3.6,
+            name = "Speed (km/h)"
+        ),
+        limits = c(0, 60 / 3.6)
+    )
 
 p + geom_path(aes(sim$truth$t, sim$truth$beta))
 
@@ -50,7 +56,7 @@ p + geom_path(
         aes(sim$truth$t, sim$truth$beta),
         alpha = 0.5
     ) +
-    geom_point(aes(sim$t, sim$B))
+    geom_point(aes(sim$t, sim$B), size = 1)
 
 p + geom_path(
         aes(sim$truth$t, sim$truth$beta),
@@ -62,9 +68,10 @@ p + geom_path(
             xend = sim$t,
             y = sim$B,
             yend = sim$b
-        )
+        ),
+        colour = "red"
     ) +
-    geom_point(aes(sim$t, sim$b))
+    geom_point(aes(sim$t, sim$b), size = 1)
 
 @
 
@@ -72,12 +79,26 @@ p + geom_path(
 Observed travel times for a real segment, displayed in \cref{fig:tt_figure}, shows some similarities to the simulated data, with one notable difference: the peak-hour spike. This spike is due to the location of the road, the Symonds Street overbridge\footnote{Anyone familiar with the area will understand the importance of this road}: there is often a (very long) queue of buses from many routes converging there on the central city. In this section, we use the simulated data to evaluate the model under ``nice'' conditions and then test it on this real data to see how well it copes with these types of phenomenon.
 
 
-<<tt_figure,echo=FALSE,fig.height=2,fig.width=6,fig.align="center",out.width=".8\\linewidth",fig.cap="Travel times along a road.">>=
+<<tt_figure,echo=FALSE,fig.height=2,fig.width=6,fig.align="center",out.width=".8\\linewidth",fig.cap="Road state observations along a single road segment.",fig.subcap=c("Travel time observations in seconds.", "Average speed in meters per second."),fig.ncol=1,fig.sep=rep("\\\\", 3)>>=
 library(ggplot2)
 source("scripts/load_nw_data.R")
+
 ggplot(tts, aes(arrival_time, travel_time)) +
     geom_point() +
-    geom_hline(yintercept = mu, lty = 2) +
     theme_classic() +
     xlab("Time") + ylab("Travel time (seconds)")
+
+ggplot(tts, aes(arrival_time, length / travel_time)) +
+    geom_point() +
+    theme_classic() +
+    xlab("Time") + ylab("Speed (m/s)") +
+    scale_y_continuous(
+        # I'd like this, but it messes up alignment
+        # sec.axis = sec_axis(
+        #     ~.*3.6,
+        #     name = "Speed (km/h)"
+        # ),
+        limits = c(0, 60 / 3.6)
+    )
+
 @

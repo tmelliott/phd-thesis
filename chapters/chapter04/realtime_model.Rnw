@@ -30,7 +30,7 @@ which are predicted using
 What this looks like is shown in \cref{fig:nw_kf1}.
 
 
-<<nw_kf,message=FALSE,echo=FALSE,fig.height=2.5,fig.width=8,fig.cap="A network state prediction with the previous state mean and variance shown by the black line and shaded grey region, respectively. The red dot represents the predicted mean, with the accompanying pink region for the uncertainty of the predicted state. The dashed blue line in (b) represents the historical mean travel time over time, and the state prediction follows this.",fig.subcap=c("Constant travel time model", "Historical change based model"),cache=TRUE,fig.ncol=1,out.width="0.8\\textwidth",fig.align="center">>=
+<<nw_kf,message=FALSE,echo=FALSE,fig.height=2.5,fig.width=8,fig.cap="A network state prediction with the previous state mean and variance shown by the black line and shaded grey region, respectively. The red dot represents the predicted mean, with the accompanying pink region for the uncertainty of the predicted state. The dashed blue line in (b) represents the historical mean speed over time, and the state prediction follows this.",fig.subcap=c("Constant speed model", "Historical change based model"),cache=TRUE,fig.ncol=1,fig.sep=rep("\\\\", 3),out.width="0.8\\textwidth",fig.align="center">>=
 suppressPackageStartupMessages(library(tidyverse))
 set.seed(345)
 d <- tibble(
@@ -56,7 +56,7 @@ p <- ggplot(d, aes(t, x)) +
     theme(panel.grid = element_blank()) +
     scale_x_continuous(breaks = NULL) +
     scale_y_continuous(breaks = NULL) +
-    xlab("Time (s)") + ylab("Travel time (s)")
+    xlab("Time (s)") + ylab("Speed (m/s)")
 
 p + geom_ribbon(aes(ymin = x - err, ymax = x + err),
         data = d2, fill = "red", alpha = 0.1) +
@@ -151,10 +151,10 @@ Finally, we back-transform the information into the state space,
 The main constraint on the model is the dependence on $\NWvar_{\ellc}$ and $\NWnoise_{\ellc}$; however, before we consider the estimation of these values, we will first apply the Kalman filter model to the simulated date (for which the parameter values are known).
 
 
-<<nw_simdata_fit,echo=FALSE,message=FALSE,warning=FALSE,fig.width=6,fig.height=2,fig.align="center",out.width=".8\\textwidth",fig.cap="Fitted KF to simulated data.",fig.subcap=c('Estimated mean travel time.', 'Predictive distribution of travel times.'),fig.ncol=1,fig.sep=rep("\\\\", 4)>>=
+<<nw_simdata_fit,echo=FALSE,message=FALSE,warning=FALSE,fig.width=6,fig.height=2,fig.align="center",out.width=".8\\textwidth",fig.cap="Fitted KF to simulated data.",fig.subcap=c('Estimated mean speed.', 'Predictive distribution of average vehicle speed.'),fig.ncol=1,fig.sep=rep("\\\\", 4)>>=
 source("scripts/sim_data.R")
 library(tidyverse)
-sim <- get_simulation()
+sim <- get_simulation(mu = 50, q = 0.002, phi = 0.8*3.6^2, e = 10, beta0 = 30)
 
 t30 <- sim$t30
 N <- nrow(length(sim$b))
@@ -174,18 +174,18 @@ kf.fit <-
     )
 
 kf.fit$beta[1] <- sim$truth$beta[1]
-kf.fit$P[1] <- 500
+kf.fit$P[1] <- 20
 
 q <- sim$pars$q
 phi <- sim$pars$phi
-mu <- sim$pars$mu
+mu <- sim$pars$mu + 10 / 3.6
 
 # convert all data to information
 kf.data <-
     tibble(
         time = t30,
         t = as.integer(as.factor(t30)),
-        b = sim$b - mu,
+        b = sim$b,
         E = 3.0
     ) %>% mutate(
         I = 1 / (E^2 + phi^2),
@@ -222,31 +222,45 @@ library(ggplot2)
 truth <- tibble(time = sim$truth$t, b = sim$truth$b)
 ggplot(kf.fit[-1,], aes(time)) +
     geom_ribbon(aes(
-            ymin = mu + truncnorm::qtruncnorm(0.025, 0, Inf, beta_hat, sqrt(P_hat)),
-            ymax = mu + truncnorm::qtruncnorm(0.975, 0, Inf, beta_hat, sqrt(P_hat))
+            ymin = truncnorm::qtruncnorm(0.025, 0, mu, beta_hat, sqrt(P_hat)),
+            ymax = truncnorm::qtruncnorm(0.975, 0, mu, beta_hat, sqrt(P_hat))
         ),
         fill = "blue", alpha = 0.2) +
-    geom_path(aes(y = mu + beta_hat), col = "blue") +
+    geom_path(aes(y = beta_hat), col = "blue") +
     geom_ribbon(aes(
-            ymin = mu + truncnorm::qtruncnorm(0.025, 0, Inf, beta, sqrt(P)),
-            ymax = mu + truncnorm::qtruncnorm(0.975, 0, Inf, beta, sqrt(P))
+            ymin = truncnorm::qtruncnorm(0.025, 0, mu, beta, sqrt(P)),
+            ymax = truncnorm::qtruncnorm(0.975, 0, mu, beta, sqrt(P))
         ),
         fill = "red", alpha = 0.2) +
-    geom_path(aes(y = mu + beta), col = "red") +
+    geom_path(aes(y = beta), col = "red") +
     geom_path(aes(y = b), data = truth, lty = 2) + #, colour = "limegreen") +
     theme_classic() +
-    xlab("Time") + ylab("Travel time (seconds)")
+    xlab("Time") + ylab("Speed (m/s)") +
+    scale_y_continuous(
+        sec.axis = sec_axis(
+            ~.*3.6,
+            name = "Speed (km/h)"
+        ),
+        limits = c(0, 60 / 3.6)
+    )
 
 ggplot(kf.fit[-1,], aes(time)) +
-    geom_point(aes(y = mu + b), data = kf.data) +
+    geom_point(aes(y = b), data = kf.data) +
     geom_ribbon(aes(
-            ymin = mu + truncnorm::qtruncnorm(0.025, 0, Inf, beta, sqrt(P) + phi),
-            ymax = mu + truncnorm::qtruncnorm(0.975, 0, Inf, beta, sqrt(P) + phi)
+            ymin = truncnorm::qtruncnorm(0.025, 0, mu, beta, sqrt(P) + phi),
+            ymax = truncnorm::qtruncnorm(0.975, 0, mu, beta, sqrt(P) + phi)
         ),
         fill = "red", alpha = 0.2) +
-    geom_path(aes(y = mu + beta), col = "red") +
+    geom_path(aes(y = beta), col = "red") +
     theme_classic() +
-    xlab("Time") + ylab("Travel time (seconds)")
+    xlab("Time") + ylab("Travel time (seconds)") +
+    scale_y_continuous(
+        sec.axis = sec_axis(
+            ~.*3.6,
+            name = "Speed (km/h)"
+        ),
+        limits = c(0, 60 / 3.6)
+    )
 
 @
 

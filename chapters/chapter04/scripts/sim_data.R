@@ -1,4 +1,4 @@
-get_simulation <- function() {
+get_simulation <- function(mu = 50, q = 0.002, phi = 10, e = 8, beta0 = 30) {
 
     set.seed(20)
 
@@ -14,13 +14,13 @@ get_simulation <- function() {
     }
 
     t <- seq(6, 22, by = 5/60) # every 5 minutes
-    mu <- 50 / 3.6   # max speed
+    mu <- mu / 3.6   # max speed
     q <- 0.002       # rate of change
-    phi <- 10 / 3.6^2# between-vehicle sd
-    e <- 2 / 3.6^2   # observation error
+    phi <- phi / 3.6^2# between-vehicle sd
+    e <- e / 3.6^2   # observation error
     beta <- numeric(length(t))
-    beta[1] <- 30 / 3.6
-    delta <- 5*60
+    beta[1] <- beta0 / 3.6
+    delta <- 5 * 60
     for (i in 2:length(beta))
         beta[i] <- transition(beta[i-1], t[i], q, delta, mu)
 
