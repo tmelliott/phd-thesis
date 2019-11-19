@@ -353,6 +353,78 @@ bind_rows(tt_all, tt_future) %>%
         )
 @
 
+<<nw_seg_maps,echo=FALSE,message=FALSE,cache=TRUE,fig.width=8,fig.height=9,out.width="\\textwidth",fig.cap="Segment locations, drawn using the ggmap package \\citep{ggmap}.",fig.align="center">>=
+suppressPackageStartupMessages({
+    library(ggplot2)
+    library(ggmap)
+    library(RSQLite)
+    library(tidyverse)
+    library(dbplyr)
+})
+
+source("scripts/load_nw_data.R")
+
+con <- dbConnect(SQLite(), db)
+nodes <- con %>% tbl("nodes") %>% select(node_id, node_lon, node_lat)
+seg_locs <- con %>% tbl("road_segments") %>%
+    left_join(nodes,
+        by = c("node_from" = "node_id"),
+        suffix = c("", "_from")
+    ) %>%
+    left_join(nodes,
+        by = c("node_to" = "node_id"),
+        suffix = c("", "_to")
+    ) %>%
+    filter(road_segment_id %in% !!sids) %>%
+    collect()
+dbDisconnect(con)
+
+map_location <- function(data, zoom) {
+    # adjust limits
+    rad <- function(deg) deg * pi / 180
+    deg <- function(rad) rad * 180 / pi
+    R <- 6378137
+    xlim <- sort(c(data$node_lon, data$node_lon_to))
+    ylim <- sort(c(data$node_lat, data$node_lat_to))
+    xl <- diff(rad(xlim)) * cos(mean(rad(ylim))) * R
+    yl <- diff(rad(ylim)) * R
+
+    sqr_w <- max(xl, yl) * 2
+    xw <- deg(sqr_w / R / cos(mean(rad(ylim))))
+    yw <- deg(sqr_w / R)
+
+    bbox <- c(
+        mean(xlim) - xw / 2,
+        mean(ylim) - yw / 2,
+        mean(xlim) + yw / 2,
+        mean(ylim) + yw / 2
+    )
+    m <- get_stamenmap(bbox, zoom = zoom)
+
+    ggmap(m) +
+        geom_segment(
+            aes(
+                x = node_lon,
+                y = node_lat,
+                xend = node_lon_to,
+                yend = node_lat_to
+            ),
+            data = data,
+            size = 1.5
+        ) +
+        geom_point(aes(node_lon, node_lat), data = data, stroke = 2) +
+        geom_point(aes(node_lon_to, node_lat_to), data = data,
+            shape = 21, fill = "white", stroke = 2)
+}
+
+zoom <- c(16, 16, 12, 14, 16, 16)
+maps <- lapply(
+    seq_len(nrow(seg_locs)),
+    function(i) map_location(seg_locs[i, ], zoom = zoom[i])
+)
+do.call(egg::ggarrange, c(maps, list(nrow = 3)))
+@
+
 <<nw_model_nw_jagsfits,echo=FALSE,cache=TRUE,message=FALSE>>=
 source("scripts/load_nw_data.R")
 suppressPackageStartupMessages({
@@ -373,19 +445,19 @@ if (!file.exists(nwsfile)) {
         for (l in 1:L) {
             beta[c0[l]] ~ dunif(0, mu[l])
             for (j in c1[l]:cJ[l]) {
-                beta[j] ~ dnorm(beta[j-1], pow(delta[j] * q[l], -2))T(0, mu[l])
+                beta[j] ~ dnorm(beta[j-1], pow(delta[j] * q, -2))T(0, mu[l])
             }
 
             phi[l] <- exp(log_phi[l])
-            log_phi[l] ~ dnorm(theta, pow(sig_phi, -2))
+            log_phi[l] ~ dnorm(mu_phi, pow(sig_phi, -2))
 
             #q[l] ~ dnorm(mu_q, pow(sig_q, -2))T(0,)
-            q[l] ~ dgamma(0.001, 0.001)
         }
 
-        theta ~ dnorm(0, 0.01)
-        sig_phi ~ dgamma(0.001, 0.001)
+        mu_phi ~ dnorm(0, 0.01)
+        sig_phi ~ dgamma(0.0001, 0.0001)
 
+        q ~ dgamma(0.0001, 0.0001)
         #mu_q <- exp(log_mu_q)
         #log_mu_q ~ dnorm(0, 0.01)
         #sig_q ~ dgamma(0.001, 0.001)
@@ -394,7 +466,7 @@ if (!file.exists(nwsfile)) {
 
     jm <-
         jags.model(textConnection(model.jags),
-            # quiet = TRUE,
+            quiet = TRUE,
             data = jdata,
             n.chains = 4,
             n.adapt = 10000
@@ -403,7 +475,7 @@ if (!file.exists(nwsfile)) {
     n1_samples <-
         coda.samples(jm,
             variable.names =
-                c("beta", "phi", "q", "theta", "sig_phi"),
+                c("beta", "phi", "mu_phi", "sig_phi", "q"),
             n.iter = 10000,
             thin = 10
         )
@@ -414,46 +486,44 @@ if (!file.exists(nwsfile)) {
 }
 @
 
-<<nw_model_n2_diag,cache=TRUE,message=FALSE,echo=FALSE,fig.width=8,fig.height=4.5,out.width="\\textwidth",fig.cap="Traceplots of top-level network parameters.",fig.align="center">>=
+<<nw_model_n2_diag,cache=TRUE,message=FALSE,echo=FALSE,fig.width=8,fig.height=6,out.width="\\textwidth",fig.cap="Traceplots of top-level network parameters.",fig.align="center">>=
 source("scripts/load_nw_data.R")
 load("data/hier_model_samples.rda")
 
-
+ss <- n1_samples %>% spread_draws(mu_phi, sig_phi, q)
+ss_q <- ss %>% median_qi()
 pmin <-
-    ggplot(NULL,
+    ggplot(ss,
         aes(x = .iteration, colour = as.factor(.chain), group = .chain)
     ) +
     xlab("Iteration") +
     theme_classic() +
     theme(legend.position = "none")
 
+
 egg::ggarrange(
     pmin +
-        geom_path(aes(y = theta),
-            data = n1_samples %>% spread_draws(theta)
-        ) +
-        ylab(expression(theta)),
-    # pmin +
-    #     geom_path(aes(y = theta),
-    #         data = n1_samples %>% spread_draws(theta[k]) %>% filter(k == 2)
-    #     ) +
-    #     ylab(expression(theta[1])),
+        geom_path(aes(y = mu_phi)) +
+        geom_hline(yintercept = ss_q$mu_phi.lower,
+            lty = 2, colour = "gray") +
+        geom_hline(yintercept = ss_q$mu_phi.upper,
+            lty = 2, colour = "gray") +
+        ylab(expression(mu[phi])),
     pmin +
-        geom_path(aes(y = sig_phi),
-            data = n1_samples %>% spread_draws(sig_phi)
-        ) +
+        geom_path(aes(y = sig_phi)) +
+        geom_hline(yintercept = ss_q$sig_phi.lower,
+            lty = 2, colour = "gray") +
+        geom_hline(yintercept = ss_q$sig_phi.upper,
+            lty = 2, colour = "gray") +
         ylab(expression(sigma[psi])),
-    #pmin +
-    #    geom_path(aes(y = mu_q),
-    #        data = n1_samples %>% spread_draws(mu_q)
-    #    ) +
-    #    ylab(expression(mu[q])),
-    #pmin +
-    #    geom_path(aes(y = sig_q),
-    #        data = n1_samples %>% spread_draws(sig_q)
-    #    ) +
-    #    ylab(expression(sigma[q])),
-    ncol = 2, byrow = FALSE
+    pmin +
+        geom_path(aes(y = q)) +
+        geom_hline(yintercept = ss_q$q.lower,
+            lty = 2, colour = "gray") +
+        geom_hline(yintercept = ss_q$q.upper,
+            lty = 2, colour = "gray") +
+        ylab(expression(q)),
+    ncol = 1, byrow = FALSE
 )
 @
 
@@ -461,18 +531,24 @@ egg::ggarrange(
 <<nw_model_n2_smry,cache=TRUE,echo=FALSE,results="asis">>=
 load("data/hier_model_samples.rda")
 library(tibble)
-
 smry <- summary(n1_samples)
 gd <- coda::gelman.diag(n1_samples)
-vn <- c("theta", "sig_phi")#, "mu_q", "sig_q")
+vn <- c("mu_phi", "sig_phi", "q")#, "mu_q", "sig_q")
+
+fmt0 <- function(x, s = c(3, 3, 2)) {
+    # format each number to 2 signif
+    s <- rep(s, length.out = length(x))
+    sapply(seq_along(x), function(i) as.character(signif(x[i], s[i])))
+}
+
 restbl <-
     tibble(
-        Parameter = c("\\theta", "\\sigma_\\psi"),
+        Parameter = c("\\mu_\\phi", "\\sigma_\\psi", "q"),
                       #"\\mu_q", "\\sigma_q"),
-        Mean = smry$statistics[vn, "Mean"],
-        `2.5\\%` = smry$quantiles[vn, "2.5%"],
-        `50\\%` = smry$quantiles[vn, "50%"],
-        `97.5\\%` = smry$quantiles[vn, "97.5%"],
+        Mean = fmt0(smry$statistics[vn, "Mean"]),
+        `2.5\\%` = fmt0(smry$quantiles[vn, "2.5%"]),
+        `50\\%` = fmt0(smry$quantiles[vn, "50%"]),
+        `97.5\\%` = fmt0(smry$quantiles[vn, "97.5%"]),
         `$\\hat R$` = gd$psrf[vn, 1]
     )
 knitr::kable(restbl,
@@ -497,7 +573,7 @@ As for the segment-specific parameters, the traceplots for these are shown in \c
 
 
 
-<<nw_model_n2_diag_2,cache=TRUE,echo=FALSE,fig.width=8,fig.height=7,out.width="\\textwidth",fig.cap="Traceplots of network parameters for each segment.">>=
+<<nw_model_n2_diag_2,cache=TRUE,echo=FALSE,fig.width=6,fig.height=8,out.width=".8\\textwidth",fig.cap="Traceplots of network parameters for each segment.",fig.align="center">>=
 source("scripts/load_nw_data.R")
 load("data/hier_model_samples.rda")
 
@@ -505,21 +581,21 @@ pmin <- ggplot(NULL, aes(x = .iteration, colour = as.factor(.chain), group = .ch
     xlab("Iteration") +
     theme_classic() +
     theme(legend.position = "none", strip.background = element_blank())
-egg::ggarrange(
+# egg::ggarrange(
     pmin +
         geom_path(aes(y = phi),
             data = n1_samples %>% spread_draws(phi[l])
         ) +
         ylab(expression(psi[l])) +
-        facet_wrap(l~., scales = "free_y", ncol = 1),
-    pmin +
-        geom_path(aes(y = q),
-            data = n1_samples %>% spread_draws(q[l])
-        ) +
-        ylab(expression(q[l])) +
-        facet_wrap(l~., scales = "free_y", ncol = 1),
-    ncol = 2
-)
+        facet_wrap(l~., scales = "free_y", ncol = 1)
+    #pmin +
+    #    geom_path(aes(y = q),
+    #        data = n1_samples %>% spread_draws(q[l])
+    #    ) +
+    #    ylab(expression(q[l])) +
+    #    facet_wrap(l~., scales = "free_y", ncol = 1),
+#    ncol = 1
+#)
 @
 
 
@@ -534,6 +610,7 @@ library(ggplot2)
 library(tidybayes)
 source("scripts/load_nw_data.R")
 load("data/hier_model_samples.rda")
+
 
 kf_fits <- lapply(seq_along(sids), function(l) {
     sid <- sort(sids)[l]
@@ -566,7 +643,7 @@ kf_fits <- lapply(seq_along(sids), function(l) {
     kf.fit$beta[1] <- median(tts$length / tts$travel_time)
     kf.fit$P[1] <- 5
 
-    q_phi <- n1_samples %>% spread_draws(q[l], phi[l]) %>%
+    q_phi <- n1_samples %>% spread_draws(q, phi[l]) %>%
         filter(l == !!l) %>% median_qi()
     q <- q_phi$q
     phi <- q_phi$phi

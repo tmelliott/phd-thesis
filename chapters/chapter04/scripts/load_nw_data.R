@@ -141,12 +141,16 @@ tt_future <- data_from_file("data/future_tt.rda", con, "data/future_archive")
 if (FALSE) {
     sids <- table(tt_all$segment_id) %>% sort() %>% tail(20) %>% names()
     library(ggplot2)
+    tt_all %>% filter(segment_id %in% !!sids) %>% group_by(segment_id) %>%
+        summarize(length = mean(length))
     ggplot(tt_all %>% filter(segment_id %in% !!sids)) +
-        geom_point(aes(arrival_time, travel_time)) +
-        facet_grid(segment_id~., scales = "free_y")
+        geom_point(aes(arrival_time, length / travel_time * 3.6)) +
+        geom_smooth(aes(arrival_time, length / travel_time * 3.6)) +
+        facet_wrap(~segment_id, scales = "free_y")
 }
 
-sids <- c(38, 43, 97, 161, 187, 155)
+# sids <- c(38, 43, 97, 161, 187, 155)
+sids <- c(38, 46, 97, 161, 187, 155)
 
 tts <- tt_all %>% filter(segment_id == sids[1])
 t30 <- paste(sep = ":",
