@@ -1,36 +1,28 @@
 model{
     for (i in 1:N) {
         b[i] ~ dnorm(B[i], pow(e[i], -2))
-        B[i] ~ dnorm(mu[ell[i]] + beta[c[i]], pow(phi[ell[i]], -2))
+        B[i] ~ dnorm(beta[c[i]], pow(phi[ell[i]], -2))T(0, mu[ell[i]])
     }
 
     for (l in long_segs) {
-        beta[c0[l]] ~ dnorm(0, 0.1)
         for (j in c1[l]:cJ[l]) {
-            beta[j] ~ dnorm(beta[j-1], pow(delta[j] * q[l], -2))
+            beta[j] ~ dnorm(beta[j-1], pow(delta[j] * q, -2))T(0, mu[l])
         }
     }
 
     for (l in short_segs) {
-        beta[c0[l]] ~ dnorm(0, 0.01)
         for (j in c1[l]:cJ[l]) {
             beta[j] <- beta[j-1]
         }
     }
 
     for (l in 1:L) {
+        beta[c0[l]] ~ dunif(0, mu[l])
         phi[l] <- exp(log_phi[l])
-        log_phi[l] ~ dnorm(log_mu_phi_ell[l], pow(sig_phi, -2))
-        log_mu_phi_ell[l] <- theta[1] + theta[2] * log(mu[l])
-
-        q[l] ~ dnorm(mu_q, pow(sig_q, -2))T(0,)
+        log_phi[l] ~ dnorm(mu_phi, pow(sig_phi, -2))
     }
 
-    theta[1] ~ dnorm(0, 0.01)
-    theta[2] ~ dnorm(0, 0.01)
+    mu_phi ~ dnorm(0, 0.01)
     sig_phi ~ dgamma(0.001, 0.001)
-
-    mu_q <- exp(log_mu_q)
-    log_mu_q ~ dnorm(0, 0.01)
-    sig_q ~ dgamma(0.001, 0.001)
+    q ~ dgamma(0.001, 0.001)
 }

@@ -1,11 +1,13 @@
 source("scripts/load_nw_data.R")
 
+set.seed(2346)
 tids <- tt_all %>%
     filter(segment_id %in% sids) %>%
-    pull(trip_id) %>% unique
+    pull(trip_id) %>% unique %>%
+    sample(200)
 segdat_all <- tt_all %>%
     filter(trip_id %in% tids) %>%
-    mutate(timestamp = departure_time, error = 3) %>%
+    mutate(timestamp = departure_time, error = 0.8) %>%
     arrange(segment_id, timestamp) %>%
     select(segment_id, timestamp, travel_time, error, length) %>%
     mutate(
@@ -16,7 +18,8 @@ segdat_all <- tt_all %>%
             )
         ),
         l = as.integer(as.factor(segment_id)),
-        t = as.integer(timestamp)
+        t = as.integer(timestamp),
+        speed = length / travel_time
     ) %>%
     group_by(l) %>%
     do(
@@ -31,7 +34,6 @@ segdat_all <- tt_all %>%
     group_by(l) %>%
     do(
         (.) %>% mutate(
-            travel_time_centered = travel_time - mean(travel_time),
             n_in_seg = length(travel_time)
         )
     ) %>% ungroup()
@@ -42,9 +44,16 @@ segdat_all <- tt_all %>%
 #     geom_point(aes(colour = n_in_seg > 30)) +
 #     facet_wrap(~l, scales = "free_y")
 
+Vmax <- segdat_all %>% group_by(segment_id) %>%
+    summarize(
+        n = n(),
+        Vmax = quantile(speed, ifelse(n < 50, 1, 0.95)) * 3.6,
+        Vmax = round(pmax(50, pmin(100, Vmax)) / 10) * 10 + 10
+    )
+
 jdata_all <-
     list(
-        b = segdat_all$travel_time_centered,
+        b = segdat_all$speed,
         e = segdat_all$error,
         # identify index of the BETAs
         ell = segdat_all$l,
@@ -57,7 +66,7 @@ jdata_all <-
             })) %>% as.integer,
         L = length(unique(segdat_all$segment_id)),
         N = nrow(segdat_all),
-        mu = tapply(segdat_all$travel_time, segdat_all$l, median) %>% as.numeric,
+        mu = Vmax$Vmax,
         long_segs = segdat_all %>% filter(n_in_seg > 30) %>% pull(l) %>% unique,
         short_segs = segdat_all %>% filter(n_in_seg <= 30) %>% pull(l) %>% unique
     )
@@ -86,13 +95,24 @@ if (!file.exists(jm_all_file)) {
 
     jm_all_samples <-
         coda.samples(jm_all,
-            variable.names = c("phi", "q", "theta", "sig_phi", "mu_q", "sig_q"),
+            variable.names = c("phi", "mu_phi", "sig_phi", "q"),
             n.iter = 10000,
             thin = 10
         )
     save(jm_all_samples, file = jm_all_file)
 } else {
     load(jm_all_file)
+}
+
+if (FALSE) {
+    library(ggplot2)
+    jmss <- jm_all_samples %>% spread_draws(mu_phi, sig_phi, q)
+    egg::ggarrange(
+        ggplot(jmss, aes(.iteration, mu_phi, group = .chain)) + geom_path(),
+        ggplot(jmss, aes(.iteration, sig_phi, group = .chain)) + geom_path(),
+        ggplot(jmss, aes(.iteration, q, group = .chain)) + geom_path(),
+        ncol = 1
+    )
 }
 
 segtt <- segdat_all %>%
