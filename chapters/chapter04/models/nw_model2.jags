@@ -1,0 +1,17 @@
+model {
+    for (i in 1:N) {
+        b[i] ~ dnorm(B[i], pow(e[i], -2))
+        B[i] ~ dnorm(beta[t[i]], pow(phi, -2))T(0,mu)
+    }
+
+    for (d in 1:D) {
+      beta[c0[d]] ~ dunif(0, mu)
+      for (j in c1[d]:cJ[d]) {
+          beta[j] ~ dnorm(beta[j-1], pow(delta[j] * q, -2))T(0,mu)
+      }
+    }
+
+    # these are common across all days
+    phi ~ dgamma(0.001, 0.001)
+    q ~ dgamma(0.0001, 0.0001)
+}
