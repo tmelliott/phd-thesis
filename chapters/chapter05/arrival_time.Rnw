@@ -50,3 +50,4 @@ For bus stops dwell times, we used historical dwell time mean and variance, with
 
 
 \input{DIRNAME/arrival_time_pf.tex}
+\input{DIRNAME/arrival_time_normal.tex}
