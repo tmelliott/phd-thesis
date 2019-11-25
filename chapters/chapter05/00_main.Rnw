@@ -1,7 +1,7 @@
 \chapter{Predicting arrival time}
 \label{cha:prediction}
 
-Over the last three chapters, we have discussed the structure of transit data and the construction of a ``transit network'', how to model a transit vehicle in real-time efficiently while ensuring we can estimate the desired quantities---travel times---and how we make use of these estimates to summarise the real-time state of the aforementioned transit network. All of this has been completed in order to do noe thing: to predict---with some level of accuracy and, more importantly, reliability---the arrival time of a transit vehicle at a bus stop. Yet, while we may have all of the pieces, we still need to put them together, and the clock is still ticking---the \glspl{eta} still need to be estimated and distributed before our passengers can make use of them.
+Over the last three chapters, we have discussed the structure of transit data and the construction of a ``transit network'', how to model a transit vehicle in real-time efficiently while ensuring we can estimate the desired quantities---travel times---and how we make use of these estimates to summarise the real-time state of the aforementioned transit network. All of this has been completed in order to do one thing: to predict---with some level of accuracy and, more importantly, reliability---the arrival time of a transit vehicle at a bus stop. Yet, while we may have all of the pieces, we still need to put them together, and the clock is still ticking---the \glspl{eta} still need to be estimated and distributed before our passengers can make use of them.
 
 In \cref{cha:vehicle_model} we estimated the state of a vehicle; in \cref{cha:network_model}, the state of a road. In this chapter, we shift our focus to estimate \emph{trip state}, which combines all of the information we have gained thus far. From this trip state, we estimate arrival times at stops by combining it with the network state. The first step, therefore, is to estimate trip state based on the \gls{gtfs} schedule and vehicle states from \cref{cha:vehicle_model}.
 
@@ -29,6 +29,7 @@ This chapter:
     \item schedule + delay (AT) (+ how to estimate uncertainty?)
     \end{itemize}
 \item combining into a single prediction with uncertainty
+\item + results/simulation?
 \item performance results
 \end{itemize}
 
@@ -103,7 +104,7 @@ This chapter:
 
 \input{DIRNAME/trip_state.tex}
 
-\input{DIRNAME/travel_time.tex}
+\input{DIRNAME/arrival_time.tex}
 
 \input{DIRNAME/trip_state_link.tex}
 \input{DIRNAME/trip_state_dwell.tex}

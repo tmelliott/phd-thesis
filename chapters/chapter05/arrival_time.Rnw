@@ -1,0 +1,52 @@
+\section{Predicting arrival time}
+\label{sec:prediction_arrival_time}
+
+
+<<layover_load,cache=TRUE,message=FALSE,warning=FALSE,echo=FALSE>>=
+source("scripts/layover.R")
+
+layoverdat <- layover %>%
+    mutate(
+        current_delay = pmax(-10*60, current_delay),
+        current_delay = pmin(20*60, current_delay)
+    )
+
+pr_wait <- round(mean(layoverdat$current_delay >= 0), 2)
+@
+
+<<layover_observance,cache=TRUE,message=FALSE,warning=FALSE,echo=FALSE,fig.height=3,fig.width=8,fig.align="center",out.width="\\linewidth",fig.cap=sprintf("Vehicle delays at layover stops truncated to 10~minutes early and 20~minutes late. Negative values indicate non-adherance by drivers, which makes up %d%s of cases.", (1 - pr_wait) * 100, "\\%")>>=
+ggplot(layoverdat, aes(current_delay / 60)) +
+    geom_histogram(
+        aes(y = ..count.. / sum(..count..)),
+        binwidth = 1,
+        center = 0.5
+    ) +
+    xlab("Dwell time (min)") +
+    ylab("Proportion") +
+    theme_classic() +
+    geom_vline(xintercept = 0, lty = 2)
+@
+
+We now have estimates of the state of the trip (and any associated vehicle) and the road network. These can now be used together to predict the travel time required for the vehicle to reach all remaining stops along the route. Dwell times need also be considered, as they can affect the uncertaintly, particularly at major stops. Additionally, the bus may have a layover at a stop---these are common at major points of interest, such as at a mall or station where connections to other routes can occur. These are detected in the GTFS \emph{stop times} table by a departure time greater than the arrival time (usually one second). It is presumed that a driver will wait until the scheduled departure time before continuing the trip---of course, not exactly, and in \Sexpr{100 * (1 - pr_wait)}\% of cases they did not wait at all.
+
+
+There are various ways we could forecast arrival times (travel + dwell), each with its own drawbacks and advantages. In this section, we present two methods---using the particle filter, and a normal approximation---along with two other (simpler) methods---historical delay distributions and schedule plus delay, the latter of which is currently used by \gls{at}.
+
+For the first two, the current network state is subset to include only the segments for the particular route, such that
+\begin{equation}
+\label{eq:route_nw_state}
+\RouteNWstate =
+\begin{bmatrix}
+\RouteNWstateseg_{1} & \RouteNWstatecor_{1,2} & \cdots \\
+\RouteNWstatecor_{2,1} & \RouteNWstateseg_{2} & \cdots \\
+\vdots & \ddots & \ddots
+\end{bmatrix}
+\end{equation}
+where $\RouteNWstateseg_{i}, i = 1, \ldots, \Nseg$ is the average vehicle speed along the $i$th segment, and $\RouteNWstatecor_{i,j}$ is the covariance between segments $i$ and $j$. Note that in the current framework, segment covariances are not calculated, but the above setup shows how, if available, they can easily be included.
+
+
+For bus stops dwell times, we used historical dwell time mean and variance, with unknown stopping probabilities---this is because it is impossible with the available data to determine if a bus did or did not stop unless both the arrival and departure times are observed; often, only only of these is observed even if the bus did indeed stop, particularly if it was a short dwell time.
+
+
+
+\input{DIRNAME/arrival_time_pf.tex}
