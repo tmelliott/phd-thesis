@@ -22,57 +22,6 @@ Due to the huge computational demand of using the particle filter, we could inst
 
 [[ pull in the maths stuff from next section ]]
 
-<<normal_approx,cache=TRUE,echo=FALSE,fig.width=8,fig.height=4>>=
-napprox <- function(n, pi = rep(0.8, n), t = c(80, 15), mu = rep(20, n), sigma = rep(5, n)) {
-    # indicator of stopping:
-    d <- do.call(expand.grid, lapply(1:n, function(i) 0:1))
-    pi <- apply(sapply(1:n, function(i) ifelse(d[,i], pi[i], 1 - pi[i])), 1, prod)
-    mu <- apply(sapply(1:n, function(i) t[1] + ifelse(d[,i], mu[i], 0)), 1, sum)
-    sigma <- sqrt(apply(sapply(1:n, function(i) t[2] + ifelse(d[,i], sigma[i]^2, 0)), 1, sum))
-
-    z <- apply(rmultinom(1e6, 1, pi), 2, function(x) which(x == 1))
-    x <- rnorm(1e6, mu[z], sigma[z])
-    hist(x, 50, freq = FALSE, col = "gray90", lty = 0)
-    for (i in 1:nrow(d))
-        curve(dnorm(x, mu[i], sigma[i]) * pi[i], n = 1001, add = TRUE,
-            lty = 2, col = "gray20")
-
-
-    ## Can we calculate the quantiles?
-    q <- quantile(x, prob = c(0.05, 0.5, 0.95))
-    abline(v = q, col = "orangered", lwd = 2)
-
-    f <- function(x, q = 0.95) {
-        (sum(pi * pnorm(x, mu, sigma)) - q)^2
-    }
-    qq <- sapply(c(0.05, 0.5, 0.95), function(q) optimize(f, range(x), q = q)$minimum)
-    abline(v = qq, col = "blue", lty = 2)
-
-    ## mean and var
-    mean <- sum(pi * mu)
-
-    EVarX <- sum(pi * sigma^2)
-    VarEX <- sum(pi * mu^2) - sum(pi * mu)^2
-    sd <- sqrt(EVarX + VarEX)
-
-    curve(dnorm(x, mean, sd), n = 1001, add = TRUE, col = "orangered")
-
-    ## Compare quantiles of single normal vs mixture
-    qx <- qnorm(c(0.05, 0.5, 0.95), mean, sd)
-    abline(v = qx, col = "green4")
-    invisible(list(
-        x = x,
-        pi = pi, mu = mu, sigma = sigma,
-        error = sum((qx - qq)^2)
-    ))
-}
-napprox(1, pi = 0.8, mu = 30, sigma = 20, t = c(30, 5))
-napprox(2, pi = c(0.8, 0.5), mu = c(30, 20), sigma = c(20, 10), t = c(70, 15))
-napprox(3, pi = c(0.5, 0.5, 0.5), mu = c(30, 20, 40), sigma = c(20, 10, 20), t = c(120, 20))
-napprox(5, pi = c(0.5, 0.5, 0.5, 0.5, 0.3), mu = c(30, 20, 40, 20, 6), sigma = c(20, 10, 20, 10, 5), t = c(200, 40))
-@
-
-
 % \input{DIRNAME/travel_time_historical.tex}
 \subsection{Historical arrival time delays}
 \label{sec:trip_travel_time_historical}

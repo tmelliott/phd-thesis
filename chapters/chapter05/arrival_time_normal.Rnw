@@ -4,6 +4,59 @@
 Due to the computational demand of the particle filter, significant speed improvements can be obtained if we were to use a normal approximation instead. The network state is already represented as multivariate normal random variable, which we can easily apply transformations to sum over the dimensions. The issues lies with stop dwell times, which have a point mass at zero, leading to a mixture predictive distribution: for each stop the vehicle must pass, there are twice as many components, so after $m$ stops there will be $2^m$ components. However, these mostly converge after a few stops as shown in \cref{fig:component_convergence}.
 
 
+
+<<normal_approx,cache=TRUE,echo=FALSE,fig.width=8,fig.height=4>>=
+napprox <- function(n, pi = rep(0.8, n), t = c(80, 15), mu = rep(20, n), sigma = rep(5, n)) {
+    # indicator of stopping:
+    d <- do.call(expand.grid, lapply(1:n, function(i) 0:1))
+    pi <- apply(sapply(1:n, function(i) ifelse(d[,i], pi[i], 1 - pi[i])), 1, prod)
+    mu <- apply(sapply(1:n, function(i) t[1] + ifelse(d[,i], mu[i], 0)), 1, sum)
+    sigma <- sqrt(apply(sapply(1:n, function(i) t[2] + ifelse(d[,i], sigma[i]^2, 0)), 1, sum))
+
+    z <- apply(rmultinom(1e6, 1, pi), 2, function(x) which(x == 1))
+    x <- rnorm(1e6, mu[z], sigma[z])
+    hist(x, 50, freq = FALSE, col = "gray90", lty = 0)
+    for (i in 1:nrow(d))
+        curve(dnorm(x, mu[i], sigma[i]) * pi[i], n = 1001, add = TRUE,
+            lty = 2, col = "gray20")
+
+
+    ## Can we calculate the quantiles?
+    q <- quantile(x, prob = c(0.05, 0.5, 0.95))
+    abline(v = q, col = "orangered", lwd = 2)
+
+    f <- function(x, q = 0.95) {
+        (sum(pi * pnorm(x, mu, sigma)) - q)^2
+    }
+    qq <- sapply(c(0.05, 0.5, 0.95), function(q) optimize(f, range(x), q = q)$minimum)
+    abline(v = qq, col = "blue", lty = 2)
+
+    ## mean and var
+    mean <- sum(pi * mu)
+
+    EVarX <- sum(pi * sigma^2)
+    VarEX <- sum(pi * mu^2) - sum(pi * mu)^2
+    sd <- sqrt(EVarX + VarEX)
+
+    curve(dnorm(x, mean, sd), n = 1001, add = TRUE, col = "orangered")
+
+    ## Compare quantiles of single normal vs mixture
+    qx <- qnorm(c(0.05, 0.5, 0.95), mean, sd)
+    abline(v = qx, col = "green4")
+    invisible(list(
+        x = x,
+        pi = pi, mu = mu, sigma = sigma,
+        error = sum((qx - qq)^2)
+    ))
+}
+napprox(1, pi = 0.8, mu = 30, sigma = 20, t = c(30, 5))
+napprox(2, pi = c(0.8, 0.5), mu = c(30, 20), sigma = c(20, 10), t = c(70, 15))
+napprox(3, pi = c(0.5, 0.5, 0.5), mu = c(30, 20, 40), sigma = c(20, 10, 20), t = c(120, 20))
+napprox(5, pi = c(0.5, 0.5, 0.5, 0.5, 0.3), mu = c(30, 20, 40, 20, 6), sigma = c(20, 10, 20, 10, 5), t = c(200, 40))
+@
+
+
+
 In order to use a mixture of normals to encorporate stopping uncertainty, we express the mean and uncertainty as vectors $\tilde\mu$ and $\tilde\sigma^2$, respectively, along with a third vector $\tilde\pi$ denoting the $\tilde N$ mixture weights\footnote{We are using the tilde (\tilde) over parameters to help distinguish them from others used throughout the thesis}, such that
 \begin{equation}
 \label{eq:mixture_weights}
@@ -85,3 +138,9 @@ For quantiles $q_\alpha$ we need to use an optimisation algorithm to solve
 \right]^2 = 0
 \end{equation}
 which is straightforward using Brent's Algorithm \citep{brent}, which is implemented in the Boost C++ library \citep{cn}.
+
+
+However, after about eight stops, the number of components will be in excess of $2^8 = \Sexpr{2^8}$, after which point it would be more efficient to just use the particle filter. Instead, we use a simplification criteria such that, when passed, a single new component is close enough in approximation to the set of components that it can replace them. We have chosen to compare quantiles, and if the maximum absolute difference is less than one minute\footnote{When providing \glspl{eta} to commuters, they are generally rounded to integer minutes anyway}, we replace the set of components with a single new one with mean and variance as specified in \cref{eq:mixture_mean,eq:mixture_variance}. Subsequence stops will begin the process anew, and iteratively check if a single distribution is an adequate approximation.
+
+
+We also need to prevent the mixture from becoming too large: if $\tilde N > 8$, we combine components with $\tilde\pi_i < \frac{1}{2}\max_i(\pi_i)$, using appropriately modified versions of \cref{eq:mixture_mean,eq:mixture_variance}. In practice, after about five stops the distribution is approximately normal, and the error is minimal.

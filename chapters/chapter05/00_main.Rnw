@@ -103,17 +103,14 @@ This chapter:
 
 
 \input{DIRNAME/trip_state.tex}
-
 \input{DIRNAME/arrival_time.tex}
+\input{DIRNAME/model_combination.tex}
 
-\input{DIRNAME/trip_state_link.tex}
-\input{DIRNAME/trip_state_dwell.tex}
-
-\input{DIRNAME/simulation.tex}
-\input{DIRNAME/trip_etas.tex}
-\input{DIRNAME/trip_results.tex}
-
-
+% \input{DIRNAME/trip_state_link.tex}
+% \input{DIRNAME/trip_state_dwell.tex}
+% \input{DIRNAME/simulation.tex}
+% \input{DIRNAME/trip_etas.tex}
+% \input{DIRNAME/trip_results.tex}
 % \input{DIRNAME/travel_times.tex}
 
 
