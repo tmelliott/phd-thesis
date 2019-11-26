@@ -95,7 +95,7 @@ A second model (A2) allows the vehicle speed to follow a random walk between obs
 \Vspeed_s \sim \TNormal{\Vspeed_{s-1}}{\Vnoise}{0}{30},\quad
 \Vtime_s \in (\Vtime_{k-1}, \Vtime_k].
 \end{equation}
-In order to simultaneously compute segment travel times, the distance is iteratively updated once per second by modifying \cref{eq:vehicle_model_newton} (removing the $\Vdtiff_k$ parameter) for $s = \{t_{k-1}, t_{k-1} + 1, \ldots, t_k - 1, t_k \}$
+In order to simultaneously compute segment travel times, the distance is iteratively updated once per second by modifying \cref{eq:vehicle_model_newton} (removing the $\Vtdiff_k$ parameter) for $s = \{t_{k-1}, t_{k-1} + 1, \ldots, t_k - 1, t_k \}$
 \begin{equation}
 \Vdist_s = \Vdist_{s-1} + \Vspeed_s.
 \end{equation}

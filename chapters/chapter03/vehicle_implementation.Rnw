@@ -5,9 +5,9 @@ In order to make \rt{} estimates of travel times,
 the model described in the previous sections needs to be
 translated into a computer program,
 which we introduced in \cref{sec:rt-implementation}.
-This involves writing the \code{C++} code for the
+This involves writing the \verb|C++| code for the
 vehicle transition, likelihood, and update functions
-for inclusion in the \code{transitr} package.
+for inclusion in the \verb|transitr| package.
 The relevant steps are
 \begin{enumerate}
 \item fetch and process \rt{} observations and attach to a vehicle object;

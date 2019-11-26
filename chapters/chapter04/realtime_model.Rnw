@@ -5,17 +5,17 @@ For a real-time application, time is the number one constraint. Therefore, we be
 
 
 \subsection{Predict step}
-\label{eq:kf_predict}
+\label{sec:kf_predict}
 
 The state prediction is straightforward, since we assume travel time is constant over short time periods. The estimated state has mean
-\begin{equation}\label{eq:nw_state_mean_est}
+\begin{equation}\label{eq:ch4:nw_state_mean_est}
 \hat\NWstate_{\ellc|c-1} =
-    \E{\NWstate_{\ellc} | \NWobs_{\ell \boldsymbol{\cdot}}^\boldsymbol{\cdot}}
+    \E{\NWstate_{\ellc} | \NWobs_{\ell \boldsymbol{\cdot}}^{\boldsymbol{\cdot}}}
 \end{equation}
 and variance
-\begin{equation}\label{eq:nw_state_mean_est}
+\begin{equation}\label{eq:ch4:nw_state_var_est}
 \NWstatevar_{\ellc|c-1} =
-    \Var{\NWstate_{\ellc} | \NWobs_{\ell \boldsymbol{\cdot}}^\boldsymbol{\cdot}}
+    \Var{\NWstate_{\ellc} | \NWobs_{\ell \boldsymbol{\cdot}}^{\boldsymbol{\cdot}}}
 \end{equation}
 which are predicted using
 \begin{equation}
@@ -78,13 +78,13 @@ p + geom_ribbon(aes(ymin = x - err, ymax = x + err),
 
 
 \subsection{Update step}
-\label{eq:kf_update}
+\label{sec:kf_update}
 
 Updating the \kf{} involves taking the predicted state and updating it using \emph{observations} of travel time along road segments. These we obtained from the \pf{} in \cref{sec:vehicle_travel_times}. However, it is possible to have multiple observations per road segment in one update period, as it is common for buses to travel one behind the other, particularly where there are bus lanes. Therefore, for each individual road segment, we have a vector of observations, one for each vehicle $v \in V_{\ell c}$ passing through that segment in the time interval $(t_{c-1}, t_c]$,
 \begin{equation} \label{eq:nw_seg_obs}
-\NWobss_\ell_c = \bigcup_{v\in V_{\ell c}} \NWobss_{\ell c}^v
+\NWobss_{\ell c} = \bigcup_{v\in V_{\ell c}} \NWobss_{\ell c}^v
 \end{equation}
-which can be the empty set $\NWobss_\ell_c = \emptyset$ if no vehicles travel through a segment in the interval.
+which can be the empty set $\NWobss_{\ell c} = \emptyset$ if no vehicles travel through a segment in the interval.
 
 
 To update the network, we need to account for each observation. One way of doing this would be to combine the observations into a single estimate and use that; instead, we use the \emph{\infil{}} \citep{cn}, which allows the summation of information from multiple observations. The information filter involves inverting the state uncertainty $\NWstatevar$; however, this is a simple computation due to having a one-dimensional state---if we were to estimate the state of all segments simultaneously, inverting the $L\times L$ uncertainty matrix would be computationally demanding, or even impossible.
@@ -101,29 +101,29 @@ To employ the \infil{}, we need to
 
 The first step involves converting the predicted state vector and covariance matrix into  nformation space. This involves the inversion of the covariance matrix $\NWvar_{\ellc|c-1}^{-1}$, yielding the information matrix
 \begin{equation}\label{eq:nw_if_inf_matrix}
-\NWinfmat_{\ellc|c-1} &= \NWstatevar_{\ellc|c-1}^{-1}
+\NWinfmat_{\ellc|c-1} = \NWstatevar_{\ellc|c-1}^{-1}
 \end{equation}
 and information vector
 \begin{equation}\label{eq:nw_if_inf_vector}
-\hat\NWinfvec_{\ellc|c-1} &= \NWstatevar_{\ellc|c-1}^{-1} \hat\NWstate_{c|c-1}
+\hat\NWinfvec_{\ellc|c-1} = \NWstatevar_{\ellc|c-1}^{-1} \hat\NWstate_{c|c-1}
 \end{equation}
 
 
 Converting the observations into information follows the same formula. Note first that the error needs to account for both measurement error and between-vehicle error, which, since these are both assumed Gaussian and by definition are independent, the total variance is simply the sum of the two respective variances. The observation information matrix is therefore
 \begin{equation}\label{eq:nw_if_inf_obsmatrix}
-\NWobsinfmat_{\ellc}^m &= (\NWvar_{\ellc} + \NWerr_{\ellc}^m)^{-2}
+\NWobsinfmat_{\ellc}^m = (\NWvar_{\ellc} + \NWerr_{\ellc}^m)^{-2}
 \end{equation}
 and the observation information vector is
 \begin{equation}\label{eq:nw_if_inf_obsvector}
-\hat\NWobsinfvec_{\ellc}^m &= (\NWvar_{\ellc} + \NWerr_{\ellc})^{-2} \hat\NWobs_{\ellc}^m
+\hat\NWobsinfvec_{\ellc}^m = (\NWvar_{\ellc} + \NWerr_{\ellc})^{-2} \hat\NWobs_{\ellc}^m
 \end{equation}
 Combining these by summation over vehicles yields the complete information matrix and vector for the time period $(t_{c-1},t_c]$, which are, respectively,
 \begin{equation}\label{eq:nw_if_obsupdate_matrix}
-\NWobsinfmat_{\ellc} &= \sum_{m\in V} \NWobsinfmat_{\ellc}^m
+\NWobsinfmat_{\ellc} = \sum_{m\in V} \NWobsinfmat_{\ellc}^m
 \end{equation}
 and
 \begin{equation}\label{eq:nw_if_obsupdate_vector}
-\NWobsinfvec_{\ellc} &= \sum_{m \in V} \NWobsinfvec_{\ellc}^m
+\NWobsinfvec_{\ellc} = \sum_{m \in V} \NWobsinfvec_{\ellc}^m
 \end{equation}
 
 

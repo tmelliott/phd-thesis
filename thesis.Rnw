@@ -56,7 +56,7 @@ headsepline, % Uncomment to get a line under the header
 
 \usepackage{amsmath,amsfonts}
 
-\usepackage[acronym,nonumberlist,toc]{glossaries} %Load glossaries package
+\usepackage[acronym,nonumberlist,toc,nomain]{glossaries} %Load glossaries package
 \makeglossaries
 
 

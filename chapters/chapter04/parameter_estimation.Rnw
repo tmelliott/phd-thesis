@@ -67,7 +67,7 @@ fmt0 <- function(x, s = 2) {
     sapply(x, function(z) as.character(signif(z, s)))
 }
 smry <- tibble(
-    Parameter = c("\\NWnoise", "\\NWvar"),
+    Parameter = c("$\\NWnoise$", "$\\NWvar$"),
     `True Value` = fmt0(as.numeric(simdata$pars[c("q", "phi")]), 1),
     `Mean` = fmt0(smrytbl$statistics[c("q", "phi"), "Mean"]),
     `2.5\\%` = fmt0(smrytbl$quantiles[c("q", "phi"), "2.5%"]),
@@ -138,7 +138,7 @@ fmt0 <- function(x, s = c(2, 3)) {
 }
 smrytbl <- summary(n1_samples)
 smry <- tibble(
-    Parameter = c("\\NWnoise", "\\NWvar"),
+    Parameter = c("$\\NWnoise$", "$\\NWvar$"),
     `Mean` = fmt0(smrytbl$statistics[c("q", "phi"), "Mean"]),
     `2.5\\%` = fmt0(smrytbl$quantiles[c("q", "phi"), "2.5%"]),
     `50\\%` = fmt0(smrytbl$quantiles[c("q", "phi"), "50%"]),
@@ -543,7 +543,7 @@ fmt0 <- function(x, s = c(3, 3, 2)) {
 
 restbl <-
     tibble(
-        Parameter = c("\\mu_\\phi", "\\sigma_\\psi", "q"),
+        Parameter = c("$\\mu_\\phi$", "$\\sigma_\\psi$", "$q$"),
                       #"\\mu_q", "\\sigma_q"),
         Mean = fmt0(smry$statistics[vn, "Mean"]),
         `2.5\\%` = fmt0(smry$quantiles[vn, "2.5%"]),

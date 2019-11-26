@@ -203,7 +203,7 @@ with mean vector $\vec{0}$ and covariance matrices
 $\mat{Q}_k$ and $\mat{R}_k$, respectively.
 Therefore, the \kf{} prediction step is
 \begin{equation}
-\label{eq:kf_predict}
+\label{eq:ch2:kf_predict}
 \begin{split}
 \mathcal{\hat X}_{k|k-1} = \E{\mathcal{X}_k | \mathcal{X}_{k-1}}
     &= \mat{F}_k \mathcal{\hat X}_{k-1|k-1} + \vec{q}_k \\
@@ -212,13 +212,13 @@ Therefore, the \kf{} prediction step is
 \end{split}
 \end{equation}
 
-\mathbf{Q is the \emph{rate of change of the variance of
-process noise}} \citep{Cathey_2003}.
+$\mathbf{Q}$ is the \emph{rate of change of the variance of
+process noise} \citep{Cathey_2003}.
 
 The update step is also simple,
 and expressed as a series of equations:
 \begin{equation}
-\label{eq:kf_update}
+\label{eq:ch2:kf_update}
 \begin{split}
 \mathcal{\tilde Z}_k &= \mathcal{Y}_k - \mat{H}_k \mathcal{\hat X}_{k|k-1} \\
 \mat{S}_k &= \mat{R}_k + \mat{H}_k \mathcal{P}_{k|k-1} \mat{H}_k^\top \\
@@ -258,7 +258,7 @@ to each particle independently,
 diversifying of ``mutating'' the sample.
 For each particle, this is
 \begin{equation}
-\label{eq:pf_predict}
+\label{eq:ch2:pf_predict_particle}
 \mathcal{X}\vi_k = \mathcal{F}\left(\mathcal{X}\vi_{k-1}, q\vi_k\right),
 \quad
 q\vi_k \sim \Normal{0}{\mathcal{Q}_k}
@@ -267,7 +267,7 @@ where the noise can be incorporated in any logical way.
 
 The state estimate is now
 \begin{equation}
-\label{eq:pf_predict}
+\label{eq:ch2:pf_predict_state}
 p(\mathcal{X}_k | \mathcal{X}_{k-1}) \approx
 \sum_{i=1}^\Np \Pwt_{k-1} \dirac(\mathcal{X}_k - \mathcal{X}\vi_k)
 \end{equation}

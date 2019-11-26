@@ -1,7 +1,7 @@
 \subsection{Normal approximation}
 \label{sec:prediction_arrival_time_normal}
 
-Due to the computational demand of the particle filter, significant speed improvements can be obtained if we were to use a normal approximation instead. The network state is already represented as multivariate normal random variable, which we can easily apply transformations to sum over the dimensions. The issues lies with stop dwell times, which have a point mass at zero, leading to a mixture predictive distribution: for each stop the vehicle must pass, there are twice as many components, so after $m$ stops there will be $2^m$ components. However, these mostly converge after a few stops as shown in \cref{fig:component_convergence}.
+Due to the computational demand of the particle filter, significant speed improvements can be obtained if we were to use a normal approximation instead. The network state is already represented as multivariate normal random variable, which we can easily apply transformations to sum over the dimensions. The issues lies with stop dwell times, which have a point mass at zero, leading to a mixture predictive distribution: for each stop the vehicle must pass, there are twice as many components, so after $m$ stops there will be $2^m$ components. However, these mostly converge after a few stops as shown in \cref{fig:normal_approx}.
 
 
 
@@ -56,10 +56,9 @@ napprox(5, pi = c(0.5, 0.5, 0.5, 0.5, 0.3), mu = c(30, 20, 40, 20, 6), sigma = c
 @
 
 
-
-In order to use a mixture of normals to encorporate stopping uncertainty, we express the mean and uncertainty as vectors $\tilde\mu$ and $\tilde\sigma^2$, respectively, along with a third vector $\tilde\pi$ denoting the $\tilde N$ mixture weights\footnote{We are using the tilde (\tilde) over parameters to help distinguish them from others used throughout the thesis}, such that
+In order to use a mixture of normals to encorporate stopping uncertainty, we express the mean and uncertainty as vectors $\tilde\mu$ and $\tilde\sigma^2$, respectively, along with a third vector $\tilde\pi$ denoting the $\tilde N$ mixture weights\footnote{We are using the tilde over parameters, e.g., $\tilde x$, to help distinguish them from others used throughout the thesis}, such that
 \begin{equation}
-\label{eq:mixture_weights}
+\label{eq:ch5:mixture_weight_spec}
 \tilde\pi_i > 0, i = 1, \ldots, \tilde N
 \text{ and } \sum_{i=1}^{\tilde N} \tilde\pi_i = 1.
 \end{equation}
@@ -89,7 +88,7 @@ The vector of indicators is simply a branching tree for each stop, all current c
 
 Finally, mixture weights are obtained through the stopping probability at each stop, $\pi_j$:
 \begin{equation}
-\label{eq:mixture_weights}
+\label{eq:ch5:mixture_weights}
 \begin{split}
 \tilde\pi_i &= \prod_{m=j}^{j+n} \tilde p_{im} \\
 \tilde p_{im} &=
@@ -101,7 +100,7 @@ Finally, mixture weights are obtained through the stopping probability at each s
 \end{equation}
 
 
-This all works okay for predicting a few stops ahead, but after some time the mixture weights become small and the components combine into more-or-less a single one, as shown in \cref{fig:}. To prevent $\tilde N$ from becoming too large, the full distribution is simplified into a single component with mean and variance those of the mixture. These can be computed by
+This all works okay for predicting a few stops ahead, but after some time the mixture weights become small and the components combine into more-or-less a single one, as shown in \cref{fig:normal_approx}. To prevent $\tilde N$ from becoming too large, the full distribution is simplified into a single component with mean and variance those of the mixture. These can be computed by
 \begin{equation}
 \label{eq:mixture_mean}
 \begin{split}
@@ -137,7 +136,7 @@ For quantiles $q_\alpha$ we need to use an optimisation algorithm to solve
   p\left(\Tarr_m | \tilde\pi, \tilde\mu, \tilde\sigma^2, \RouteNWstate\right) - q_\alpha
 \right]^2 = 0
 \end{equation}
-which is straightforward using Brent's Algorithm \citep{brent}, which is implemented in the Boost C++ library \citep{cn}.
+which is straightforward using Brent's Algorithm \citep{Brent_1973}, which is implemented in the Boost C++ library \citep{cn}.
 
 
 However, after about eight stops, the number of components will be in excess of $2^8 = \Sexpr{2^8}$, after which point it would be more efficient to just use the particle filter. Instead, we use a simplification criteria such that, when passed, a single new component is close enough in approximation to the set of components that it can replace them. We have chosen to compare quantiles, and if the maximum absolute difference is less than one minute\footnote{When providing \glspl{eta} to commuters, they are generally rounded to integer minutes anyway}, we replace the set of components with a single new one with mean and variance as specified in \cref{eq:mixture_mean,eq:mixture_variance}. Subsequence stops will begin the process anew, and iteratively check if a single distribution is an adequate approximation.

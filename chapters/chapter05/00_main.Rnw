@@ -8,7 +8,7 @@ In \cref{cha:vehicle_model} we estimated the state of a vehicle; in \cref{cha:ne
 Once we have estimated trip states (\cref{sec:trip_state}) we obtain a predicted \emph{link travel time} vector $\Linktt_\mathcal{T}$ which consists of the estimated travel time of the vehicle between upcoming stops (\cref{sec:trip_state_link}). Then arrival times are estimated by summing the travel times and accounting for the dwell time at stops (\cref{sec:trip_state_dwell}).
 
 
-One issue we encountered is that various prediction models have different reliability at certain time points. For example, at the beginning of the route, the most reliable model is to simply use the historical delay distribution to estimate arrival time, while once the bus is closer to the stop, the particle and schedule delay models are favoured. The historical and particle models both make esimates with associated uncertainties, which makes it possible to quantify which may be the better option; however, the schedule plus delay estimator (used by \gls{AT} currently) does not.
+One issue we encountered is that various prediction models have different reliability at certain time points. For example, at the beginning of the route, the most reliable model is to simply use the historical delay distribution to estimate arrival time, while once the bus is closer to the stop, the particle and schedule delay models are favoured. The historical and particle models both make esimates with associated uncertainties, which makes it possible to quantify which may be the better option; however, the schedule plus delay estimator (used by \AT currently) does not.
 
 
 The issues:

@@ -9,7 +9,7 @@ Let us first consider the state of the network at time $t_c$, which we denote
 \begin{equation}\label{eq:nw_state}
 \boldsymbol{\NWstate}_c = \left[\NWstate_{1,c}\ \cdots\ \NWstate_{L,c}\right]^\top,
 \end{equation}
-a vector containing the current real-time travel times of vehicles along all $L$ roads in the network. However, modelling the full state would increase computational demand as $L$ gets large, so, for now, we only consider each road segment $\ell$ \emph{independently} (see later in \cref{} for a discussion of the implications of this).
+a vector containing the current real-time travel times of vehicles along all $L$ roads in the network. However, modelling the full state would increase computational demand as $L$ gets large, so, for now, we only consider each road segment $\ell$ \emph{independently} (see later in REFERENCE for a discussion of the implications of this).
 
 
 Vehicles travel along road segment $\ell$ at time $t_c$ with an average travel time of $\NWstate_{\ellc}$~seconds, which changes with an average rate of $\NWnoise_\ell$. Assuming the underlying road state is a Markov process, the model for the evolution of travel time is

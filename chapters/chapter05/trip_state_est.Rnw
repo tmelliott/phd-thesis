@@ -53,7 +53,7 @@ Assuming we can, then we compute the remaining travel time to be
 \begin{equation}
 \label{eq:trip_percent_time}
 \SegProg =
-1 - \frac{\Vtt_\TripSeg}{(\hat\NWstate^\Tripr_{c})_\TripSeg}}
+1 - \frac{\Vtt_\TripSeg}{(\hat\NWstate^\Tripr_{c})_\TripSeg}
 \end{equation}
 where $\hat\NWstate^\Tripr_c$ is the network state,
 subset for segments in trip $\Tripr$,
@@ -80,5 +80,3 @@ or until the trip has been scheduled to end.
 The goal of this is not to predict arrival times for all the stops accurately,
 but more to smooth the arrival time estimates
 at the beginning of a trip's schedule.
-
-
