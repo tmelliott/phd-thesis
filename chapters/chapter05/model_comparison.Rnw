@@ -1,0 +1,4 @@
+\section{Comparing models}
+\label{eq:prediction_model_comparison}
+
+We now have four models to evaluate: two use the road network state, one uses historical data, and one uses only the schedule and current delay, which is the prediction method currently deployed by \gls{at}. To compare them, we implmented the first two in the application and, using a single day of data, run the program, recording all arrival time estimates (both using the particle filter and normal approximation). We could then use the actual (reported) arrival times to compute the accuracy of each estimator. For the historical data, we simply compare the mean with the actual arrival time. The most complicated method was to use the schedule delay, which required computing actual delays at each arrival or departure observation, and computing arrival times for upcoming stops. Again, an error could then be computed to compare.

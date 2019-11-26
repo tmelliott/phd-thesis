@@ -51,3 +51,32 @@ For bus stops dwell times, we used historical dwell time mean and variance, with
 
 \input{DIRNAME/arrival_time_pf.tex}
 \input{DIRNAME/arrival_time_normal.tex}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Historical data
+\subsection{Historical arrival delays}
+\label{eq:prediction_arrival_historical}
+
+Another way to make predictions that takes no account of the real-time state of the vehicle, trip, or network, is to use historical data. We collected one week's worth of data and recorded arrival delays by stop and route to obtain a distribution. Note that, since each \emph{trip} only runs once per day, it would require many week's of data to obtain a sufficient sample size; however, exploration and familiarity with the data allows us to assume that delays are typically similar amongst trips of the same route, particularly since a lot of the issue is with poor schedule adherance.
+
+
+Our predictions are, therefore, simply this: the arrival delay at stop $j$ along route $r$ has mean $\hat\alpha_{rj}$ and variance $\hat\zeta_{rj}^2$, so if the scheduled arrival time is $S_{rj}$, then the predicted arrival time is
+\begin{equation}
+\label{eq:arrival_pred_historical}
+\Tarr_{rj} \sim \Normal{S_{rj} + \hat\alpha_{rj}}{\hat\zeta_{rj}^2}.
+\end{equation}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Schedule + delay
+\subsection{Schedule delays}
+\label{eq:prediction_arrival_sched_delay}
+
+Finally, we must also present the currently deployed prediction method, which uses the scheduled arrival time at stop $j$ along route $r$, $S_{rj}$, along with the arrival or departure time at the most recently visited stop, $T_{rm}$, to give the current delay
+\begin{equation}
+\label{eq:sched_cur_delay}
+\bar\delta_{r} = T_{rm} - S_{rm}.
+\end{equation}
+Then, the predicted arrival time is simply
+\begin{equation}
+\label{eq:sched_pred_arr}
+\hat\Tarr_{rj} = S_{rj} + \bar\delta_r
+\end{equation}
