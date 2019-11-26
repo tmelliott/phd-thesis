@@ -9,7 +9,7 @@ suppressPackageStartupMessages({
 })
 readProtoFiles("../chapter04/gtfs-realtime.proto")
 
-stop_delays_file <- "stop_delays.rda"
+stop_delays_file <- "data/stop_delays.rda"
 if (!file.exists(stop_delays_file)) {
     tmp <- tempfile(fileext = ".csv")
     files <- list.files("../../data", "archive_.+.zip", full.names = TRUE)
@@ -54,8 +54,8 @@ if (!file.exists(stop_delays_file)) {
 }
 
 # dwell times
-if (file.exists("dwell_times.rda")) {
-    load("dwell_times.rda")
+if (file.exists("data/dwell_times.rda")) {
+    load("data/dwell_times.rda")
 } else {
     dwell_times <- stop_delays %>%
         group_by(trip_id, vehicle_id, stop_id, type) %>%
@@ -85,7 +85,7 @@ if (file.exists("dwell_times.rda")) {
             q95 = quantile(dwell, 0.95)
         )
 
-    save(dwell_times, file = "dwell_times.rda")
+    save(dwell_times, file = "data/dwell_times.rda")
 }
 
 library(RSQLite)
@@ -95,8 +95,8 @@ dbDisconnect(con)
 
 
 ## clean stop delays (by day/trip)
-if (file.exists("delays.rda")) {
-    load("delays.rda")
+if (file.exists("data/delays.rda")) {
+    load("data/delays.rda")
 } else {
     delays <- stop_delays %>%
         mutate(
@@ -125,7 +125,7 @@ if (file.exists("delays.rda")) {
                     delay = first(delay)
                 )
         })
-    save(delays, file = "delays.rda")
+    save(delays, file = "data/delays.rda")
 }
 
 # library(ggplot2)
@@ -198,9 +198,9 @@ smry3 <- delays2 %>%
         q50 = quantile(delay, 0.5)
     )
 
-smry2 <- smry2 %>% 
+smry2 <- smry2 %>%
     left_join(
-        smry3 %>% select(stop_sequence, avg, sd, n, se, q50) %>% 
+        smry3 %>% select(stop_sequence, avg, sd, n, se, q50) %>%
             rename(avg2 = avg, sd2 = sd, n2 = n, se2 = se, q502 = q50),
         by = "stop_sequence"
     ) %>%
@@ -215,7 +215,7 @@ smry2 <- smry2 %>%
 
 final_smry <- smry %>% ungroup() %>%
     left_join(
-        smry2 %>% ungroup() %>% select(route_id, stop_sequence, avg, sd, n, se, q50) %>% 
+        smry2 %>% ungroup() %>% select(route_id, stop_sequence, avg, sd, n, se, q50) %>%
             rename(avg2 = avg, sd2 = sd, n2 = n, se2 = se, q502 = q50),
         by = c("route_id", "stop_sequence")
     ) %>%
