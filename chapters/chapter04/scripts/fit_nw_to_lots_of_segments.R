@@ -1,7 +1,7 @@
 source("scripts/load_nw_data.R")
 load("data/data_week0.rda")
 
-
+library(tidyverse)
 
 
 # First KF to each day for sampled values of beta0, q, and phi.
@@ -66,7 +66,6 @@ KF <- function(t, b, e, beta0, P0, q, phi, value.only = TRUE, draw = FALSE) {
     ret
 }
 
-
 tday1 <- tts %>% filter(date == "2019-08-13") %>% arrange(time)
 k1 <- KF(tday1$time, tday1$speed, tday1$error,
     beta0 = 8.0, P0 = 3.0, q = 0.001, phi = 1.5,
@@ -118,26 +117,30 @@ ggplot(tday1, aes(time, speed)) +
     phi <- theta[2]
     beta0 <- theta[3]
     P0 <- theta[4]
-    KF(dat$time, dat$speed, dat$error, beta0, P0, q, phi, ...)
+    sum(tapply(seq_along(dat$date), as.character(dat$date), function(i) {
+        KF(dat$time[i], dat$speed[i], dat$error[i], beta0, P0, q, phi, ...)
+    }), na.rm = TRUE)
 }
 
+.KF(c(0.01, 0.1, 10, 10), tday1)
 fit1 <- optim(c(0.01, 0.1, 10, 10),
     .KF,
     dat = tday1,
     method = "L-BFGS-B",
     lower = c(0, 0, 0, 0)
 )
-fit1.out <- .KF(fit1$par, tday1, value.only = FALSE)
-ggplot(tday1, aes(time, speed)) +
-    geom_point() +
-    geom_path(aes(t, beta), data = k1$fit) +
-    geom_path(aes(t, qnorm(0.025, beta, sqrt(P))), data = k1$fit, lty = 2) +
-    geom_path(aes(t, qnorm(0.975, beta, sqrt(P))), data = k1$fit, lty = 2)
+# fit1.out <- .KF(fit1$par, tday1, value.only = FALSE)
+# ggplot(tday1, aes(time, speed)) +
+#     geom_point() +
+#     geom_path(aes(t, beta), data = k1$fit) +
+#     geom_path(aes(t, qnorm(0.025, beta, sqrt(P))), data = k1$fit, lty = 2) +
+#     geom_path(aes(t, qnorm(0.975, beta, sqrt(P))), data = k1$fit, lty = 2)
 
 
 ## Fit model to each segment independently ...
-all_fits <- sapply(unique(data_week0$segment_id), function(sid) {
+all_fits <- pbapply::pblapply(unique(data_week0$segment_id), function(sid) {
     # sid <- unique(data_week0$segment_id)[1]
+    sid <- 7922
     tts <- data_week0 %>% filter(segment_id == sid) %>%
         mutate(timestamp = departure_time, error = 0.8) %>%
         arrange(timestamp) %>%
@@ -147,39 +150,63 @@ all_fits <- sapply(unique(data_week0$segment_id), function(sid) {
                 as.integer(format(timestamp, "%M")) * 60 +
                 30 * (as.integer(format(timestamp, "%S")) %/% 30),
             speed = length / travel_time,
-            date = as.factor(format(timestamp, "%Y-%m-%d"))
-        )
+            date = as.factor(format(timestamp, "%Y-%m-%d")),
+            timestamp = as.integer(as.POSIXct(date)) + time
+        ) %>%
+        arrange(timestamp) %>%
+        mutate(t_index = cumsum(c(1, diff(as.integer(timestamp)) > 0)))
 
-    ggplot(tts, aes(time, speed)) + geom_point(aes(colour=date))
+    ggplot(tts, aes(time, speed)) +
+        geom_point() +
+        facet_grid(date~.)
+
+    # fit1 <- optim(c(0.01, 0.1, 10, 10),
+    #     .KF,
+    #     dat = tts,
+    #     method = "L-BFGS-B",
+    #     lower = c(0, 0, 0, 0)
+    # )
 
     Vmax <- (round(
         quantile(tts$speed, ifelse(nrow(tts) > 30, 0.95, 0.99)) * 3.6 / 10
     ) * 10 + 10) / 3.6
 
+    tts_inf <- tts %>%
+        group_by(t_index) %>%
+        summarize(
+            timestamp = first(timestamp),
+            date = as.character(first(date)),
+            I = sum(1 / error^2),
+            i = sum(speed / error^2)
+        ) %>%
+        group_by(date) %>%
+        do({
+            (.) %>% mutate(
+                delta = c(0, diff(timestamp))
+            )
+        })
     jdatai <- list(
         b = tts$speed,
         e = tts$error,
+        M = nrow(tts),
+        k = tts$t_index,
+        # I = tts_inf$I,
+        # i = tts_inf$i,
         # identify index of the BETAs
-        c0 = tapply(tts$t, tts$date, min) %>% as.integer,
-        c1 = tapply(tts$t, tts$date, min) %>% as.integer + 1,
-        cJ = tapply(tts$t, tts$date, max) %>% as.integer,
-        t = tts$t,
-        delta = do.call(c,
-            tapply(tts$time, tts$date,
-                function(tt) {
-                    c(0, diff(unique(tt)))
-                }
-            )) %>% as.integer,
-        D = length(levels(tts$date)),
-        N = nrow(tts),
+        c0 = tapply(tts_inf$t_index, tts_inf$date, min) %>% as.integer,
+        c1 = tapply(tts_inf$t_index, tts_inf$date, min) %>% as.integer + 1,
+        cJ = tapply(tts_inf$t_index, tts_inf$date, max) %>% as.integer,
+        t = tts_inf$t_index,
+        delta = tts_inf$delta,
+        D = length(unique(tts_inf$date)),
+        N = nrow(tts_inf),
         mu = Vmax[[1]]
     )
-
 
     library(rjags)
     library(tidybayes)
 
-    jm_all_file <- glue::glue("data/jm_all_samples{sid}.rda")
+    jm_all_file <- glue::glue("data/jm_all_samples_seg{sid}.rda")
     if (!file.exists(jm_all_file)) {
         jm_all <-
             jags.model(

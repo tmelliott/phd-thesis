@@ -4,7 +4,7 @@
 After stepping through the real-time model, estimation of its parameters, and improvement of forecats using historical data, the last remaining piece of the network model is to implement it in real-time within our iterative program, implemented in C++ within our \verb+transitr+ package. The first step is, of course, to load the historical data and model both the real-time parameters using JAGS, and the forecast values using k-NN regression. These are then inserted into the same database in which we store all of the GTFS and network data.
 
 
-The network is implemented as independent objects of class \verb+Segment+, which are initialised when the program is first started with their model parameter values loaded---if available---from the database. The network state itself is implemented using the \verb+Eigen+ C++ library, allowing us to store the state vector and uncertainty matrix as an \verb+Eigen::Vector+ or \verb+Eigen::Matrix+, respectively. The library includes all common (and uncommon) vector and matrix operations, for example multiplication. Even though the current state is one-dimentional, we may in future wish to extend this to include, say, the rate of change of travel time, which could better model peak periods. This would then involve a length-two state vector and $2\times2$ uncertainty matrix.
+The network is implemented as independent objects of class \verb+Segment+, which are initialised when the program is first started with their model parameter values loaded---if available---from the database. The network state itself is implemented using the \verb+Eigen+ C++ library, allowing us to store the state vector and uncertainty matrix as an \verb+Eigen::Vector+ or \verb+Eigen::Matrix+, respectively. The library includes all common (and uncommon) vector and matrix operations, for example multiplication. Even though the current state is one-dimentional, we may in future wish to extend this to include, say, the rate of change of speed, which could better model peak periods. This would then involve a length-two state vector and $2\times2$ uncertainty matrix.
 
 
 The following sections discuss the initialisation, data-extraction, update, and prediction steps as implemented within our package, as well as some final details on the real-time performance.
@@ -13,18 +13,18 @@ The following sections discuss the initialisation, data-extraction, update, and 
 \subsection{Initialisation}
 \label{sec:nw_implementation_init}
 
-The initialisation phase of the network is quite important, since in many cases it will be the only piece of information available for travel time and arrival time predictions, at least until some vehicles have traversed it and updated its state. Therefore, to initialise the segment, we check if there is any historical data available for it: if there is, we simply set $\NWstate_{\ellc}$ to be the historical mean travel time at time $t_c$ (as we estimated in \cref{sec:nw_hist_model}). To initialise the uncertainty, we use $\NWstatevar_{\ell 0} = \sqrt{\NWstate_{\ellc}}$ for no reason other than it scales nicely with the length of the segment, without being too dependent on the actual travel conditions which we have not yet observed.
+The initialisation phase of the network is quite important, since in many cases it will be the only piece of information available for speed and arrival time predictions, at least until some vehicles have traversed it and updated its state. Therefore, to initialise the segment, we check if there is any historical data available for it: if there is, we simply set $\NWstate_{\ellc}$ to be the historical mean speed at time $t_c$ (as we estimated in \cref{sec:nw_hist_model}). To initialise the uncertainty, we use $\NWstatevar_{\ell 0} = \frac{30}{3.6^2}$~\gls{mps} (which is approximately 30~km/h).
 
-Another part of initialisation is setting the constraint for the \emph{minimum travel time}. Since we do not know the speed limit along most road segments, the best we can do is to use the maximum speed limit, 100~km/h, which is approximately 30~m/s. Thus for segment $\ell$ with length $\Tseglen_\ell$, the minimum travel time is $\lfloor\frac{\Tseglen_\ell}{30}\rfloor$, using the floor operator.
+Another part of initialisation is setting the constraint for the \emph{maximum speed}. Since we do not know the speed limit along most road segments, the best we can do is to use the maximum speed limit, 100~km/h, which is approximately 30~m/s. For segments with enough observations, we can use the maximum observed speed to determine the posted speed limit along the road.
 
 
 \subsection{Data collection}
 \label{sec:nw_implementation_data}
 
-As discussed in \cref{sec:vehicle_travel_times}, segment travel times are estimated each time a vehicle completes travel along a road segment. Within the vehicle update step, there is a \emph{current segment} index, $r$, which is initialised to zero. After each mutation, the program determines the minimum segment which each particle is currently on, call this $r_{\text{min}}$. If this is greater than the previous value of $r$, then the travel time for all segments from $r$ to $r_{\text{min}}-1$ are computed using \cref{eq:pf_travel_time_dist}.
+As discussed in \cref{sec:vehicle_travel_times}, traffic speed along road segments are estimated each time a vehicle completes travel along a road segment. Within the vehicle update step, there is a \emph{current segment} index, $r$, which is initialised to zero. After each mutation, the program determines the minimum segment which each particle is currently on, call this $r_{\text{min}}$. If this is greater than the previous value of $r$, then the speed for all segments from $r$ to $r_{\text{min}}-1$ are computed using \cref{eq:pf_travel_time_dist}.
 
 
-After estimating the mean and uncertainty of travel times for a segment, the data is \emph{pushed} onto the segment object using a \verb+push_data()+ method, which is thread-safe and allowing multiple vehicles to simultaneously complete a segment and add observations to it.
+After estimating the mean and uncertainty of vehicle speeds along a segment, the data is \emph{pushed} onto the segment object using a \verb+push_data()+ method, which is thread-safe, allowing multiple vehicles to simultaneously complete a segment and add observations to it when the program is running on multiple cores.
 
 
 
@@ -39,6 +39,6 @@ Once the state has been updated, the data vector is cleared and the segment's ti
 \subsection{State forecasts}
 \label{sec:nw_implementation_forecast}
 
-While not part of the network state model, the forecasting is an essential component of the real-time application. Each segment has a \verb+forecast+ function which returns the forecasted speed, given the current timestamp\footnote{this is the time the segment was updated, not the wall clock time} and segment travel time. The forecasts are available in 10~minute intervals, so a forecast for 5~minutes uses the current travel time state, while a forecast for 25~minutes uses the 20~minute forecast, and so on.
+While not part of the network state model, the forecasting is an essential component of the real-time application. Each segment has a \verb+forecast+ function which returns the forecasted speed, given the current timestamp\footnote{this is the time the segment was updated, not the wall clock time} and segment traffic speed. The forecasts are available in 10~minute intervals, so a forecast for 5~minutes uses the current travel time state, while a forecast for 25~minutes uses the 20~minute forecast, and so on, capped at 60~minutes.
 
-As for the uncertainty, this comes from the historical data too, but rather than forecasting we simply use the variance of travel times at the given time of day.
+As for the uncertainty, this comes from the historical data too, but rather than forecasting we simply use the variance of vehicle speed at the given time of day.

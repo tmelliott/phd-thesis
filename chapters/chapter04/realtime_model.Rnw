@@ -7,7 +7,7 @@ For a real-time application, time is the number one constraint. Therefore, we be
 \subsection{Predict step}
 \label{sec:kf_predict}
 
-The state prediction is straightforward, since we assume travel time is constant over short time periods. The estimated state has mean
+The state prediction is straightforward, since we assume traffic speed is constant over short time periods (less than five~minutes). The estimated state has mean
 \begin{equation}\label{eq:ch4:nw_state_mean_est}
 \hat\NWstate_{\ellc|c-1} =
     \E{\NWstate_{\ellc} | \NWobs_{\ell \boldsymbol{\cdot}}^{\boldsymbol{\cdot}}}
@@ -80,14 +80,14 @@ p + geom_ribbon(aes(ymin = x - err, ymax = x + err),
 \subsection{Update step}
 \label{sec:kf_update}
 
-Updating the \kf{} involves taking the predicted state and updating it using \emph{observations} of travel time along road segments. These we obtained from the \pf{} in \cref{sec:vehicle_travel_times}. However, it is possible to have multiple observations per road segment in one update period, as it is common for buses to travel one behind the other, particularly where there are bus lanes. Therefore, for each individual road segment, we have a vector of observations, one for each vehicle $v \in V_{\ell c}$ passing through that segment in the time interval $(t_{c-1}, t_c]$,
+Updating the \kf{} involves taking the predicted state and updating it using \emph{observations} of vehicle speeds along road segments. These we obtain from the \pf{} in \cref{sec:vehicle_travel_times}. However, it is possible to have multiple observations per road segment in one update period, as it is common for buses to travel one behind the other, particularly where there are bus lanes. Therefore, for each individual road segment, we have a vector of observations, one for each vehicle $v \in V_{\ell c}$ passing through that segment in the time interval $(t_{c-1}, t_c]$,
 \begin{equation} \label{eq:nw_seg_obs}
-\NWobss_{\ell c} = \bigcup_{v\in V_{\ell c}} \NWobss_{\ell c}^v
+\NWobss_{\ell c} = \bigcup_{v\in V_{\ell c}} \NWobss_{\ell c}^v.
 \end{equation}
-which can be the empty set $\NWobss_{\ell c} = \emptyset$ if no vehicles travel through a segment in the interval.
+Note that this can be the empty set $\NWobss_{\ell c} = \emptyset$ if no vehicles travel through a segment in the interval.
 
 
-To update the network, we need to account for each observation. One way of doing this would be to combine the observations into a single estimate and use that; instead, we use the \emph{\infil{}} \citep{cn}, which allows the summation of information from multiple observations. The information filter involves inverting the state uncertainty $\NWstatevar$; however, this is a simple computation due to having a one-dimensional state---if we were to estimate the state of all segments simultaneously, inverting the $L\times L$ uncertainty matrix would be computationally demanding, or even impossible.
+To update the network, we need to account for each observation. One way of doing this would be to combine the observations into a single estimate and use that; however, this involves averaging observations and uncertainties. Instead, we can use an \emph{\infil{}} \citep{cn}, which allows the summation of information from multiple observations. The information filter involves inverting the state uncertainty $\NWstatevar$; however, this is a simple computation due to having a one-dimensional state---if we were to estimate the state of all segments simultaneously, inverting the $L\times L$ uncertainty matrix would be computationally demanding, or even impossible.
 
 
 To employ the \infil{}, we need to
@@ -136,7 +136,7 @@ The state update is now just a case of adding the total information,
 \hat\NWinfvec_{\ellc|c} &= \hat\NWinfvec_{\ellc|c-1} + \NWobsinfvec_{\ellc}
 \end{split}
 \end{equation}
-Note that, in situations where no data is observed for a given segment, the information for that segment is zero, so we remain with the predicted state.
+Note that, in situations where no data is observed for a given segment, the information for that segment is zero, so there is no further change to the predicted state value.
 
 
 Finally, we back-transform the information into the state space,
@@ -148,7 +148,7 @@ Finally, we back-transform the information into the state space,
 \end{split}.
 \end{equation}
 
-The main constraint on the model is the dependence on $\NWvar_{\ellc}$ and $\NWnoise_{\ellc}$; however, before we consider the estimation of these values, we will first apply the Kalman filter model to the simulated date (for which the parameter values are known).
+The main constraint on the model is the dependence on $\NWvar_{\ellc}$ and $\NWnoise_{\ellc}$(???); however, before we consider the estimation of these values, we will first apply the Kalman filter model to the simulated data (for which the parameter values are known).
 
 
 <<nw_simdata_fit,echo=FALSE,message=FALSE,warning=FALSE,fig.width=6,fig.height=2,fig.align="center",out.width=".8\\textwidth",fig.cap="Fitted KF to simulated data.",fig.subcap=c('Estimated mean speed.', 'Predictive distribution of average vehicle speed.'),fig.ncol=1,fig.sep=rep("\\\\", 4)>>=
@@ -244,7 +244,7 @@ ggplot(kf.fit[-1,], aes(time)) +
         limits = c(0, 60 / 3.6)
     )
 
-ggplot(kf.fit[-1,], aes(time)) +
+ggplot(kf.fit, aes(time)) +
     geom_point(aes(y = b), data = kf.data) +
     geom_ribbon(aes(
             ymin = truncnorm::qtruncnorm(0.025, 0, mu, beta, sqrt(P) + phi),
@@ -262,6 +262,15 @@ ggplot(kf.fit[-1,], aes(time)) +
         limits = c(0, 60 / 3.6)
     )
 
+ci_cov <- kf.data %>%
+    left_join(kf.fit %>% select(time, beta, P), by = "time") %>%
+    mutate(
+        pred_lower = truncnorm::qtruncnorm(0.025, 0, mu, beta, sqrt(P) + phi),
+        pred_upper = truncnorm::qtruncnorm(0.975, 0, mu, beta, sqrt(P) + phi),
+        in_ci = as.integer(pred_lower <= b & b <= pred_upper)
+    ) %>%
+    summarize(cov = mean(in_ci)) %>%
+    pull(cov)
 @
 
-The \kf{} was fitted to the simulated data using the same values of $\NWnoise$ and $\NWvar$ that were used to generate the data, with the estimates of $\hat\NWstate_{c|c-1}$ and $\hat\NWstate_{c|c}$ shown by solid blue and red lines in \cref{fig:nw_simdata_fit1}, respectively, along with the associated uncertainty as estimated by $\NWstatevar_{c|c-1}$ and $\NWstatevar_{c|c}$, with the simulated true mean shown by a dashed black line. We see that the 95\% credible interval mostly captures the true value of $\NWstate_{c}$, with some difficulty around the peak. \Cref{fig:nw_simdata_fit2} shows the posterior estimate of $\hat\NWstate_{c|c}$ along with the posterior predictive distribution of $\NWobs_c^m$; that is, using the 95\% region defined by the sum of $\NWstatevar_{c|c}$ and $\NWvar^2$, the latter of which is known from the simulation. Almost all of the observation points lie within the 95\% predictive region, which affirms that, given we know the network parameters $\NWnoise$ and $\NWvar$, we can recover the underlying network state by using a \kf{} in \rt{}.
+The \kf{} was fitted to the simulated data using the same values of $\NWnoise$ and $\NWvar$ that were used to generate the data, with the estimates of $\hat\NWstate_{c|c-1}$ and $\hat\NWstate_{c|c}$ shown by solid blue and red lines in \cref{fig:nw_simdata_fit1}, respectively, along with the associated uncertainty as estimated by $\NWstatevar_{c|c-1}$ and $\NWstatevar_{c|c}$, with the simulated true mean shown by a dashed black line. We see that the 95\% credible interval mostly captures the true value of $\NWstate_{c}$. \Cref{fig:nw_simdata_fit2} shows the posterior estimate of $\hat\NWstate_{c|c}$ along with the posterior predictive distribution of $\NWobs_c^m$; that is, using the 95\% region defined by the sum of $\NWstatevar_{c|c}$ and $\NWvar^2$, the latter of which is known from the simulation. \Sexpr{round(100*ci_cov, 1)}\% of the observation points lie within the 95\% predictive region, which affirms that, given we know the network parameters $\NWnoise$ and $\NWvar$, we can recover the underlying network state by using a \kf{} in \rt{}.

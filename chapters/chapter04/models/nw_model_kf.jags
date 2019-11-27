@@ -1,0 +1,66 @@
+model {
+    ## PRIORS
+
+    # -- system noise
+    q ~ dgamma(0.001, 0.001)
+
+    # -- between-vehicle variance
+    phi ~ dgamma(0.001, 0.001)
+
+    # -- initial value
+    beta_0 ~ dunif(0, mu)
+    P_0 ~ dgamma(0.0001, 0.0001)
+
+    ## KALMAN FILTER
+    # -- sum up the information
+    for (i in 1:N) {
+        Info[i] <- 0
+        info[i] <- 0
+    }
+    for (j in 1:M) {
+        Z[j] <- pow (e[j], -2.0)
+        z[j] <- b[j] * Z[j]
+        Info[k[j]] <- Info[k[j]] + Z[j]
+        info[k[j]] <- info[k[j]] + z[j]
+    }
+
+    # -- prediction
+    beta_hat[1] <- beta_0
+    P_hat[1] <- P_0
+
+    # -- information
+    U[1] <- pow (P_hat[1], -1.0)
+    u[1] <- beta[1] * U[1]
+
+    # -- update
+    U[1] <- U[1] + Info[1]
+    u[1] <- u[1] + info[1]
+
+    # -- back transform
+    P[1] <- pow (U[1], -1.0)
+    beta[1] <- u[1] * P[1]
+
+    # next obs
+    for (i in 2:N) {
+        # -- prediction
+        beta_hat[i] <- beta[i-1]
+        P_hat[i] <- P[i-1]
+
+        # -- information
+        U[i] <- pow (P_hat[i], -1.0)
+        u[i] <- beta[i] * U[i]
+
+        # -- update
+        U[i] <- U[i] + Info[i]
+        u[i] <- u[i] + info[i]
+
+        # -- back transform
+        P[i] <- pow (U[i], -1.0)
+        beta[i] <- u[i] * P[i]
+    }
+
+    ## LIKELIHOOD
+    for (i in 1:M) {
+        b[i] ~ dnorm(beta[z[i]], pow (e[i] + phi))
+    }
+}
