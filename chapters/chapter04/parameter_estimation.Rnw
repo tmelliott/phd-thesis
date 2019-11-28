@@ -10,7 +10,7 @@ For the first step in the modelling process, we fit the following hierarchical m
 \begin{align}
 \label{eq:nw_model_simple}
 \Vttobs_{\ellc}^m &\sim \Normal{\Vtt_{\ellc}^m}{(\Vtterr_{\ellc}^m)^2} &
-\NWstate_{\ell,0} &\sim \Normal{0}{100^2} \nonumber \\
+\NWstate_{\ell,0} &\sim \Uniform{0}{\MaxSpeed_\ell} \nonumber \\
 \Vtt_{\ellc}^m &\sim \TNormal{\NWstate_{\ellc}}{\NWvar_{\ell}^2}{0}{\MaxSpeed_\ell} &
 \NWvar_\ell &\sim \GammaD{0.01}{0.01} \\
 \NWstate_{\ellc} &\sim \TNormal{\NWstate_{\ell-1,c}}{(\NWtdiff_c \NWnoise_{\ell})^2}{0}{\MaxSpeed_\ell} &

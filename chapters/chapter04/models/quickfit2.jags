@@ -7,12 +7,14 @@ model {
         B[i] ~ dnorm(beta[t[i]], pow(phi, -2.0))T(0, Vmax)
     }
 
-    ## 'mean' is now normal, markov
-    beta[1] ~ dunif(0, Vmax)
-    for (j in 2:M) {
-        beta[j] ~ dnorm(beta[j-1], pow(delta[j-1] * q, -2))T(0, Vmax)
+    for (d in 1:D) {
+        beta[c0[d]] <- beta0
+        for (j in (c1[d]):cJ[d]) {
+            beta[j] ~ dnorm(beta[j-1], pow(delta[j] * q, -2))T(0, Vmax)
+        }
     }
 
+    beta0 ~ dunif(0, Vmax)
     phi ~ dgamma(0.01, 0.01)
     q ~ dgamma(0.01, 0.01)
 }

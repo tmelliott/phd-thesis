@@ -8,59 +8,62 @@ model {
     phi ~ dgamma(0.001, 0.001)
 
     # -- initial value
-    beta_0 ~ dunif(0, mu)
+    beta_0 ~ dunif(0, Vmax)
     P_0 ~ dgamma(0.0001, 0.0001)
 
     ## KALMAN FILTER
     # -- sum up the information
     for (i in 1:N) {
-        Info[i] <- 0
-        info[i] <- 0
+        for (j in 1:M) {
+            Z[i,j] <- ifelse(t[i]==j, pow (Evar + phi, -1.0), 0.0)
+            z[i,j] <- ifelse(t[i]==j, b[i] * pow (Evar + phi, -1.0), 0.0)
+        }
     }
     for (j in 1:M) {
-        Z[j] <- pow (e[j], -2.0)
-        z[j] <- b[j] * Z[j]
-        Info[k[j]] <- Info[k[j]] + Z[j]
-        info[k[j]] <- info[k[j]] + z[j]
+        Info[j] <- sum(Z[,j])
+        info[j] <- sum(z[,j])
     }
 
     # -- prediction
-    beta_hat[1] <- beta_0
-    P_hat[1] <- P_0
-
-    # -- information
-    U[1] <- pow (P_hat[1], -1.0)
-    u[1] <- beta[1] * U[1]
-
-    # -- update
-    U[1] <- U[1] + Info[1]
-    u[1] <- u[1] + info[1]
-
-    # -- back transform
-    P[1] <- pow (U[1], -1.0)
-    beta[1] <- u[1] * P[1]
-
-    # next obs
-    for (i in 2:N) {
-        # -- prediction
-        beta_hat[i] <- beta[i-1]
-        P_hat[i] <- P[i-1]
+    for (i in 1:D) {
+        beta_hat[c0[i]] <- beta_0
+        P_hat[c0[i]] <- P_0
 
         # -- information
-        U[i] <- pow (P_hat[i], -1.0)
-        u[i] <- beta[i] * U[i]
+        U_hat[c0[i]] <- pow (P_hat[c0[i]], -1.0)
+        u_hat[c0[i]] <- beta[c0[i]] * U[c0[i]]
 
         # -- update
-        U[i] <- U[i] + Info[i]
-        u[i] <- u[i] + info[i]
+        U[c0[i]] <- U_hat[c0[i]] + Info[c0[i]]
+        u[c0[i]] <- u_hat[c0[i]] + info[c0[i]]
 
         # -- back transform
-        P[i] <- pow (U[i], -1.0)
-        beta[i] <- u[i] * P[i]
+        P[c0[i]] <- pow (U[c0[i]], -1.0)
+        beta[c0[i]] <- u[c0[i]] * P[c0[i]]
+
+        # next obs
+        for (j in c1[i]:cJ[i]) {
+            # -- prediction
+            beta_hat[j] <- beta[j-1]
+            P_hat[j] <- P[j-1] + pow (delta[j] * q, 2.0)
+
+            # -- information
+            U_hat[j] <- pow (P_hat[j], -1.0)
+            u_hat[j] <- beta[j] * U[j]
+
+            # -- update
+            U[j] <- U_hat[j] + Info[j]
+            u[j] <- u_hat[j] + info[j]
+
+            # -- back transform
+            P[j] <- pow (U[j], -1.0)
+            beta[j] <- u[j] * P[j]
+        }
     }
 
     ## LIKELIHOOD
+    Evar <- pow (E, 2)
     for (i in 1:M) {
-        b[i] ~ dnorm(beta[z[i]], pow (e[i] + phi))
+        b[i] ~ dnorm(beta[t[i]], pow (Evar + phi, -1))
     }
 }

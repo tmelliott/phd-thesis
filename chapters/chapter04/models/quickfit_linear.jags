@@ -3,15 +3,10 @@ model {
     for (i in 1:N) {
         # OBSERVATION:
         b[i] ~ dnorm(B[i], pow(E, -2))
-        # actual travel time, function of vehicle's MEAN speed
-        B[i] <- L / V[i]
-        # Vehicle mean(/median) speed is logit:
-        V[i] <- Vmax / (1 + exp(-eta[i]))
-        # which is normal:
-        eta[i] ~ dnorm(beta, pow(phi, -2))
+        # ACTUAL VEHICLE SPEED:
+        B[i] ~ dnorm(beta, pow(phi, -2))T(0, Vmax)
     }
 
-    beta ~ dnorm(0, 5)
+    beta ~ dunif(0, Vmax)
     phi ~ dgamma(0.01, 0.01)
-    E <- 3.0 # fixed error
 }
