@@ -5,3 +5,11 @@ We now have four models to evaluate: two use the road network state, one uses hi
 
 
 The comparison criteria used is the \emph{residual mean squared error}, as is commonly used for model checking. This is the mean squared difference (in seconds) between the predicted arrival time and the actual arrival time. Of course, since predictions change over time, we also compare against \emph{time until (actual) arrival}, which allows us to compare the models at different time points.
+
+
+Another criteria we are interested in is the \emph{coverage of the prediction interval}, which is only available for our models. In each, we construct a 95\% credible prediction interval: for the particle filter, this is achieved by sorting the particles in order of arrival time, and then taking the $\lfloor q_\text{lower} N^\star\rfloor^{\text{th}}$ particle as the lower bound, and the $\lceil q_{\text{upper}} N^\star\rceil^{\text{th}}$ particle as the upper bound. For a symetric interval, we used $q_\text{lower} = 0.025$ and $q_\text{upper} = 0.975$. For the normal approximation, the quantile are easily obtained using the inverse \gls{cdf}. Similarly, the historical mean and variance can be used to estimate the quantiles for the historical based approach.
+
+
+The results are shown in ...
+
+Our first main observation is that our particle filter estimates ofter underestimate the arrival time. That is, they are assuming \emph{faster} vehicle speeds than truly occur. In contrast, the \gls{gtfs} predictions (schedule + delay) tend to be better, but only because the bus attempts to keep to schedule in many situations. Our method outperforms in situations where there are fewer stops, such as in express routes (figure ...).
