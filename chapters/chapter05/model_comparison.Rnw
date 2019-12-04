@@ -206,3 +206,237 @@ plot_base +
     )
 
 @
+
+
+
+<<model_results_pr_miss,echo=FALSE,message=FALSE,warning=FALSE,cache=TRUE,dependson=c("model_results_load"),cache.lazy=FALSE>>=
+gtfs_min_before <- 8
+pr_smry <- eta_results %>%
+    mutate(
+        # bus arrives after point estimate
+        pf_catch = as.integer(time_until_arrival > pf_mean),
+        normal_catch = as.integer(time_until_arrival > normal_mean),
+        hist_catch = as.integer(time_until_arrival > historical_mean),
+        gtfs_catch = as.integer(time_until_arrival > gtfs_eta),
+        # bus arrives after lower bound
+        pf_lower_catch = as.integer(time_until_arrival > pf_lower),
+        normal_lower_catch = as.integer(time_until_arrival > normal_lower),
+        hist_lower_catch = as.integer(time_until_arrival > historical_lower),
+        # expected wait time | arrive at lower bound & don't miss bus
+        pf_wait = ifelse(pf_lower_catch, time_until_arrival - pf_lower, NA),
+        normal_wait = ifelse(normal_lower_catch, time_until_arrival - normal_lower, NA),
+        hist_wait = ifelse(hist_lower_catch, time_until_arrival - historical_lower, NA)
+        # # GTFS equivalent, assuming one arrives X mins before
+        # gtfs_miss = as.integer(time_until_arrival < gtfs_eta - gtfs_min_before * 60),
+        # gtfs_wait = ifelse(gtfs_miss, NA, time_until_arrival - gtfs_eta + gtfs_min_before * 60)
+    ) %>%
+    summarize(
+        pf_catch = mean(pf_catch),
+        normal_catch = mean(normal_catch),
+        hist_catch = mean(hist_catch, na.rm = TRUE),
+        gtfs_catch = mean(gtfs_catch),
+        pf_lower_catch = mean(pf_lower_catch),
+        normal_lower_catch = mean(normal_lower_catch),
+        hist_lower_catch = mean(hist_lower_catch, na.rm = TRUE),
+        pf_wait = mean(pf_wait, na.rm = TRUE),
+        normal_wait = mean(normal_wait, na.rm = TRUE),
+        hist_wait = mean(hist_wait, na.rm = TRUE)
+    )
+pr_mat <- with(pr_smry,
+    cbind(
+        pr_catch =
+            round(c(pf_catch, normal_catch, hist_catch, gtfs_catch), 2),
+        pr_lower_catch =
+            round(c(pf_lower_catch, normal_lower_catch, hist_lower_catch, NA), 4),
+        exp_wait = round(c(pf_wait, normal_wait, hist_wait, NA) / 60, 2)
+    )
+)
+
+row.names(pr_mat) <-
+    c("(1) Particle filter", "(2) Normal approximation", "(3) Historical delays", "(4) Schedule + delay")
+names(pr_mat) <- c("P(catch|point)", "P(catch|lower)", "E(wait|lower,catch)")
+knitr::kable(
+    pr_mat,
+    booktabs = TRUE,
+    caption = "Probabilities."
+)
+@
+
+<<model_results_pr_gtfs,echo=FALSE,message=FALSE,warning=FALSE,cache=TRUE,dependson=c("model_results_load","model_results_pr_miss"),cache.lazy=FALSE,fig.width=9,fig.height=3,out.width="\\textwidth",fig.cap="GTFS equivalent",fig.subcap=c("One", "Two"),fig.ncol=1,fig.colsep=rep("\\\\", 3)>>=
+# the equivalent values for GTFS
+ers <- eta_results %>% select(timestamp, stop_sequence, time_until_arrival, gtfs_eta)
+smrys <- do.call(rbind,
+    lapply(6:14, function(mins) {
+        ers %>%
+            mutate(
+                gtfs_catch = as.integer(time_until_arrival > gtfs_eta - mins * 60),
+                gtfs_wait = ifelse(gtfs_catch, time_until_arrival - gtfs_eta + mins * 60, NA)
+            ) %>%
+            summarize(
+                gtfs_catch = mean(gtfs_catch, na.rm = TRUE),
+                gtfs_wait = mean(gtfs_wait, na.rm = TRUE)
+            ) %>%
+            mutate(min_before = mins)
+    })
+)
+
+plot_base <- ggplot(smrys, aes(min_before)) +
+    theme_classic() +
+    scale_colour_manual(values = pal, name = "model") +
+    scale_x_continuous(
+        name = "Time before GTFS ETA (minutes)",
+        breaks = seq(6, 14, by = 2)
+    )
+
+plot_base +
+    geom_hline(aes(yintercept = pr_smry$pf_lower_catch, colour = "pf"), lty = 2) +
+    geom_hline(aes(yintercept = pr_smry$normal_lower_catch, colour = "normal"), lty = 2) +
+    geom_hline(aes(yintercept = pr_smry$hist_lower_catch, colour = "historical"), lty = 2) +
+    geom_path(aes(y = gtfs_catch, colour = "gtfs")) +
+    ylab("Probability of arriving before the bus")
+
+plot_base +
+    geom_hline(aes(yintercept = pr_smry$pf_wait / 60, colour = "pf"), lty = 2) +
+    geom_hline(aes(yintercept = pr_smry$normal_wait / 60, colour = "normal"), lty = 2) +
+    geom_hline(aes(yintercept = pr_smry$hist_wait / 60, colour = "historical"), lty = 2) +
+    geom_path(aes(y = gtfs_wait / 60, colour = "gtfs")) +
+    ylab("Expected waiting time (min)")
+
+@
+
+
+
+<<model_results_pr_time,echo=FALSE,message=FALSE,warning=FALSE,cache=TRUE,dependson=c("model_results_load","model_results_pr_miss"),cache.lazy=FALSE,fig.width=9,fig.height=3,out.width="\\textwidth",fig.cap="Summary values by time until arrival.",fig.subcap=c("One", "Two", "Three"),fig.ncol=1,fig.colsep=rep("\\\\", 4)>>=
+pr_smry_time <- eta_results %>%
+    mutate(
+        # bus arrives after point estimate
+        pf_catch = as.integer(time_until_arrival > pf_mean),
+        normal_catch = as.integer(time_until_arrival > normal_mean),
+        hist_catch = as.integer(time_until_arrival > historical_mean),
+        gtfs_catch = as.integer(time_until_arrival > gtfs_eta),
+        # bus arrives after lower bound
+        pf_lower_catch = as.integer(time_until_arrival > pf_lower),
+        normal_lower_catch = as.integer(time_until_arrival > normal_lower),
+        hist_lower_catch = as.integer(time_until_arrival > historical_lower),
+        gtfs_lower_catch = as.integer(time_until_arrival > gtfs_eta - 8 * 60),
+        # expected wait time | arrive at lower bound & don't miss bus
+        pf_wait = ifelse(pf_lower_catch, time_until_arrival - pf_lower, NA),
+        normal_wait = ifelse(normal_lower_catch, time_until_arrival - normal_lower, NA),
+        hist_wait = ifelse(hist_lower_catch, time_until_arrival - historical_lower, NA),
+        gtfs_wait = ifelse(gtfs_lower_catch, time_until_arrival - gtfs_eta + 8 * 60, NA),
+        min = time_until_arrival %/% 60
+    ) %>%
+    group_by(min) %>%
+    summarize(
+        pf_catch = mean(pf_catch),
+        normal_catch = mean(normal_catch),
+        hist_catch = mean(hist_catch, na.rm = TRUE),
+        gtfs_catch = mean(gtfs_catch),
+        pf_lower_catch = mean(pf_lower_catch),
+        normal_lower_catch = mean(normal_lower_catch),
+        hist_lower_catch = mean(hist_lower_catch, na.rm = TRUE),
+        gtfs_lower_catch = mean(gtfs_lower_catch, na.rm = TRUE),
+        pf_wait = mean(pf_wait, na.rm = TRUE),
+        normal_wait = mean(normal_wait, na.rm = TRUE),
+        hist_wait = mean(hist_wait, na.rm = TRUE),
+        gtfs_wait = mean(gtfs_wait, na.rm = TRUE)
+    ) %>%
+    filter(min < 40 & min > 0) %>% arrange(min)
+
+
+plot_base <- ggplot(pr_smry_time, aes(min)) +
+    theme_classic() +
+    scale_colour_manual(values = pal, name = "model") +
+    xlab("Time until arrival (minutes)")
+
+plot_base +
+    geom_path(aes(y = pf_catch, colour = "pf")) +
+    geom_path(aes(y = normal_catch, colour = "normal")) +
+    geom_path(aes(y = hist_catch, colour = "historical")) +
+    geom_path(aes(y = gtfs_catch, colour = "gtfs")) +
+    ylab("Probability of arriving before the bus\n(arrive at point estimate)")
+
+plot_base +
+    geom_path(aes(y = pf_lower_catch, colour = "pf")) +
+    geom_path(aes(y = normal_lower_catch, colour = "normal")) +
+    geom_path(aes(y = hist_lower_catch, colour = "historical")) +
+    geom_path(aes(y = gtfs_lower_catch, colour = "gtfs")) +
+    ylab("Probability of arriving before the bus\n(arrive at lower estimate)")
+
+plot_base +
+    geom_abline(lty = 3) +
+    geom_path(aes(y = pmin(min, pf_wait / 60), colour = "pf")) +
+    geom_path(aes(y = pmin(min, normal_wait / 60), colour = "normal")) +
+    geom_path(aes(y = pmin(min, hist_wait / 60), colour = "historical")) +
+    geom_path(aes(y = pmin(min, gtfs_wait / 60), colour = "gtfs")) +
+    ylab("Expected waiting time (min)")
+
+@
+
+
+
+<<model_results_pr_stop,echo=FALSE,message=FALSE,warning=FALSE,cache=TRUE,dependson=c("model_results_load","model_results_pr_miss"),cache.lazy=FALSE,fig.width=9,fig.height=3,out.width="\\textwidth",fig.cap="Summary values by stop sequence.",fig.subcap=c("One", "Two", "Three"),fig.ncol=1,fig.colsep=rep("\\\\", 4)>>=
+pr_smry_stop <- eta_results %>%
+    mutate(
+        # bus arrives after point estimate
+        pf_catch = as.integer(time_until_arrival > pf_mean),
+        normal_catch = as.integer(time_until_arrival > normal_mean),
+        hist_catch = as.integer(time_until_arrival > historical_mean),
+        gtfs_catch = as.integer(time_until_arrival > gtfs_eta),
+        # bus arrives after lower bound
+        pf_lower_catch = as.integer(time_until_arrival > pf_lower),
+        normal_lower_catch = as.integer(time_until_arrival > normal_lower),
+        hist_lower_catch = as.integer(time_until_arrival > historical_lower),
+        gtfs_lower_catch = as.integer(time_until_arrival > gtfs_eta - 8 * 60),
+        # expected wait time | arrive at lower bound & don't miss bus
+        pf_wait = ifelse(pf_lower_catch, time_until_arrival - pf_lower, NA),
+        normal_wait = ifelse(normal_lower_catch, time_until_arrival - normal_lower, NA),
+        hist_wait = ifelse(hist_lower_catch, time_until_arrival - historical_lower, NA),
+        gtfs_wait = ifelse(gtfs_lower_catch, time_until_arrival - gtfs_eta + 8 * 60, NA),
+        min = time_until_arrival %/% 60
+    ) %>%
+    group_by(stop_sequence) %>%
+    summarize(
+        pf_catch = mean(pf_catch),
+        normal_catch = mean(normal_catch),
+        hist_catch = mean(hist_catch, na.rm = TRUE),
+        gtfs_catch = mean(gtfs_catch),
+        pf_lower_catch = mean(pf_lower_catch),
+        normal_lower_catch = mean(normal_lower_catch),
+        hist_lower_catch = mean(hist_lower_catch, na.rm = TRUE),
+        gtfs_lower_catch = mean(gtfs_lower_catch, na.rm = TRUE),
+        pf_wait = mean(pf_wait, na.rm = TRUE),
+        normal_wait = mean(normal_wait, na.rm = TRUE),
+        hist_wait = mean(hist_wait, na.rm = TRUE),
+        gtfs_wait = mean(gtfs_wait, na.rm = TRUE)
+    ) %>%
+    arrange(stop_sequence)
+
+
+plot_base <- ggplot(pr_smry_stop, aes(stop_sequence)) +
+    theme_classic() +
+    scale_colour_manual(values = pal, name = "model") +
+    xlab("Stop sequence")
+
+plot_base +
+    geom_path(aes(y = pf_catch, colour = "pf")) +
+    geom_path(aes(y = normal_catch, colour = "normal")) +
+    geom_path(aes(y = hist_catch, colour = "historical")) +
+    geom_path(aes(y = gtfs_catch, colour = "gtfs")) +
+    ylab("Probability of arriving before the bus\n(arrive at point estimate)")
+
+plot_base +
+    geom_path(aes(y = pf_lower_catch, colour = "pf")) +
+    geom_path(aes(y = normal_lower_catch, colour = "normal")) +
+    geom_path(aes(y = hist_lower_catch, colour = "historical")) +
+    geom_path(aes(y = gtfs_lower_catch, colour = "gtfs")) +
+    ylab("Probability of arriving before the bus\n(arrive at lower estimate)")
+
+plot_base +
+    geom_path(aes(y = pf_wait / 60, colour = "pf")) +
+    geom_path(aes(y = normal_wait / 60, colour = "normal")) +
+    geom_path(aes(y = hist_wait / 60, colour = "historical")) +
+    geom_path(aes(y = gtfs_wait / 60, colour = "gtfs")) +
+    ylab("Expected waiting time (min)")
+
+@
