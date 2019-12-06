@@ -1,0 +1,80 @@
+\section{Real-time performance}
+\label{eq:prediction_performance}
+
+The real-time performance of the our application has always been the main bottleneck, in that it needs to run in real-time and provide arrival time predictions as soon as possible after the data is received.
+
+<<prediction_timing,echo=FALSE,message=FALSE,warning=FALSE,cache=F>>=
+suppressPackageStartupMessages({
+    library(tidyverse)
+    library(knitr)
+    library(kableExtra)
+})
+options(scipen = 10)
+
+timings <- read_csv("data/timings.csv") %>% filter(iteration > 1)
+
+tbl_times <- timings %>%
+    group_by(what) %>%
+    summarize(
+        n = n(),
+        wall_mean = mean(wall),
+        wall_se = sd(wall) / sqrt(n),
+        cpu_mean = mean(cpu),
+        cpu_se = sd(cpu) / sqrt(n)
+    ) %>%
+    select(-n) %>%
+    bind_rows(
+    timings %>%
+        group_by(iteration) %>%
+        summarize(
+            timestamp = first(timestamp),
+            wall = sum(wall),
+            cpu = sum(cpu)
+        ) %>%
+        ungroup() %>%
+        summarize(
+            what = "Total",
+            n = n(),
+            wall_mean = mean(wall),
+            wall_se = sd(wall) / sqrt(n),
+            cpu_mean = mean(cpu),
+            cpu_se = sd(cpu) / sqrt(n)
+        ) %>%
+        select(-n)
+    )
+
+
+tbl_times <- tbl_times[c(1, 4, 5, 3, 2, 6, 7), ]
+# for (i in seq_len(nrow(tbl_times))) {
+#     tbl_times[i, 2] <- signif(tbl_times$, 3)
+#     tbl_times[i, 3] <- signif(tbl_times[i, 3], 2)
+#     # format(as.numeric(tbl_times[i, -1]), digits = 2)
+#     # tbl_times[i, -1] <- signif(tbl_times[i, -1], 3)
+# }
+
+tbl_times <- tbl_times %>%
+    mutate(
+        wall_mean = format(signif(wall_mean, 3), drop0trailing = TRUE),
+        wall_se = paste0("(", signif(wall_se, 2), ")"),
+        cpu_mean = format(signif(cpu_mean, 3), drop0trailing = TRUE),
+        cpu_se = paste0("(", signif(cpu_se, 2), ")")
+    )
+names(tbl_times) <- c("", "Wall clock", "(SE)", "CPU time", "(SE)")
+kable(
+    tbl_times,
+    align = "lrlrl",
+    booktabs = TRUE,
+    caption = "Time taken during various parts of the program, running on a single core."
+) %>%
+    row_spec(6, extra_latex_after = "\\midrule")
+@
+
+
+<<prediction_timing_time,warning=FALSE,echo=FALSE,cache=F,dependson=c(-1),fig.width=9,fig.height=3,out.width="\\textwidth",fig.cap="Timing results over time.">>=
+timings %>%
+    mutate(timestamp = as.POSIXct(timestamp, origin = "1970-01-01")) %>%
+    arrange(timestamp) %>%
+    ggplot(aes(timestamp, colour = what, group = what)) +
+        geom_path(aes(y = wall)) +
+        theme_classic()
+@

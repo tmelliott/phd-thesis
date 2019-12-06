@@ -117,7 +117,7 @@ plot_base <- ggplot(res_min, aes(min)) +
     theme_classic() +
     xlab("Time until arrival (minutes)")
 
-plot_base +
+plot_rmse <- plot_base +
     geom_path(aes(y = pf_rmse, colour = "pf")) +
     geom_path(aes(y = normal_rmse, colour = "normal")) +
     geom_path(aes(y = hist_rmse, colour = "historical")) +
@@ -125,7 +125,7 @@ plot_base +
     scale_colour_manual(values = pal, name = "model") +
     ylab("RMSE") + ylim(0, 400)
 
-plot_base +
+plot_ci <- plot_base +
     geom_hline(aes(yintercept = 0.85), lty = 2) +
     geom_path(aes(y = pf_ci_cov, colour = "pf")) +
     geom_path(aes(y = normal_ci_cov, colour = "normal")) +
@@ -136,7 +136,7 @@ plot_base +
         labels = function(x) x * 100
     )
 
-plot_base +
+plot_width <- plot_base +
     geom_path(aes(y = pf_ci_width, colour = "pf")) +
     geom_path(aes(y = normal_ci_width, colour = "normal")) +
     geom_path(aes(y = hist_ci_width, colour = "historical")) +
@@ -147,11 +147,22 @@ plot_base +
         labels = function(x) x / 60
     )
 
+gA <- ggplotGrob(plot_rmse)
+gB <- ggplotGrob(plot_ci)
+gC <- ggplotGrob(plot_width)
+wds <- grid::unit.pmax(gA$widths, gB$widths, gC$widths)
+gA$widths <- wds
+gB$widths <- wds
+gC$widths <- wds
+
+plot(gA)
+plot(gB)
+plot(gC)
 @
 
 
 <<model_results_rmse_stopn,warning=FALSE,echo=FALSE,cache=TRUE,dependson=c("model_results_load","model_colours"),cache.lazy=FALSE,fig.width=9,fig.height=3,out.width="\\textwidth",fig.cap="RMSE as a function of stop sequence.",fig.subcap=c("One", "Two", "Three"),fig.ncol=1,fig.colsep=rep("\\\\", 4)>>=
-library(patchwork)
+# library(patchwork)
 # tidyverse is loaded!
 res_stop <- eta_results %>%
     mutate(
@@ -175,7 +186,7 @@ plot_base <- ggplot(res_stop, aes(stop_sequence)) +
     theme_classic() +
     xlab("Stop sequence")
 
-plot_base +
+plot_rmse <- plot_base +
     geom_path(aes(y = pf_rmse, colour = "pf")) +
     geom_path(aes(y = normal_rmse, colour = "normal")) +
     geom_path(aes(y = hist_rmse, colour = "historical")) +
@@ -183,7 +194,7 @@ plot_base +
     scale_colour_manual(values = pal, name = "model") +
     ylab("RMSE") + ylim(c(0, 500))
 
-plot_base +
+plot_ci <- plot_base +
     geom_hline(aes(yintercept = 0.85), lty = 2) +
     geom_path(aes(y = pf_ci_cov, colour = "pf")) +
     geom_path(aes(y = normal_ci_cov, colour = "normal")) +
@@ -194,7 +205,7 @@ plot_base +
         labels = function(x) x * 100
     )
 
-plot_base +
+plot_width <- plot_base +
     geom_path(aes(y = pf_ci_width, colour = "pf")) +
     geom_path(aes(y = normal_ci_width, colour = "normal")) +
     geom_path(aes(y = hist_ci_width, colour = "historical")) +
@@ -205,6 +216,17 @@ plot_base +
         labels = function(x) x / 60
     )
 
+gA <- ggplotGrob(plot_rmse)
+gB <- ggplotGrob(plot_ci)
+gC <- ggplotGrob(plot_width)
+wds <- grid::unit.pmax(gA$widths, gB$widths, gC$widths)
+gA$widths <- wds
+gB$widths <- wds
+gC$widths <- wds
+
+plot(gA)
+plot(gB)
+plot(gC)
 @
 
 
@@ -247,7 +269,7 @@ pr_mat <- with(pr_smry,
         pr_catch =
             round(c(pf_catch, normal_catch, hist_catch, gtfs_catch), 2),
         pr_lower_catch =
-            round(c(pf_lower_catch, normal_lower_catch, hist_lower_catch, NA), 4),
+            round(c(pf_lower_catch, normal_lower_catch, hist_lower_catch, NA), 2),
         exp_wait = round(c(pf_wait, normal_wait, hist_wait, NA) / 60, 2)
     )
 )
@@ -266,7 +288,7 @@ knitr::kable(
 # the equivalent values for GTFS
 ers <- eta_results %>% select(timestamp, stop_sequence, time_until_arrival, gtfs_eta)
 smrys <- do.call(rbind,
-    lapply(6:14, function(mins) {
+    lapply(2:14, function(mins) {
         ers %>%
             mutate(
                 gtfs_catch = as.integer(time_until_arrival > gtfs_eta - mins * 60),
@@ -285,23 +307,30 @@ plot_base <- ggplot(smrys, aes(min_before)) +
     scale_colour_manual(values = pal, name = "model") +
     scale_x_continuous(
         name = "Time before GTFS ETA (minutes)",
-        breaks = seq(6, 14, by = 2)
+        breaks = seq(2, 14, by = 4)
     )
 
-plot_base +
+plotA <- plot_base +
     geom_hline(aes(yintercept = pr_smry$pf_lower_catch, colour = "pf"), lty = 2) +
     geom_hline(aes(yintercept = pr_smry$normal_lower_catch, colour = "normal"), lty = 2) +
     geom_hline(aes(yintercept = pr_smry$hist_lower_catch, colour = "historical"), lty = 2) +
     geom_path(aes(y = gtfs_catch, colour = "gtfs")) +
     ylab("Probability of arriving before the bus")
 
-plot_base +
+plotB <- plot_base +
     geom_hline(aes(yintercept = pr_smry$pf_wait / 60, colour = "pf"), lty = 2) +
     geom_hline(aes(yintercept = pr_smry$normal_wait / 60, colour = "normal"), lty = 2) +
     geom_hline(aes(yintercept = pr_smry$hist_wait / 60, colour = "historical"), lty = 2) +
     geom_path(aes(y = gtfs_wait / 60, colour = "gtfs")) +
     ylab("Expected waiting time (min)")
 
+gA <- ggplotGrob(plotA)
+gB <- ggplotGrob(plotB)
+wds <- grid::unit.pmax(gA$widths, gB$widths)
+gA$widths <- wds
+gB$widths <- wds
+plot(gA)
+plot(gB)
 @
 
 
@@ -349,28 +378,38 @@ plot_base <- ggplot(pr_smry_time, aes(min)) +
     scale_colour_manual(values = pal, name = "model") +
     xlab("Time until arrival (minutes)")
 
-plot_base +
+plotA <- plot_base +
     geom_path(aes(y = pf_catch, colour = "pf")) +
     geom_path(aes(y = normal_catch, colour = "normal")) +
     geom_path(aes(y = hist_catch, colour = "historical")) +
     geom_path(aes(y = gtfs_catch, colour = "gtfs")) +
     ylab("Probability of arriving before the bus\n(arrive at point estimate)")
 
-plot_base +
+plotB <- plot_base +
     geom_path(aes(y = pf_lower_catch, colour = "pf")) +
     geom_path(aes(y = normal_lower_catch, colour = "normal")) +
     geom_path(aes(y = hist_lower_catch, colour = "historical")) +
     geom_path(aes(y = gtfs_lower_catch, colour = "gtfs")) +
     ylab("Probability of arriving before the bus\n(arrive at lower estimate)")
 
-plot_base +
+plotC <- plot_base +
     geom_abline(lty = 3) +
     geom_path(aes(y = pmin(min, pf_wait / 60), colour = "pf")) +
     geom_path(aes(y = pmin(min, normal_wait / 60), colour = "normal")) +
     geom_path(aes(y = pmin(min, hist_wait / 60), colour = "historical")) +
     geom_path(aes(y = pmin(min, gtfs_wait / 60), colour = "gtfs")) +
-    ylab("Expected waiting time (min)")
+    ylab("Expected waiting time (min)\n(arrive at lower estimate)")
 
+gA <- ggplotGrob(plotA)
+gB <- ggplotGrob(plotB)
+gB <- ggplotGrob(plotC)
+wds <- grid::unit.pmax(gA$widths, gB$widths, gC$widths)
+gA$widths <- wds
+gB$widths <- wds
+gC$widths <- wds
+plot(gA)
+plot(gB)
+plot(gC)
 @
 
 
@@ -418,25 +457,39 @@ plot_base <- ggplot(pr_smry_stop, aes(stop_sequence)) +
     scale_colour_manual(values = pal, name = "model") +
     xlab("Stop sequence")
 
-plot_base +
+plotA <- plot_base +
     geom_path(aes(y = pf_catch, colour = "pf")) +
     geom_path(aes(y = normal_catch, colour = "normal")) +
     geom_path(aes(y = hist_catch, colour = "historical")) +
     geom_path(aes(y = gtfs_catch, colour = "gtfs")) +
     ylab("Probability of arriving before the bus\n(arrive at point estimate)")
 
-plot_base +
+plotB <- plot_base +
     geom_path(aes(y = pf_lower_catch, colour = "pf")) +
     geom_path(aes(y = normal_lower_catch, colour = "normal")) +
     geom_path(aes(y = hist_lower_catch, colour = "historical")) +
     geom_path(aes(y = gtfs_lower_catch, colour = "gtfs")) +
     ylab("Probability of arriving before the bus\n(arrive at lower estimate)")
 
-plot_base +
+plotC <- plot_base +
     geom_path(aes(y = pf_wait / 60, colour = "pf")) +
     geom_path(aes(y = normal_wait / 60, colour = "normal")) +
     geom_path(aes(y = hist_wait / 60, colour = "historical")) +
     geom_path(aes(y = gtfs_wait / 60, colour = "gtfs")) +
     ylab("Expected waiting time (min)")
 
+gA <- ggplotGrob(plotA)
+gB <- ggplotGrob(plotB)
+gB <- ggplotGrob(plotC)
+wds <- grid::unit.pmax(gA$widths, gB$widths, gC$widths)
+gA$widths <- wds
+gB$widths <- wds
+gC$widths <- wds
+plot(gA)
+plot(gB)
+plot(gC)
 @
+
+
+
+

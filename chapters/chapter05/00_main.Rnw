@@ -105,6 +105,7 @@ This chapter:
 \input{DIRNAME/trip_state.tex}
 \input{DIRNAME/arrival_time.tex}
 \input{DIRNAME/model_comparison.tex}
+\input{DIRNAME/performance.tex}
 
 % \input{DIRNAME/trip_state_link.tex}
 % \input{DIRNAME/trip_state_dwell.tex}
