@@ -10,3 +10,8 @@ The first problem we encounter is that, as already seen, predicting the arrival 
 
 We want to develop a simple point estimate that balances reliability and accuracy, as well as an interval estimate.
 
+
+\input{DIRNAME/eta_point.tex}
+\input{DIRNAME/eta_interval.tex}
+
+
