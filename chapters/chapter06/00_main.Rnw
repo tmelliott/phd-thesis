@@ -1,4 +1,12 @@
 
-\chapter{UX: where is my bus?}
+\chapter{Commuters, ETAs, and uncertainty}
 \label{cha:etas}
+
+In the previous chapter, we estimated the predictive arrival time distribution. This was often summarized by summary statistics, such as its mean and uncertainty, as well as an 85\% predictive interval. This was, however, intended as a statistical measure of the distribution's validity. In this chapter, we discuss how the bus arrival time can be communicated to commuters such that the numbers they see are reliable and understandable.
+
+
+The first problem we encounter is that, as already seen, predicting the arrival time of a transit vehicle accurately is a decidedly difficult problem. There are countable sources of unknown variability, and countless others which can (and do) affect them. Previous research has explored ways of communicating uncertainty to commuters.
+
+
+We want to develop a simple point estimate that balances reliability and accuracy, as well as an interval estimate.
 
