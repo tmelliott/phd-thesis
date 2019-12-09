@@ -11,7 +11,11 @@ The first problem we encounter is that, as already seen, predicting the arrival 
 We want to develop a simple point estimate that balances reliability and accuracy, as well as an interval estimate.
 
 
+Additionally, we are interested in the \emph{journey planning} problem. Many commuters need to catch multiple services to reach their destination, and while Auckland Transport has attempted to make transfering simple, it is seldom the case, particularly when transfering from a high to a low frequency route. For example, take a journey from X to Y: first, you catch the 70 route with a 10~minute frequency, then transfer at Z to the FF route with a 30~minute frequency. Which 70 do you catch? Assuming the schedule is accurate, the shortest journey is NN minutes, while the longest is NN+30 minutes.
+
+
 \input{DIRNAME/eta_point.tex}
 \input{DIRNAME/eta_interval.tex}
+\input{DIRNAME/eta_transfer.tex}
 
 
