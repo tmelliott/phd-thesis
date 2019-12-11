@@ -126,7 +126,7 @@ and
   \sum_{i=1}^{\tilde N} \tilde\pi_i \tilde\sigma_i^2
 \end{split}
 \end{equation}
-by assuming segment travel tiem and dwell time are independent---assuming otherwise makes this model impossible to work with; indeed, this model versus the particle filter (which makes no such assumption) is effectively testing the viability of this assumption.
+by assuming segment travel time and dwell time are independent---assuming otherwise makes this model impossible to work with; indeed, this model versus the particle filter (which makes no such assumption) is effectively testing the viability of this assumption.
 
 
 For quantiles $q_\alpha$ we need to use an optimisation algorithm to solve
@@ -139,7 +139,7 @@ For quantiles $q_\alpha$ we need to use an optimisation algorithm to solve
 which is straightforward using Brent's Algorithm \citep{Brent_1973}, which is implemented in the Boost C++ library \citep{cn}.
 
 
-However, after about eight stops, the number of components will be in excess of $2^8 = \Sexpr{2^8}$, after which point it would be more efficient to just use the particle filter. Instead, we use a simplification criteria such that, when passed, a single new component is close enough in approximation to the set of components that it can replace them. We have chosen to compare quantiles, and if the maximum absolute difference is less than one minute\footnote{When providing \glspl{eta} to commuters, they are generally rounded to integer minutes anyway}, we replace the set of components with a single new one with mean and variance as specified in \cref{eq:mixture_mean,eq:mixture_variance}. Subsequence stops will begin the process anew, and iteratively check if a single distribution is an adequate approximation.
+However, after about eight stops, the number of components will be in excess of $2^8 = \Sexpr{2^8}$, after which point it would be more efficient to just use the particle filter. Instead, we use a simplification criteria such that, when passed, a single new component is close enough in approximation to the set of components that it can replace them. We have chosen to compare quantiles, and if the maximum absolute difference is less than one minute\footnote{When providing \glspl{eta} to commuters, they are generally rounded to integer minutes anyway}, we replace the set of components with a single new one with mean and variance as specified in \cref{eq:mixture_mean,eq:mixture_variance}. Subsequent stops will begin the process anew, and iteratively check if a single distribution is an adequate approximation.
 
 
-We also need to prevent the mixture from becoming too large: if $\tilde N > 8$, we combine components with $\tilde\pi_i < \frac{1}{2}\max_i(\pi_i)$, using appropriately modified versions of \cref{eq:mixture_mean,eq:mixture_variance}. In practice, after about five stops the distribution is approximately normal, and the error is minimal.
+We also need to prevent the mixture from becoming too large: if $\tilde N > 8$, we combine components with $\tilde\pi_i < \frac{1}{2}\max_i(\pi_i)$, using appropriately modified versions of \cref{eq:mixture_mean,eq:mixture_variance}. In practice, after about five stops the distribution is approximately normal, and the error is minimal. \textcolor{red}{a figure for this}

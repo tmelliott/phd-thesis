@@ -27,11 +27,13 @@ ggplot(layoverdat, aes(current_delay / 60)) +
     geom_vline(xintercept = 0, lty = 2)
 @
 
-We now have estimates of the state of the trip (and any associated vehicle) and the road network. These can now be used together to predict the travel time required for the vehicle to reach all remaining stops along the route. Dwell times need also be considered, as they can affect the uncertaintly, particularly at major stops. Additionally, the bus may have a layover at a stop---these are common at major points of interest, such as at a mall or station where connections to other routes can occur. These are detected in the GTFS \emph{stop times} table by a departure time greater than the arrival time (usually one second). It is presumed that a driver will wait until the scheduled departure time before continuing the trip---of course, not exactly, and in \Sexpr{100 * (1 - pr_wait)}\% of cases they did not wait at all.
+We now have estimates of the state of the trip (and any associated vehicle) and the road network. These are combined to forecast the time taken for the vehicle to reach all remaining stops along the route. Dwell times can also affect arrival time uncertainty, particularly at major stops. Additionally, the bus may have a layover at a stop---these are common at major points of interest, such as at a mall, or stations where many routes connect so passengers can transfer between services. We detect layovers in the GTFS \emph{stop times} table by finding departure times which are later than the associated arrival time (usually one second, as shown in figure X). Drivers should wait at these stops until the scheduled departure time before continuing the trip; however, in \Sexpr{100 * (1 - pr_wait)}\% of cases we looked at over two weeks, the driver left before the scheduled departure time, as is demonstrated in \cref{fig:layover_observance}.
 
 
-There are various ways we could forecast arrival times (travel + dwell), each with its own drawbacks and advantages. In this section, we present two methods---using the particle filter, and a normal approximation---along with two other (simpler) methods---historical delay distributions and schedule plus delay, the latter of which is currently used by \gls{at}.
+There are various ways we could forecast arrival times (travel + dwell), each with its drawbacks and advantages. In this section, we present four forecasting methods. The first uses the particle filter estimate of vehicle state and the network state to obtain arrival time distributions. The second uses a normal approximation of the vehicle's state, along with the network state and dwell-time distributions. The third uses only historical delay data, and the last is the method currently used by \gls{at}, which uses the schedule and current real-time delay.
 
+
+\textcolor{red}{Move this para earlier?}
 For the first two, the current network state is subset to include only the segments for the particular route, such that
 \begin{equation}
 \label{eq:route_nw_state}
@@ -42,10 +44,10 @@ For the first two, the current network state is subset to include only the segme
 \vdots & \ddots & \ddots
 \end{bmatrix}
 \end{equation}
-where $\RouteNWstateseg_{i}, i = 1, \ldots, \Nseg$ is the average vehicle speed along the $i$th segment, and $\RouteNWstatecor_{i,j}$ is the covariance between segments $i$ and $j$. Note that in the current framework, segment covariances are not calculated, but the above setup shows how, if available, they can easily be included.
+where $\RouteNWstateseg_{i}, i = 1, \ldots, \Nseg$ is the average vehicle speed along the $i$th segment, and $\RouteNWstatecor_{i,j}$ is the covariance between segments $i$ and $j$. Note that in the current framework, we do not calculate segment covariances, but the above setup demonstrates that they can, if available, be included.
 
 
-For bus stops dwell times, we used historical dwell time mean and variance, with unknown stopping probabilities---this is because it is impossible with the available data to determine if a bus did or did not stop unless both the arrival and departure times are observed; often, only only of these is observed even if the bus did indeed stop, particularly if it was a short dwell time.
+For bus stops dwell times, we collected two(?) weeks of data (as was used in \cref{sec:nw_par_est}) and calculated the mean and variance of dwell time for each trip. We can determine if a bus \emph{did} stop (there are an arrival and departure time), but not that a bus \emph{did not} stop. If we see only an arrival or a departure time (or neither), it is impossible to differentiate between the bus truly not stoping, or deficiencies with the data. The bus may not have reported both observations, or, more likely, our polling interval (30 seconds) did not see both of them, since the real-time feed only includes the most recent observation. Therefore, we cannot calculate stopping probabilities from the data, and therefore use the same value as was used in \cref{cha:vehicle_model}.
 
 
 
@@ -56,13 +58,13 @@ For bus stops dwell times, we used historical dwell time mean and variance, with
 \subsection{Historical arrival delays}
 \label{eq:prediction_arrival_historical}
 
-Another way to make predictions that takes no account of the real-time state of the vehicle, trip, or network, is to use historical data. We collected one week's worth of data and recorded arrival delays by stop and route to obtain a distribution. Note that, since each \emph{trip} only runs once per day, it would require many week's of data to obtain a sufficient sample size; however, exploration and familiarity with the data allows us to assume that delays are typically similar amongst trips of the same route, particularly since a lot of the issue is with poor schedule adherance.
+Another way to make predictions that takes no account of the real-time state of the vehicle, trip, or network, is to use historical data. We collected two weeks of data and recorded arrival delays by stop and trip to obtain a distribution.
 
 
-Our predictions are, therefore, simply this: the arrival delay at stop $j$ along route $r$ has mean $\hat\alpha_{rj}$ and variance $\hat\zeta_{rj}^2$, so if the scheduled arrival time is $S_{rj}$, then the predicted arrival time is
+The historical data-based predictions are, therefore, that the arrival delay at stop $j$ along trip $\Tripr$ has mean $\hat\alpha_{rj}$ and variance $\hat\zeta_{rj}^2$, so if the scheduled arrival time is $S_{rj}$, then the predicted arrival time is
 \begin{equation}
 \label{eq:arrival_pred_historical}
-\Tarr_{rj} \sim \Normal{S_{rj} + \hat\alpha_{rj}}{\hat\zeta_{rj}^2}.
+\Tarr_{\Tripr j} \sim \Normal{S_{\Tripr j} + \hat\alpha_{\Tripr j}}{\hat\zeta_{\Tripr j}^2}.
 \end{equation}
 
 
@@ -78,5 +80,6 @@ Finally, we must also present the currently deployed prediction method, which us
 Then, the predicted arrival time is simply
 \begin{equation}
 \label{eq:sched_pred_arr}
-\hat\Tarr_{rj} = S_{rj} + \bar\delta_r
+\hat\Tarr_{rj} = S_{rj} + \bar\delta_r.
 \end{equation}
+Note, however, that if no observations for a given trip have been received, the default delay is $\bar\delta_r = 0$, regardless of whether or not the trip is running.

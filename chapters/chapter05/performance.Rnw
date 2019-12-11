@@ -1,5 +1,5 @@
 \section{Real-time performance}
-\label{eq:prediction_performance}
+\label{sec:prediction_performance}
 
 The real-time performance of the our application has always been the main bottleneck, in that it needs to run in real-time and provide arrival time predictions as soon as possible after the data is received.
 
