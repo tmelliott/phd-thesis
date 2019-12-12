@@ -8,7 +8,10 @@ We now have four models to evaluate, two of which use the road network state, on
 The comparison criteria used is the \emph{\gls{rmse}}, as is commonly used for model checking \citep{cn}. \Gls{rmse} is the mean squared difference (in seconds) between the predicted and actual arrival times. Of course, since predictions change over time, we also compute \gls{rmse} by \emph{time until (actual) arrival}, allowing us to compare the models at different time points, as well as by stop sequence and time of day.
 
 
-Another criteria we are interested in is the \emph{coverage of the prediction interval}, which is only available for our models. In each, we construct a 85\% credible prediction interval: for the particle filter, this is achieved by sorting the particles in order of arrival time, and then taking the $\lfloor q_\text{lower} N^\star\rfloor^{\text{th}}$ particle as the lower bound, and the $\lceil q_{\text{upper}} N^\star\rceil^{\text{th}}$ particle as the upper bound. For the 85\% interval, we used $q_\text{lower} = 0.05$ and $q_\text{upper} = 0.9$. For the normal approximation, the inverse \gls{cdf} gives us the required quantiles. Similarly, the historical mean and variance were used to obtain the quantiles for the historical-data method. The results are displayed in \cref{tab:...} and \cref{fig:...}.
+Another criteria we are interested in is the \emph{coverage of the prediction interval}, which is only available for our models. In each, we construct an 85\% \gls{ppi}: for the particle filter, this is achieved by sorting the particles in order of arrival time, and then taking the $\lfloor q_\text{lower} N^\star\rfloor^{\text{th}}$ particle as the lower bound, and the $\lceil q_{\text{upper}} N^\star\rceil^{\text{th}}$ particle as the upper bound. For the 85\% interval, we used $q_\text{lower} = 0.05$ and $q_\text{upper} = 0.9$. For the normal approximation, the inverse \gls{cdf} gives us the required quantiles. Similarly, the historical mean and variance were used to obtain the quantiles for the historical-data method. The results are displayed in \cref{tab:model_results_rmse} and \cref{fig:model_results_rmse_time,fig:model_results_rmse_stopn,fig:model_results_rmse_timeofday}, and are described in \cref{sec:prediction_model_comp_stats}.
+
+
+Additionally, we also want to compare predictive probabilites of the various forecast methods, namely \emph{the probability of arriving before the bus}, and hence not missing it, as well as the expected waiting time given a passengers arrives at the stop by a certain time. In table \cref{tab:model_results_pr_miss} and \cref{fig:model_results_pr_gtfs,fig:model_results_pr_time,fig:model_results_pr_stop,fig:model_results_pr_timeofday}, we use the point estimate (mean or median, depending on the forecast method), as well as the 2.5\% quantile, and for each calculate the probability that the bus arrives after the passenger, given the passenger arrives by the specified time. We also compute the expected waiting time, given the passenger arrives by a certain time \emph{and the bus arrives after the specified time} (i.e., given the passenger catches the bus). \Cref{sec:prediction_model_comp_probs} discusses these results.
 
 
 <<model_colours,echo=FALSE,cache=TRUE>>=
@@ -104,21 +107,49 @@ row.names(mat) <- paste0(
 )
 names(mat) <- c(
     "RMSE (s)",
-    "$\\Pr{\\Varr_m \\in \\text{CI}}$",
-    "CI width (m)",
-    "(95\\% CI)"
+    "$\\Pr{\\Varr_m \\in \\text{PPI}}$",
+    "\\multicolumn{2}{c}{PPI width (m)}",
+    "SKIP"
 )
 options(knitr.kable.NA = "")
-knitr::kable(
+tbl <- knitr::kable(
     mat,
+    format = "latex",
     booktabs = TRUE,
-    caption = "Predictive model comparison of RMSE, in seconds, CI coverage, and mean CI width, in minutes, with a 95\\% credible interval.",
+    caption = "Predictive model comparison of RMSE, in seconds, PPI coverage, and mean PPI width, in minutes, with (0.025, 0.975) quantiles.",
     escape = FALSE
 )
+tbl <- gsub("& SKIP", "", tbl)
+tbl
 @
 
 
-<<model_results_rmse_time,warning=FALSE,echo=FALSE,cache=TRUE,dependson=c("model_results_load","model_colours"),cache.lazy=FALSE,fig.width=9,fig.height=3,out.width="\\textwidth",fig.cap="RMSE as a function of time of day.",fig.subcap=c("One", "Two", "Three"),fig.ncol=1,fig.colsep=rep("\\\\", 4)>>=
+
+
+\subsection{Predictive error and coverage}
+\label{sec:prediction_model_comp_stats}
+
+Over all observations and estimates for the full day (5~am--midnight), there is little difference in the \gls{rmse} for methods $\FM_1$, $\FM_3$, and $\FM_4$, as is displayed in \cref{tab:model_results_rmse}.; the normal approximation is double the others. The particle filter's ($\FM_1$) \gls{rmse} is slightly lower than that of the schedule-delay method $\FM_1$, but not by much.
+
+The \gls{ppi} coverage is the proportion of \gls{ppi}'s that contain the true arrival time, $\Pr{\Tarr_m \in (\hat\alpha_{\text{lower}},\hat\alpha_{\text{upper}})}$. In this measure, the normal approximation, $\FM_2$, has the better coverage, while the historical method's coverage is close to the target coverage of 85\%. The particle filter has relatively poor coverage at under 80\%, indicating that not enough uncertainty is being captured by the particles---\textcolor{red}{we may need to increase number of particles}.
+
+The mean width of the \gls{ppi} is the average difference between the upper and lower predictive quantiles. The interval width for $\FM_2$ is four times that of $\FM_1$, and the upper quantile is five times as large. The historical delays method give fairly similar results to the particle filter, though slightly higher---this is most likely due to the interval not decreasing as the bus nears the stop, as is the case with all of the other methods.
+
+From the simple, overall summary in \cref{tab:model_results_rmse}, it is difficult to comment on the relative performance of the methods, except that the normal approximation seems to be ill-suited to the task. However, this was not unexpected: throughout the previous chapters, we have commented on the non-Gaussian nature of the uncertainty around the state of transit vehicles. We now examine these summaries using several variables to explain variation: time until arrival, stop sequence, and time of day.
+
+
+\subsubsection{Time until actual arrival}
+
+Possibly the most obvious variable to explore is the \emph{time until actual arrival} at the stop: we would expect greater performance the nearer the vehicle is to arriving at a stop. We computed \gls{rmse} along with \gls{ppi} coverage and width in one-minute intervals, the results of which can be seen in \cref{fig:model_results_rmse_time}.
+
+
+The \gls{rmse} (\cref{fig:model_results_rmse_time1}) for the four models shows that, up to 20~minutes, the particle filter has the lowest prediction error. \Gls{rmse} for $\FM_4$ increases more rapidly at first, but this slows down, unlike $\FM_1$ which shows a rather linear relationship with time until arrival.  Note, however, that \gls{gtfs} defaults to a value of zero if no observations are available, so while the predictions may be close, they are only so because the bus arrived close to schedule. The historical model has fairly constant error, though slowly increasing: this is likely because early stops have a smaller average delay, and the time until arrival is never very large. That is, the second stop may take the bus two minutes to reach, so we would be unlikely to see an estimate for it 20~minutes before arrival.
+
+
+As for the \gls{ppi}, \cref{fig:model_results_rmse_time2,fig:model_results_rmse_time3}, the normal approximation has too greater coverage but quickly increasing width, while the historical method is again fairly constant in both its coverage (close to 85\%) and width, though again we see a slight increase in the latter the further out the bus gets, for the same reason as above. The particle filter again isn't capturing enough uncertainty, as its coverage is below the desired 85\%, though as a result the width is smaller than both of the other methods, particularly compared to $\FM_2$---significantly so once we get above 20~minutes.
+
+
+<<model_results_rmse_time,warning=FALSE,echo=FALSE,cache=TRUE,dependson=c("model_results_load","model_colours"),cache.lazy=FALSE,fig.width=9,fig.height=3,out.width="\\textwidth",fig.cap="Model comparative statistics as a function of time until arrival.",fig.subcap=c("","",""),fig.ncol=1,fig.colsep=rep("\\\\", 4),fig.pos="!t">>=
 # tidyverse is loaded!
 res_min <- eta_results %>%
     mutate(
@@ -129,18 +160,25 @@ res_min <- eta_results %>%
         pf_rmse = sqrt(mean(pf_error^2)),
         pf_ci_cov = mean(pf_ci),
         pf_ci_width = mean(pf_upper - pf_lower),
+        pf_ci_lower = quantile(pf_upper - pf_lower, 0.025),
+        pf_ci_upper = quantile(pf_upper - pf_lower, 0.975),
         normal_rmse = sqrt(mean(normal_error^2)),
         normal_ci_cov = mean(normal_ci),
         normal_ci_width = mean(normal_upper - normal_lower),
+        normal_ci_lower = quantile(normal_upper - normal_lower, 0.025),
+        normal_ci_upper = quantile(normal_upper - normal_lower, 0.975),
         hist_rmse = sqrt(mean(hist_error^2, na.rm = TRUE)),
         hist_ci_cov = mean(hist_ci, na.rm = TRUE),
         hist_ci_width = mean(historical_upper - historical_lower, na.rm = TRUE),
+        hist_ci_lower = quantile(historical_upper - historical_lower, 0.025, na.rm = TRUE),
+        hist_ci_upper = quantile(historical_upper - historical_lower, 0.975, na.rm = TRUE),
         gtfs_rmse = sqrt(mean(gtfs_error^2))
     ) %>% arrange(min) %>%
     filter(min < 40)
 
 plot_base <- ggplot(res_min, aes(min)) +
     theme_classic() +
+    scale_colour_manual(values = pal, name = "model") +
     xlab("Time until arrival (minutes)")
 
 plot_rmse <- plot_base +
@@ -148,29 +186,32 @@ plot_rmse <- plot_base +
     geom_path(aes(y = normal_rmse, colour = "normal")) +
     geom_path(aes(y = hist_rmse, colour = "historical")) +
     geom_path(aes(y = gtfs_rmse, colour = "gtfs")) +
-    scale_colour_manual(values = pal, name = "model") +
-    ylab("RMSE") + ylim(0, 400)
+    ylab("RMSE (s)") + ylim(0, 400)
 
 plot_ci <- plot_base +
     geom_hline(aes(yintercept = 0.85), lty = 2) +
     geom_path(aes(y = pf_ci_cov, colour = "pf")) +
     geom_path(aes(y = normal_ci_cov, colour = "normal")) +
     geom_path(aes(y = hist_ci_cov, colour = "historical")) +
-    scale_colour_manual(values = pal, name = "model") +
     scale_y_continuous(
-        name = "CI coverage (%)",
-        labels = function(x) x * 100
+        name = "PPI coverage"
     )
 
 plot_width <- plot_base +
+    geom_path(aes(y = pf_ci_lower, colour = "pf"), lty = 2) +
+    geom_path(aes(y = pf_ci_upper, colour = "pf"), lty = 2) +
+    geom_path(aes(y = normal_ci_lower, colour = "normal"), lty = 2) +
+    geom_path(aes(y = normal_ci_upper, colour = "normal"), lty = 2) +
+    geom_path(aes(y = hist_ci_lower, colour = "historical"), lty = 2) +
+    geom_path(aes(y = hist_ci_upper, colour = "historical"), lty = 2) +
     geom_path(aes(y = pf_ci_width, colour = "pf")) +
     geom_path(aes(y = normal_ci_width, colour = "normal")) +
     geom_path(aes(y = hist_ci_width, colour = "historical")) +
-    scale_colour_manual(values = pal, name = "model") +
     scale_y_continuous(
-        name = "Mean CI width (minutes)",
+        name = "PPI width (m)",
         breaks = function(x) pretty(x / 60) * 60,
-        labels = function(x) x / 60
+        labels = function(x) x / 60,
+        limits = c(0, 60) * 60
     )
 
 gA <- ggplotGrob(plot_rmse)
@@ -187,7 +228,14 @@ plot(gC)
 @
 
 
-<<model_results_rmse_stopn,warning=FALSE,echo=FALSE,cache=TRUE,dependson=c("model_results_load","model_colours"),cache.lazy=FALSE,fig.width=9,fig.height=3,out.width="\\textwidth",fig.cap="RMSE as a function of stop sequence.",fig.subcap=c("One", "Two", "Three"),fig.ncol=1,fig.colsep=rep("\\\\", 4)>>=
+
+\subsubsection{Stop sequence}
+
+Similarly to time until arrival, we grouped results by stop sequence---one being the first stop along the route---and computed \gls{rmse}, \gls{ppi} coverage and \gls{ppi} width, displayed in \cref{fig:model_results_rmse_stopn}. The \gls{rmse} increases for all models up until stop 40, after which point only few routes have that many stops, so there is increased variability. All models show approximately the same error, besides $\FM_2$ as before. Method $\FM_1$ has the smallest error for the first 30 or so stops, after which point $\FM_4$ performs slightly better, but again the variability here is larger.
+
+
+
+<<model_results_rmse_stopn,warning=FALSE,echo=FALSE,cache=TRUE,dependson=c("model_results_load","model_colours"),cache.lazy=FALSE,fig.width=9,fig.height=3,out.width="\\textwidth",fig.cap="Model comparative statistics as a function of stop sequence.",fig.subcap=rep("", 3),fig.ncol=1,fig.colsep=rep("\\\\", 4)>>=
 # library(patchwork)
 # tidyverse is loaded!
 res_stop <- eta_results %>%
@@ -199,12 +247,18 @@ res_stop <- eta_results %>%
         pf_rmse = sqrt(mean(pf_error^2)),
         pf_ci_cov = mean(pf_ci),
         pf_ci_width = mean(pf_upper - pf_lower),
+        pf_ci_lower = quantile(pf_upper - pf_lower, 0.025),
+        pf_ci_upper = quantile(pf_upper - pf_lower, 0.975),
         normal_rmse = sqrt(mean(normal_error^2)),
         normal_ci_cov = mean(normal_ci),
         normal_ci_width = mean(normal_upper - normal_lower),
+        normal_ci_lower = quantile(normal_upper - normal_lower, 0.025),
+        normal_ci_upper = quantile(normal_upper - normal_lower, 0.975),
         hist_rmse = sqrt(mean(hist_error^2, na.rm = TRUE)),
         hist_ci_cov = mean(hist_ci, na.rm = TRUE),
         hist_ci_width = mean(historical_upper - historical_lower, na.rm = TRUE),
+        hist_ci_lower = quantile(historical_upper - historical_lower, 0.025, na.rm = TRUE),
+        hist_ci_upper = quantile(historical_upper - historical_lower, 0.975, na.rm = TRUE),
         gtfs_rmse = sqrt(mean(gtfs_error^2))
     ) %>%
     filter(stop_sequence <= 60) %>%
@@ -212,6 +266,7 @@ res_stop <- eta_results %>%
 
 plot_base <- ggplot(res_stop, aes(stop_sequence)) +
     theme_classic() +
+    scale_colour_manual(values = pal, name = "model") +
     xlab("Stop sequence")
 
 plot_rmse <- plot_base +
@@ -219,29 +274,33 @@ plot_rmse <- plot_base +
     geom_path(aes(y = normal_rmse, colour = "normal")) +
     geom_path(aes(y = hist_rmse, colour = "historical")) +
     geom_path(aes(y = gtfs_rmse, colour = "gtfs")) +
-    scale_colour_manual(values = pal, name = "model") +
-    ylab("RMSE") + ylim(c(0, 500))
+    ylab("RMSE (s)") + ylim(c(0, 500))
 
 plot_ci <- plot_base +
     geom_hline(aes(yintercept = 0.85), lty = 2) +
     geom_path(aes(y = pf_ci_cov, colour = "pf")) +
     geom_path(aes(y = normal_ci_cov, colour = "normal")) +
     geom_path(aes(y = hist_ci_cov, colour = "historical")) +
-    scale_colour_manual(values = pal, name = "model") +
     scale_y_continuous(
-        name = "CI coverage (%)",
-        labels = function(x) x * 100
+        name = "PPI coverage"
     )
 
+
 plot_width <- plot_base +
+    geom_path(aes(y = pf_ci_lower, colour = "pf"), lty = 2) +
+    geom_path(aes(y = pf_ci_upper, colour = "pf"), lty = 2) +
+    geom_path(aes(y = normal_ci_lower, colour = "normal"), lty = 2) +
+    geom_path(aes(y = normal_ci_upper, colour = "normal"), lty = 2) +
+    geom_path(aes(y = hist_ci_lower, colour = "historical"), lty = 2) +
+    geom_path(aes(y = hist_ci_upper, colour = "historical"), lty = 2) +
     geom_path(aes(y = pf_ci_width, colour = "pf")) +
     geom_path(aes(y = normal_ci_width, colour = "normal")) +
     geom_path(aes(y = hist_ci_width, colour = "historical")) +
-    scale_colour_manual(values = pal, name = "model") +
     scale_y_continuous(
-        name = "Mean CI width (minutes)",
+        name = "PPI width (m)",
         breaks = function(x) pretty(x / 60) * 60,
-        labels = function(x) x / 60
+        labels = function(x) x / 60,
+        limits = c(0, 60) * 60
     )
 
 gA <- ggplotGrob(plot_rmse)
@@ -257,9 +316,24 @@ plot(gB)
 plot(gC)
 @
 
+The \gls{ppi} coverage and width show much the same trend as before. This is not unexpected, since there is a clearly a relationship between time until arrival and stop sequence: early stops will never have a long time until arrival. Method $\FM_1$ has a shorter interval width, but again this comes at the cost of lower coverage. The quantiles of width in \cref{fig:model_results_rmse_stopn3} again show little significant different between $\FM_1$ and $\FM_3$, while $\FM_2$ is again overestimating uncertainty.
 
 
-<<model_results_rmse_timeofday,warning=FALSE,echo=FALSE,cache=TRUE,dependson=c("model_results_load","model_colours"),cache.lazy=FALSE,fig.width=9,fig.height=3,out.width="\\textwidth",fig.cap="RMSE as a function of time of day.",fig.subcap=c("One", "Two", "Three"),fig.ncol=1,fig.colsep=rep("\\\\", 4)>>=
+
+\subsubsection{Time of day}
+
+Observations were grouped into 15~minute intervals over the course of the day, and the summary statistics were calcualted for each forecast method. The results, displayed in \cref{fig:model_results_rmse_timeofday}, differ quite significantly from those seen previously, as we see a strong peak-hour effect\footnote{Morning peak is at around 8am in the morning, while in the evening there are two peaks: one for schools at about 3pm, and another for workers at around 5pm.}. Interesting, it would seem that school buses are a major source of uncertainty, as the afternoon school peaks shows up, but not the so much the worker peak at 5pm.
+
+In \cref{fig:model_results_rmse_timeofday1}, the prediction error is smallest for the particle filter method at all times \emph{except} during the morning and evening peaks, with the afternoon school peak showing a greater increase that the worker peak. Method $\FM_4$ also shows a slight increase at peak times, but it is far less significant. Similarly, $\FM_3$ shows increases at peak times, as well as another in the afternoon.
+
+
+The coverage of the \glspl{ppi} for both $\FM_1$ and $\FM_3$ are, during off-peak times, both close to 80\% (\cref{fig:model_results_rmse_timeofday2}), and we see that most of the particle filter's poor coverage comes from peak times. It is worth noting here that, though discussed in \cref{sec:nw_hist_model}, the historical data-based forecasting model has not yet been implemented, so there may yet be improvements in the particle filter's performance.
+
+
+
+
+
+<<model_results_rmse_timeofday,warning=FALSE,echo=FALSE,cache=TRUE,dependson=c("model_results_load","model_colours"),cache.lazy=FALSE,fig.width=9,fig.height=3,out.width="\\textwidth",fig.cap="Model comparative statistics as a function of time of day.",fig.subcap=rep("", 3),fig.ncol=1,fig.colsep=rep("\\\\", 4)>>=
 res_timeofday <- eta_results %>%
     mutate(
         hour = timestamp %>% format("%H") %>% as.integer,
@@ -271,12 +345,18 @@ res_timeofday <- eta_results %>%
         pf_rmse = sqrt(mean(pf_error^2)),
         pf_ci_cov = mean(pf_ci),
         pf_ci_width = mean(pf_upper - pf_lower),
+        pf_ci_lower = quantile(pf_upper - pf_lower, 0.025),
+        pf_ci_upper = quantile(pf_upper - pf_lower, 0.975),
         normal_rmse = sqrt(mean(normal_error^2)),
         normal_ci_cov = mean(normal_ci),
         normal_ci_width = mean(normal_upper - normal_lower),
+        normal_ci_lower = quantile(normal_upper - normal_lower, 0.025),
+        normal_ci_upper = quantile(normal_upper - normal_lower, 0.975),
         hist_rmse = sqrt(mean(hist_error^2, na.rm = TRUE)),
         hist_ci_cov = mean(hist_ci, na.rm = TRUE),
         hist_ci_width = mean(historical_upper - historical_lower, na.rm = TRUE),
+        hist_ci_lower = quantile(historical_upper - historical_lower, 0.025, na.rm = TRUE),
+        hist_ci_upper = quantile(historical_upper - historical_lower, 0.975, na.rm = TRUE),
         gtfs_rmse = sqrt(mean(gtfs_error^2))
     ) %>% arrange(hour)
 
@@ -290,7 +370,7 @@ plot_rmse <- plot_base +
     geom_path(aes(y = normal_rmse, colour = "normal")) +
     geom_path(aes(y = hist_rmse, colour = "historical")) +
     geom_path(aes(y = gtfs_rmse, colour = "gtfs")) +
-    ylab("RMSE") + ylim(c(0, 500))
+    ylab("RMSE (s)") + ylim(c(0, 500))
 
 plot_ci <- plot_base +
     geom_hline(aes(yintercept = 0.85), lty = 2) +
@@ -298,18 +378,24 @@ plot_ci <- plot_base +
     geom_path(aes(y = normal_ci_cov, colour = "normal")) +
     geom_path(aes(y = hist_ci_cov, colour = "historical")) +
     scale_y_continuous(
-        name = "CI coverage (%)",
-        labels = function(x) x * 100
+        name = "PPI coverage"
     )
 
 plot_width <- plot_base +
+    geom_path(aes(y = pf_ci_lower, colour = "pf"), lty = 2) +
+    geom_path(aes(y = pf_ci_upper, colour = "pf"), lty = 2) +
+    geom_path(aes(y = normal_ci_lower, colour = "normal"), lty = 2) +
+    geom_path(aes(y = normal_ci_upper, colour = "normal"), lty = 2) +
+    geom_path(aes(y = hist_ci_lower, colour = "historical"), lty = 2) +
+    geom_path(aes(y = hist_ci_upper, colour = "historical"), lty = 2) +
     geom_path(aes(y = pf_ci_width, colour = "pf")) +
     geom_path(aes(y = normal_ci_width, colour = "normal")) +
     geom_path(aes(y = hist_ci_width, colour = "historical")) +
     scale_y_continuous(
-        name = "Mean CI width (minutes)",
+        name = "PPI width (m)",
         breaks = function(x) pretty(x / 60) * 60,
-        labels = function(x) x / 60
+        labels = function(x) x / 60,
+        limits = c(0, 60) * 60
     )
 
 gA <- ggplotGrob(plot_rmse)
@@ -325,10 +411,43 @@ plot(gB)
 plot(gC)
 @
 
+As for the the width of the intervals, these are reasonably constant over the course of the day, with a small increase at peak times for $\FM_1$ and $\FM_3$, between which these is little difference in their widths. Again, the normal approximation over estimates the uncertainty, leading to prediction interval widths of up to 40~minutes \emph{on average}.
+
+
+
+\subsection{Comparing arrival probabilities and wait times}
+\label{sec:prediction_model_comp_probs}
+
+\Gls{rmse} is a simple measure of predictive performance, but takes no account of the application and the cost of an inaccurate prediction. In our case, there are two costs we need to consider:
+\begin{enumerate}
+\item wait time at the bus stop, and
+\item missing the bus altogether.
+\end{enumerate}
+Clearly, the latter---in most cases---incurs a much greater cost, but depends entirely on the time until the \emph{next} bus arrival: for high frequency routes, this is not a problem; for low frequency ones, however, it is\footnote{Some routes only run hourly!}. In this section, we do not differentiate between high and low frequency routes, and instead just compare the overall costs: catch probability and waiting time.
+
+
+The three values we will be comparing are
+\begin{itemize}
+\item $\mathbb{P}_m = \Pr{\Varr_m \geq \hat\Tarr_m}$, the probability that the vehicle arrives, at time $\Varr_m$, after the point estimate, $\hat\Tarr_m$,
+\item $\mathbb{P}_\ell = \Pr{\Varr_m \geq \hat\alpha_{m,\text{lower}}}$, the probability that the vehicles arrives after the lower bound of the \gls{ppi}, and
+\item $\mathbb{E}_\ell = \E{\Varr_m - \hat\alpha_{m,\text{lower}} | \Varr_m \geq \hat\alpha_{m,\text{lower}}}$, the expected waiting time for a passenger arriving at the lower predictive bound, given that the bus arrives after this.
+\end{itemize}
+
+
+For the overall results, shown in \cref{tab:model_results_pr_miss}, we see that, if a passenger at any time, looks at the \gls{eta} of their bus \emph{once} and arrives at the stop by the indicated time, then by $\FM_1$ their probability of catching the bus is almost double that of using the currently deployed method, $\FM_4$. Using historical data averages, then (not surprisingly) $\mathbb{P}_m$ is about 50\%; the normal is over 95\% which indicates that it greatly underestimates arrival times.
+
+
+As for the lower quantile ($\mathbb{P}_\ell$), the probabilities are approximately the same. Since these are 5\% quantiles, we would expect the bus to arrive after it about 95\% of the time. As for the expected wait time, given arrival by the lower quantile and that the bus arrives after it, the particle filter has the shortest, while (as first the previous results) the normal method is over four times as long.
+
+
+Perhaps the more important comparison, however, is between $\FM_1$ and $\FM_4$; but since there is no \gls{ppi} available (the schedule-delay is just a single point estimate), we use a different approach. \Cref{fig:model_results_pr_gtfs1} shows, as dashed lines, the values from \cref{tab:model_results_pr_miss} for the lower limits, overlaid with a curve of probability of catching the bus (y-axis) given a passenger arrives $x$ minutes before the displayed arrival time. We see that to get the same probability as the particle filter, one would need to arrive a little over 6~minutes before the stated \gls{eta}. In \cref{fig:model_results_pr_gtfs2}, we show the expected wait time, given the passenger arrives before the lower limit for the three other methods (dashed lines) and the curve for arriving $x$ minutes before the stated time using $\FM_4$. Given arrival 6~minutes before the stated arrival time, the expected waiting time is about 6~minutes, a couple of minutes longer than the particle filter. The inverse would be, for an equivalent expected waiting time, one would need to arrive no more than four minutes before the stated arrival time (\cref{fig:model_results_pr_gtfs2}), which corresponds to only about an 80\% change of arriving before the bus does (\cref{fig:model_results_pr_gtfs1}).
+
+
+For the remainder of this section, we will use 6~minutes before the specified \gls{eta} to obtain a lower bound for $\FM_4$, and compare the probabilies as a function of time until arrival, stop sequence, and time of day.
+
 
 
 <<model_results_pr_miss,echo=FALSE,message=FALSE,warning=FALSE,cache=TRUE,dependson=c("model_results_load","model_colours"),cache.lazy=FALSE>>=
-gtfs_min_before <- 8
 pr_smry <- eta_results %>%
     mutate(
         # bus arrives after point estimate
@@ -398,11 +517,11 @@ knitr::kable(
 )
 @
 
-<<model_results_pr_gtfs,echo=FALSE,message=FALSE,warning=FALSE,cache=TRUE,dependson=c("model_results_load","model_results_pr_miss"),cache.lazy=FALSE,fig.width=9,fig.height=3,out.width="\\textwidth",fig.cap="GTFS equivalent",fig.subcap=c("One", "Two"),fig.ncol=1,fig.colsep=rep("\\\\", 3)>>=
+<<model_results_pr_gtfs,echo=FALSE,message=FALSE,warning=FALSE,cache=TRUE,dependson=c("model_results_load","model_results_pr_miss"),cache.lazy=FALSE,fig.width=9,fig.height=3,out.width="\\textwidth",fig.cap="GTFS equivalent",fig.subcap=rep("", 2),fig.ncol=1,fig.colsep=rep("\\\\", 3)>>=
 # the equivalent values for GTFS
 ers <- eta_results %>% select(timestamp, stop_sequence, time_until_arrival, gtfs_eta)
 smrys <- do.call(rbind,
-    lapply(2:14, function(mins) {
+    lapply(2:10, function(mins) {
         ers %>%
             mutate(
                 gtfs_catch = as.integer(time_until_arrival > gtfs_eta - mins * 60),
@@ -421,7 +540,7 @@ plot_base <- ggplot(smrys, aes(min_before)) +
     scale_colour_manual(values = pal, name = "model") +
     scale_x_continuous(
         name = "Time before GTFS ETA (minutes)",
-        breaks = seq(2, 14, by = 4)
+        breaks = seq(2, 10, by = 2)
     )
 
 plotA <- plot_base +
@@ -429,14 +548,14 @@ plotA <- plot_base +
     geom_hline(aes(yintercept = pr_smry$normal_lower_catch, colour = "normal"), lty = 2) +
     geom_hline(aes(yintercept = pr_smry$hist_lower_catch, colour = "historical"), lty = 2) +
     geom_path(aes(y = gtfs_catch, colour = "gtfs")) +
-    ylab("Probability of arriving before the bus")
+    ylab("Pr(arrive before the bus)")
 
 plotB <- plot_base +
     geom_hline(aes(yintercept = pr_smry$pf_wait / 60, colour = "pf"), lty = 2) +
     # geom_hline(aes(yintercept = pr_smry$normal_wait / 60, colour = "normal"), lty = 2) +
     geom_hline(aes(yintercept = pr_smry$hist_wait / 60, colour = "historical"), lty = 2) +
     geom_path(aes(y = gtfs_wait / 60, colour = "gtfs")) +
-    ylab("Expected waiting time (min)")
+    ylab("Expected waiting time (m)")
 
 gA <- ggplotGrob(plotA)
 gB <- ggplotGrob(plotB)
@@ -446,6 +565,17 @@ gB$widths <- wds
 plot(gA)
 plot(gB)
 @
+
+
+\subsubsection{Time until arrival}
+
+\Cref{fig:model_results_pr_time} shows $\mathbb{P}_m$, $\mathbb{P}_\ell$, and $\mathbb{E}_\ell$ computed in one-minute intervals for each of the four models. We see that the probability that the vehicle arrives after the estimate is mostly constantly, with a slow decrease as the bus nears the stop; however, the four methods are clearly distinct from each other and yield the same conclusion as before.
+
+
+As for $\mathbb{P}_\ell$, however, displayed in \cref{fig:model_results_pr_time2}, shows a different trend: $\FM_1$ and $\FM_3$ increase the further out the vehicle is, while in $\FM_4$ the probability decreases. Clearly, this is because we have chosen a fixed lower bound. When the vehicle is less than 15 minutes out, arriving 6~minute before the schedule-delay estimate results in a higher probability of catching the bus than the particle filter.
+
+
+Finally, we look at the expected waiting time, given a passenger arrives at the lower bound \emph{and} the bus arrives after the lower bound, which is displayed in \cref{fig:model_results_pr_time}. The particle filter has a consistently shorted waiting time, though by aboiut 30~minutes out the three methods excluding the normal approximation are approximately the same. We can see that the expected waiting time for $\FM_4$ is more or less independent of time until arrival.
 
 
 
@@ -479,6 +609,14 @@ pr_smry_time <- eta_results %>%
         normal_lower_catch = mean(normal_lower_catch),
         hist_lower_catch = mean(hist_lower_catch, na.rm = TRUE),
         gtfs_lower_catch = mean(gtfs_lower_catch, na.rm = TRUE),
+        pf_wait_lower = quantile(pf_wait, 0.025, na.rm = TRUE),
+        pf_wait_upper = quantile(pf_wait, 0.975, na.rm = TRUE),
+        normal_wait_lower = quantile(normal_wait, 0.025, na.rm = TRUE),
+        normal_wait_upper = quantile(normal_wait, 0.975, na.rm = TRUE),
+        hist_wait_lower = quantile(hist_wait, 0.025, na.rm = TRUE),
+        hist_wait_upper = quantile(hist_wait, 0.975, na.rm = TRUE),
+        gtfs_wait_lower = quantile(gtfs_wait, 0.025, na.rm = TRUE),
+        gtfs_wait_upper = quantile(gtfs_wait, 0.975, na.rm = TRUE),
         pf_wait = mean(pf_wait, na.rm = TRUE),
         normal_wait = mean(normal_wait, na.rm = TRUE),
         hist_wait = mean(hist_wait, na.rm = TRUE),
@@ -497,22 +635,30 @@ plotA <- plot_base +
     geom_path(aes(y = normal_catch, colour = "normal")) +
     geom_path(aes(y = hist_catch, colour = "historical")) +
     geom_path(aes(y = gtfs_catch, colour = "gtfs")) +
-    ylab("Probability of arriving before the bus\n(arrive at point estimate)")
+    ylab("Pr(arrive before the bus | arrive at point estimate)")
 
 plotB <- plot_base +
     geom_path(aes(y = pf_lower_catch, colour = "pf")) +
     geom_path(aes(y = normal_lower_catch, colour = "normal")) +
     geom_path(aes(y = hist_lower_catch, colour = "historical")) +
     geom_path(aes(y = gtfs_lower_catch, colour = "gtfs")) +
-    ylab("Probability of arriving before the bus\n(arrive at lower estimate)")
+    ylab("Pr(arrive before the bus | arrive at lower estimate)")
 
 plotC <- plot_base +
     geom_abline(lty = 3) +
+    geom_path(aes(y = pmin(min, pf_wait_lower / 60), colour = "pf"), lty = 2) +
+    geom_path(aes(y = pmin(min, pf_wait_upper / 60), colour = "pf"), lty = 2) +
+    geom_path(aes(y = pmin(min, normal_wait_lower / 60), colour = "normal"), lty = 2) +
+    geom_path(aes(y = pmin(min, normal_wait_upper / 60), colour = "normal"), lty = 2) +
+    geom_path(aes(y = pmin(min, hist_wait_lower / 60), colour = "historical"), lty = 2) +
+    geom_path(aes(y = pmin(min, hist_wait_upper / 60), colour = "historical"), lty = 2) +
+    geom_path(aes(y = pmin(min, gtfs_wait_lower / 60), colour = "gtfs"), lty = 2) +
+    geom_path(aes(y = pmin(min, gtfs_wait_upper / 60), colour = "gtfs"), lty = 2) +
     geom_path(aes(y = pmin(min, pf_wait / 60), colour = "pf")) +
     geom_path(aes(y = pmin(min, normal_wait / 60), colour = "normal")) +
     geom_path(aes(y = pmin(min, hist_wait / 60), colour = "historical")) +
     geom_path(aes(y = pmin(min, gtfs_wait / 60), colour = "gtfs")) +
-    ylab("Expected waiting time (min)\n(arrive at lower estimate)") + ylim(0, 20)
+    ylab("E(waiting time | arrive at lower estimate) (m)") + ylim(0, 20)
 
 gA <- ggplotGrob(plotA)
 gB <- ggplotGrob(plotB)
@@ -526,6 +672,12 @@ plot(gB)
 plot(gC)
 @
 
+
+\subsubsection{Stop sequence}
+
+Next, we computed the same values by stop sequence, as is shown in \cref{fig:model_results_pr_stop}. For most stops, the particle filter has a higher probability of the bus arriving after the point estimate ($\mathbb{P}_m$), though for early stops this is not the case. However, this is simply due to the fact that the particle filter \emph{does not make a prediction} until the vehicle has been observed\footnote{Yet! Future work will work to use historical data in this situation}, whereas the \gls{gtfs} approach assumes the delay is zero until the vehicle is observed. This is often going to be reasonably accurate, as we would hope that the bus is on time for the first few stops, at least!
+
+For arrival by the lower bound, the trend is similar to that with time until arrival, but we see much lower probabilities for the particle filter over the first fiew stops, again due to the same reasons stated above. The expected waiting time again shows better performance with the particle filter method until about stop 40, after which point the methods are more or less the same, given not many routes have over 40~stops.
 
 
 <<model_results_pr_stop,echo=FALSE,message=FALSE,warning=FALSE,cache=TRUE,dependson=c("model_results_load","model_results_pr_miss"),cache.lazy=FALSE,fig.width=9,fig.height=3,out.width="\\textwidth",fig.cap="Summary values by stop sequence.",fig.subcap=c("One", "Two", "Three"),fig.ncol=1,fig.colsep=rep("\\\\", 4)>>=
@@ -558,6 +710,14 @@ pr_smry_stop <- eta_results %>%
         normal_lower_catch = mean(normal_lower_catch),
         hist_lower_catch = mean(hist_lower_catch, na.rm = TRUE),
         gtfs_lower_catch = mean(gtfs_lower_catch, na.rm = TRUE),
+        pf_wait_lower = quantile(pf_wait, 0.025, na.rm = TRUE),
+        pf_wait_upper = quantile(pf_wait, 0.975, na.rm = TRUE),
+        normal_wait_lower = quantile(normal_wait, 0.025, na.rm = TRUE),
+        normal_wait_upper = quantile(normal_wait, 0.975, na.rm = TRUE),
+        hist_wait_lower = quantile(hist_wait, 0.025, na.rm = TRUE),
+        hist_wait_upper = quantile(hist_wait, 0.975, na.rm = TRUE),
+        gtfs_wait_lower = quantile(gtfs_wait, 0.025, na.rm = TRUE),
+        gtfs_wait_upper = quantile(gtfs_wait, 0.975, na.rm = TRUE),
         pf_wait = mean(pf_wait, na.rm = TRUE),
         normal_wait = mean(normal_wait, na.rm = TRUE),
         hist_wait = mean(hist_wait, na.rm = TRUE),
@@ -587,6 +747,14 @@ plotB <- plot_base +
     ylab("Probability of arriving before the bus\n(arrive at lower estimate)")
 
 plotC <- plot_base +
+    geom_path(aes(y = pf_wait_lower / 60, colour = "pf"), lty = 2) +
+    geom_path(aes(y = pf_wait_upper / 60, colour = "pf"), lty = 2) +
+    geom_path(aes(y = normal_wait_lower / 60, colour = "normal"), lty = 2) +
+    geom_path(aes(y = normal_wait_upper / 60, colour = "normal"), lty = 2) +
+    geom_path(aes(y = hist_wait_lower / 60, colour = "historical"), lty = 2) +
+    geom_path(aes(y = hist_wait_upper / 60, colour = "historical"), lty = 2) +
+    geom_path(aes(y = gtfs_wait_lower / 60, colour = "gtfs"), lty = 2) +
+    geom_path(aes(y = gtfs_wait_upper / 60, colour = "gtfs"), lty = 2) +
     geom_path(aes(y = pf_wait / 60, colour = "pf")) +
     geom_path(aes(y = normal_wait / 60, colour = "normal")) +
     geom_path(aes(y = hist_wait / 60, colour = "historical")) +
@@ -604,6 +772,14 @@ plot(gA)
 plot(gB)
 plot(gC)
 @
+
+
+\subsubsection{Time of day}
+
+Calculating the probabilities and expected waiting time in 15~minute intervals for each of the models is shown in \cref{fig:model_results_pr_timeofday}. We now see the peak hour effects, which increase the probablity of arriving before the bus does in the particle filter method, for both the median and lower bound, while the schedule-delay method is negatively affected by peak hour in the lower bound estimate. The historical data estimate shows little effect due to peak hour, but performs better in the day time (versus early morning and late evening).
+
+
+For the expected waiting time, the particle filter is overall the lowest, even during peak where it shows a significant increase, seen in \cref{fig:model_results_pr_timeofday3}. The historical and schedule-delay methods both have similar expected waiting times of about 6--7 minutes.
 
 
 <<model_results_pr_timeofday,echo=FALSE,message=FALSE,warning=FALSE,cache=TRUE,dependson=c("model_results_load","model_results_pr_miss"),cache.lazy=FALSE,fig.width=9,fig.height=3,out.width="\\textwidth",fig.cap="Summary values by time of day.",fig.subcap=c("One", "Two", "Three"),fig.ncol=1,fig.colsep=rep("\\\\", 4)>>=
@@ -638,6 +814,14 @@ pr_smry_timeofday <- eta_results %>%
         normal_lower_catch = mean(normal_lower_catch),
         hist_lower_catch = mean(hist_lower_catch, na.rm = TRUE),
         gtfs_lower_catch = mean(gtfs_lower_catch, na.rm = TRUE),
+        pf_wait_lower = quantile(pf_wait, 0.025, na.rm = TRUE),
+        pf_wait_upper = quantile(pf_wait, 0.975, na.rm = TRUE),
+        normal_wait_lower = quantile(normal_wait, 0.025, na.rm = TRUE),
+        normal_wait_upper = quantile(normal_wait, 0.975, na.rm = TRUE),
+        hist_wait_lower = quantile(hist_wait, 0.025, na.rm = TRUE),
+        hist_wait_upper = quantile(hist_wait, 0.975, na.rm = TRUE),
+        gtfs_wait_lower = quantile(gtfs_wait, 0.025, na.rm = TRUE),
+        gtfs_wait_upper = quantile(gtfs_wait, 0.975, na.rm = TRUE),
         pf_wait = mean(pf_wait, na.rm = TRUE),
         normal_wait = mean(normal_wait, na.rm = TRUE),
         hist_wait = mean(hist_wait, na.rm = TRUE),
@@ -666,6 +850,14 @@ plotB <- plot_base +
     ylab("Probability of arriving before the bus\n(arrive at lower estimate)")
 
 plotC <- plot_base +
+    geom_path(aes(y = pf_wait_lower / 60, colour = "pf"), lty = 2) +
+    geom_path(aes(y = pf_wait_upper / 60, colour = "pf"), lty = 2) +
+    geom_path(aes(y = normal_wait_lower / 60, colour = "normal"), lty = 2) +
+    geom_path(aes(y = normal_wait_upper / 60, colour = "normal"), lty = 2) +
+    geom_path(aes(y = hist_wait_lower / 60, colour = "historical"), lty = 2) +
+    geom_path(aes(y = hist_wait_upper / 60, colour = "historical"), lty = 2) +
+    geom_path(aes(y = gtfs_wait_lower / 60, colour = "gtfs"), lty = 2) +
+    geom_path(aes(y = gtfs_wait_upper / 60, colour = "gtfs"), lty = 2) +
     geom_path(aes(y = pf_wait / 60, colour = "pf")) +
     geom_path(aes(y = normal_wait / 60, colour = "normal")) +
     geom_path(aes(y = hist_wait / 60, colour = "historical")) +
@@ -687,3 +879,7 @@ plot(gC)
 
 
 
+\subsection{Result summary}
+\label{sec:prediction_model_comp_summary}
+
+We have now seen that, while not impressive, the particle filter suggests some improvement is possible over the schedule-delay method used by \AT.

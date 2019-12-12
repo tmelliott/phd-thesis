@@ -5,7 +5,7 @@ Due to the computational demand of the particle filter, significant speed improv
 
 
 
-<<normal_approx,cache=TRUE,echo=FALSE,fig.width=8,fig.height=4>>=
+<<normal_approx,cache=TRUE,echo=FALSE,fig.width=9,fig.height=3,fig.subcap=c("One intermediate stop", "Two intermediate stops", "Three intermediate stops", "Five intermediate stops"),fig.ncol=1,fig.colsep=rep("\\\\",5),fig.cap="Normal approximation">>=
 napprox <- function(n, pi = rep(0.8, n), t = c(80, 15), mu = rep(20, n), sigma = rep(5, n)) {
     # indicator of stopping:
     d <- do.call(expand.grid, lapply(1:n, function(i) 0:1))
