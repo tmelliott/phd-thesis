@@ -882,4 +882,6 @@ plot(gC)
 \subsection{Result summary}
 \label{sec:prediction_model_comp_summary}
 
-We have now seen that, while not impressive, the particle filter suggests some improvement is possible over the schedule-delay method used by \AT.
+We have now seen that, while not impressive, the particle filter suggests some improvement is possible over the schedule-delay method used by \AT. It may have a tendency to underestimate the arrival time, but even so the expected waiting time is, in most situations, less than that of all of the other methods. Conversely, the normal approximation performed very poorly in this case, likely due to the fact that summing uncertainties, and assuming independence, quickly results in overestimation of uncertainty, and thus very large prediction intervals (not to mention high prediction error).
+
+As for the other methods which do not use real-time network information, the historical based method performed as well as or better than the schedule-delay method, with a few situations where it did not perform so well. The average and variance of arrival delays was based on two weeks' worth of data, which is---at most---10 observations per trip. Processing more weeks of data could bring slight improvments, but without taking into account real-time data, it is unlikely to yield significant improvements.
