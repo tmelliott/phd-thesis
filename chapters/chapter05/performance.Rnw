@@ -75,7 +75,7 @@ kable(
 @
 
 
-However, there is huge variability in the number of buses operating at any given time, so in \cref{fig:prediction_timing_time} we have displayed the timings for each individual iteration over the course of the day. We again see the peak hour effect, where there are upwards of 1000~vehicles operating. This pushes the total iteration time to 30~seconds; however, again the two most intensive steps (vehicle update and \gls{eta} prediction) are thread-safe and implemented to run on multiple cores, if available.
+However, there is huge variability in the number of buses operating at any given time, so in \cref{fig:prediction_timing_time} we have displayed the timings for each individual iteration over the course of the day. We again see the peak hour effect, where there are upwards of 1000~vehicles operating. This pushes the total iteration time to 30~seconds; however, again the two most intensive steps (vehicle update and \gls{eta} prediction) are thread-safe\footnote{At least, they are supposed to be\ldots currently a segfault occuring when running on multiple cores, not sure why.} and implemented to run on multiple cores, if available.
 
 
 <<prediction_timing_time,warning=FALSE,echo=FALSE,cache=F,dependson=c(-1),fig.width=9,fig.height=4,out.width="\\textwidth",fig.cap="Timing results over time for various stages of the program: (L) Load data, (O) Update vehicles information, (V) Vehicle state update, (N) Network state update, (P) Predict ETAs, (W) Write ETAs to protobuf feed, (T) Total iteration time.">>=
