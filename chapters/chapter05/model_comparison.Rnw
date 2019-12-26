@@ -569,13 +569,12 @@ plot(gB)
 
 \subsubsection{Time until arrival}
 
-\Cre{fig:model_results_pr_time} shows $\mathbb{P}_m$, $\mathbb{P}_\ell$, and $\mathbb{E}_\ell$ computed in one-minute intervals for each of the four models. We see that the probability that the vehicle arrives after the estimate is mostly constantly, with a slow decrease as the bus nears the stop; however, the four methods are clearly distinct from each other and yield the same conclusion as before.
+\Cre{fig:model_results_pr_time} shows $\mathbb{P}_m$, $\mathbb{P}_\ell$, and $\mathbb{E}_\ell$ computed in one-minute intervals for each of the four models. We see that the probability that the vehicle arrives after the estimate is reasonably constant, with a slight decrease as the bus nears the stop; however, the four methods are distinct from each other, yielding the same conclusion as before \textcolor{red}{(be more specific)}.
+
+As for $\mathbb{P}_\ell$, displayed in \cref{fig:model_results_pr_time2}, we see a different trend: $\FM_1$ and $\FM_3$ increase the further out the vehicle is, while in $\FM_4$ the probability decreases. Clearly, this is because we have chosen a fixed lower bound. When the vehicle is less than 15 minutes out, arriving 6~minute before the schedule-delay estimate results in a higher probability of catching the bus than the particle filter because the width is greater.
 
 
-As for $\mathbb{P}_\ell$, however, displayed in \cref{fig:model_results_pr_time2}, shows a different trend: $\FM_1$ and $\FM_3$ increase the further out the vehicle is, while in $\FM_4$ the probability decreases. Clearly, this is because we have chosen a fixed lower bound. When the vehicle is less than 15 minutes out, arriving 6~minute before the schedule-delay estimate results in a higher probability of catching the bus than the particle filter.
-
-
-Finally, we look at the expected waiting time, given a passenger arrives at the lower bound \emph{and} the bus arrives after the lower bound, which is displayed in \cref{fig:model_results_pr_time}. The particle filter has a consistently shorted waiting time, though by aboiut 30~minutes out the three methods excluding the normal approximation are approximately the same. We can see that the expected waiting time for $\FM_4$ is more or less independent of time until arrival.
+Finally, we look at the expected waiting time, given a passenger arrives at the lower bound \emph{and} the bus arrives sometime after, which is displayed in \cref{fig:model_results_pr_time}. The particle filter has a consistently shorter waiting time, though by about 30~minutes out the three methods excluding the normal approximation are approximately the same. We can see that the expected waiting time for $\FM_4$ is more or less independent of time until arrival.
 
 
 
@@ -675,9 +674,9 @@ plot(gC)
 
 \subsubsection{Stop sequence}
 
-Next, we computed the same values by stop sequence, as is shown in \cref{fig:model_results_pr_stop}. For most stops, the particle filter has a higher probability of the bus arriving after the point estimate ($\mathbb{P}_m$), though for early stops this is not the case. However, this is simply due to the fact that the particle filter \emph{does not make a prediction} until the vehicle has been observed\footnote{Yet! Future work will work to use historical data in this situation}, whereas the \gls{gtfs} approach assumes the delay is zero until the vehicle is observed. This is often going to be reasonably accurate, as we would hope that the bus is on time for the first few stops, at least!
+Next, we computed the same values by stop sequence, as is shown in \cref{fig:model_results_pr_stop}. For most stops, the particle filter has a higher probability of the bus arriving after the point estimate ($\mathbb{P}_m$), though for early stops this is not the case. However, this is simply because the particle filter \emph{does not make a prediction} until the vehicle has been observed\footnote{Yet! Future work will work to use historical data in this situation}, whereas the \gls{gtfs} approach assumes the delay is zero until the vehicle is observed. This assumption can be reasonably accurate, particularly for the first few stops when there has not been enough time for the bus to get behind or ahead of schedule.
 
-For arrival by the lower bound, the trend is similar to that with time until arrival, but we see much lower probabilities for the particle filter over the first fiew stops, again due to the same reasons stated above. The expected waiting time again shows better performance with the particle filter method until about stop 40, after which point the methods are more or less the same, given not many routes have over 40~stops.
+The trend for $\mathbb{P}_\ell$ is similar to what we saw with time until arrival. This time, however, the particle filter has much lower probabilities for the first few stops, again due to the reasons stated above. Even so, $\FM_4$ is consistently higher than $\FM_1$ until stop 40. The expected waiting time again shows better performance with the particle filter method until about stop 40, after which point the methods are more or less the same, given not many routes have over 40~stops. There is a trade-off here between waiting time and catch probability.
 
 
 <<model_results_pr_stop,echo=FALSE,message=FALSE,warning=FALSE,cache=TRUE,dependson=c("model_results_load","model_results_pr_miss"),cache.lazy=FALSE,fig.width=9,fig.height=3,out.width="\\textwidth",fig.cap="Summary values by stop sequence.",fig.subcap=c("One", "Two", "Three"),fig.ncol=1,fig.colsep=rep("\\\\", 4)>>=
@@ -776,7 +775,7 @@ plot(gC)
 
 \subsubsection{Time of day}
 
-Calculating the probabilities and expected waiting time in 15~minute intervals for each of the models is shown in \cref{fig:model_results_pr_timeofday}. We now see the peak hour effects, which increase the probablity of arriving before the bus does in the particle filter method, for both the median and lower bound, while the schedule-delay method is negatively affected by peak hour in the lower bound estimate. The historical data estimate shows little effect due to peak hour, but performs better in the day time (versus early morning and late evening).
+Calculating the probabilities and expected waiting time in 15~minute intervals for each of the models is shown in \cref{fig:model_results_pr_timeofday}, in which the peak hour effects are visible, associated with an increased probability of arriving before the bus does in the particle filter method for both the median and lower bound. The schedule-delay method is negatively affected by peak hour in the lower bound estimate. The historical data estimate shows little effect due to peak hour but performs better in the day time (versus early morning and late evening).
 
 
 For the expected waiting time, the particle filter is overall the lowest, even during peak where it shows a significant increase, seen in \cref{fig:model_results_pr_timeofday3}. The historical and schedule-delay methods both have similar expected waiting times of about 6--7 minutes.
@@ -882,6 +881,6 @@ plot(gC)
 \subsection{Result summary}
 \label{sec:prediction_model_comp_summary}
 
-We have now seen that, while not impressive, the particle filter suggests some improvement is possible over the schedule-delay method used by \AT. It may have a tendency to underestimate the arrival time, but even so the expected waiting time is, in most situations, less than that of all of the other methods. Conversely, the normal approximation performed very poorly in this case, likely due to the fact that summing uncertainties, and assuming independence, quickly results in overestimation of uncertainty, and thus very large prediction intervals (not to mention high prediction error).
+We have now seen that the particle filter suggests some improvement is possible over the schedule-delay method used by \AT. It tends to underestimate the arrival time, but even so, the expected waiting time is, in most situations, less than that of all of the other methods. Conversely, the normal approximation performed very poorly in this case, likely since summing uncertainties, and assuming independence, quickly results in an overestimation of uncertainty, and thus wide prediction intervals (not to mention high prediction error).
 
-As for the other methods which do not use real-time network information, the historical based method performed as well as or better than the schedule-delay method, with a few situations where it did not perform so well. The average and variance of arrival delays was based on two weeks' worth of data, which is---at most---10 observations per trip. Processing more weeks of data could bring slight improvments, but without taking into account real-time data, it is unlikely to yield significant improvements.
+As for the other methods which do not use real-time network information, the historical data-based method performed as well as or better than the schedule-delay method, with a few situations where it did not perform so well. The average and variance of arrival delays were based on two weeks' worth of data, which is---at most---10 observations per trip. Processing more weeks of data could bring slight improvements, but without taking into account real-time data, it is unlikely to yield significant improvements. Post-processing is an intensive procedure, so future development could include real-time computation of the mean and variance of arrival time for each stop along each trip.
