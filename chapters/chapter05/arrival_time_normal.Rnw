@@ -1,9 +1,7 @@
 \subsection{Normal approximation}
 \label{sec:prediction_arrival_time_normal}
 
-Due to the computational demand of the particle filter, significant speed improvements can be obtained if we were to use a normal approximation instead. The network state is already represented as multivariate normal random variable, which we can easily apply transformations to sum over the dimensions. The issues lies with stop dwell times, which have a point mass at zero, leading to a mixture predictive distribution: for each stop the vehicle must pass, there are twice as many components, so after $m$ stops there will be $2^m$ components. However, these mostly converge after a few stops as shown in \cref{fig:normal_approx}.
-
-
+Due to the computational demand of the particle filter, significant speed improvements can be obtained if we were to use a normal approximation instead. The network state is a multivariate normal random variable already; hence, the issue lies with stop dwell times having a point mass at zero, which leads to a mixture predictive distribution. For each stop the vehicle passes, there are twice as many components, so after $m$ stops, there would be $2^m$ components. Fortunately, these mostly converge after a few stops as shown in \cref{fig:normal_approx}.
 
 <<normal_approx,cache=TRUE,echo=FALSE,fig.width=9,fig.height=3,fig.subcap=c("One intermediate stop", "Two intermediate stops", "Three intermediate stops", "Five intermediate stops"),fig.ncol=1,fig.colsep=rep("\\\\",5),fig.cap="Normal approximation">>=
 napprox <- function(n, pi = rep(0.8, n), t = c(80, 15), mu = rep(20, n), sigma = rep(5, n)) {
@@ -56,7 +54,7 @@ napprox(5, pi = c(0.5, 0.5, 0.5, 0.5, 0.3), mu = c(30, 20, 40, 20, 6), sigma = c
 @
 
 
-In order to use a mixture of normals to encorporate stopping uncertainty, we express the mean and uncertainty as vectors $\tilde\mu$ and $\tilde\sigma^2$, respectively, along with a third vector $\tilde\pi$ denoting the $\tilde N$ mixture weights\footnote{We are using the tilde over parameters, e.g., $\tilde x$, to help distinguish them from others used throughout the thesis}, such that
+To use a mixture of normals to incorporate stopping uncertainty, we express the mean and uncertainty as vectors $\tilde\mu$ and $\tilde\sigma^2$, respectively, along with a third vector $\tilde\pi$ denoting the $\tilde N$ mixture weights\footnote{We are using the tilde over parameters, e.g., $\tilde x$, to help distinguish them from others used throughout the thesis}, such that
 \begin{equation}
 \label{eq:ch5:mixture_weight_spec}
 \tilde\pi_i > 0, i = 1, \ldots, \tilde N
@@ -72,7 +70,7 @@ z_i \sim \Normal{\tilde\mu_i}{\tilde\sigma^2_i}.
 \end{equation}
 
 
-To compute each component, each component $i$ has an indicator of whether or not it stopped at stop $m$, $I_{im} = \{0,1\}$. Then
+Each component $i$ has an indicator of whether or not it stopped at stop $m$, $I_{im} = \{0,1\}$, giving the total dwell time as
 \begin{equation}
 \label{eq:mixture_dwell_times}
 \begin{split}
@@ -80,10 +78,9 @@ To compute each component, each component $i$ has an indicator of whether or not
 \tilde\sigma_i^2 &= \sum_{m=j}^{j+n} I_{im} \dwellvar_m
 \end{split}
 \end{equation}
-since we are assuming dwell times at individual stops are independent of each other.
+which assumes dwell times at individual stops are independent of each other.
 
-
-The vector of indicators is simply a branching tree for each stop, all current components are duplicated: one is assigned $I_{i,m+1} = 1$ and the other 0.
+The vector of indicators is a branching tree for each stop; all current components get duplicated, and one is assigned $I_{i,m+1} = 1$ and the other 0.
 
 
 Finally, mixture weights are obtained through the stopping probability at each stop, $\pi_j$:
@@ -100,7 +97,7 @@ Finally, mixture weights are obtained through the stopping probability at each s
 \end{equation}
 
 
-This all works okay for predicting a few stops ahead, but after some time the mixture weights become small and the components combine into more-or-less a single one, as shown in \cref{fig:normal_approx}. To prevent $\tilde N$ from becoming too large, the full distribution is simplified into a single component with mean and variance those of the mixture. These can be computed by
+The mixture approximation works okay for a few stops ahead, but after some time the mixture weights become small and the components combine into more-or-less a single one, as shown in \cref{fig:normal_approx}. To prevent $\tilde N$ from becoming too large, the full distribution is simplified into a single component with mean and variance
 \begin{equation}
 \label{eq:mixture_mean}
 \begin{split}
@@ -126,7 +123,7 @@ and
   \sum_{i=1}^{\tilde N} \tilde\pi_i \tilde\sigma_i^2
 \end{split}
 \end{equation}
-by assuming segment travel time and dwell time are independent---assuming otherwise makes this model impossible to work with; indeed, this model versus the particle filter (which makes no such assumption) is effectively testing the viability of this assumption.
+respectively, assuming segment travel time and dwell time are independent---assuming otherwise makes this model impossible to work with; indeed, this model versus the particle filter (which makes no such assumption) is effectively testing the viability of this assumption.
 
 
 For quantiles $q_\alpha$ we need to use an optimisation algorithm to solve
@@ -139,7 +136,7 @@ For quantiles $q_\alpha$ we need to use an optimisation algorithm to solve
 which is straightforward using Brent's Algorithm \citep{Brent_1973}, which is implemented in the Boost C++ library \citep{cn}.
 
 
-However, after about eight stops, the number of components will be in excess of $2^8 = \Sexpr{2^8}$, after which point it would be more efficient to just use the particle filter. Instead, we use a simplification criteria such that, when passed, a single new component is close enough in approximation to the set of components that it can replace them. We have chosen to compare quantiles, and if the maximum absolute difference is less than one minute\footnote{When providing \glspl{eta} to commuters, they are generally rounded to integer minutes anyway}, we replace the set of components with a single new one with mean and variance as specified in \cref{eq:mixture_mean,eq:mixture_variance}. Subsequent stops will begin the process anew, and iteratively check if a single distribution is an adequate approximation.
+However, after eight stops, the number of components is $2^8 = \Sexpr{2^8}$, after which point it would be more efficient to use the particle filter. Instead, we use a simplification criteria such that, when passed, a single new component is close enough in approximation to the set of components that it can replace them. We have chosen to compare quantiles, and if the maximum absolute difference is less than one minute\footnote{When providing \glspl{eta} to commuters, they are rounded to the nearest minute, anyway.}, we replace the set of components with a single new one with mean and variance as specified in \cref{eq:mixture_mean,eq:mixture_variance}. At subsequent stops, the process repeats, and we iteratively check if a single distribution is an adequate approximation.
 
 
 We also need to prevent the mixture from becoming too large: if $\tilde N > 8$, we combine components with $\tilde\pi_i < \frac{1}{2}\max_i(\pi_i)$, using appropriately modified versions of \cref{eq:mixture_mean,eq:mixture_variance}. In practice, after about five stops the distribution is approximately normal, and the error is minimal. \textcolor{red}{a figure for this}
