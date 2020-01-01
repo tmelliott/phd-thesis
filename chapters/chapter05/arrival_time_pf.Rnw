@@ -1,13 +1,10 @@
 \subsection{Particle filter}
 \label{sec:prediction_arrival_time_pf}
 
-Each active trip is associated with a single vehicle, itself associated with a set of  $\Np$~particles which approximate the vehicle's state. Perhaps the most straightforward method---at least conceptually---of predicting arrival times is to let each particle progress to the end of the route and record its arrival times. Computationally, this is easy to implement but very intensive, significantly increasing iteration time for our whole algorithm. However, as we no longer need to worry about updating (via importance resampling) or $N_{\text{eff}}$, we can use a smaller subset of particles, $\Np^\star \leq \Np$. $\Np^\star$ can be adjusted depending on how many remaining stops there are.
+Each active trip is associated with a single vehicle, itself associated with a set of  $\Np$~particles approximating the vehicle's state. Perhaps the most straightforward method---at least conceptually---of predicting arrival times is to let each particle progress to the end of the route and record its arrival times. Computationally, this is easy to implement but very intensive, significantly increasing iteration time for our whole algorithm. However, as we no longer need to worry about updating (via importance resampling), we can use a smaller subset of particles, $\Np^\star \leq \Np$, which can be adjusted depending on how many stops there are along the remainder of the route.
 
 
-To implement the particle filter forecast method, we start with a set of particles at time $\Vtime_k$, $\tilde\Vstate_k$. We wish to calculate, for each particle, the arrival time at each upcoming stop. First, we take a weighted sample of size $\Np^\star$. Then, for each particle, arrival times are computed.
-
-
-First, the particle's current position is assessed. If it is not at a stop,  the ``remaining travel time'' for the current segment is needed, which we calculate by taking the particle's current speed, adding some noise, and extrapolating to the end of the segment. Having completed the current (partial) segment $j$, the particle's travel time to stop $j$, $\Linkt\vi_j$, is used to estimate the arrival time,
+To implement the particle filter forecast method, $\mathcal{F}_1$, we start with a set of particles at time $\Vtime_k$, $\tilde\Vstate_k$, which was the time of the most recent vehicle observation. For each particle, we calculate the arrival time at each upcoming stop. First, if the particle is at a stop,  the ``remaining travel time'' for the current segment is needed, which we calculate by taking the particle's current speed, adding some noise, and extrapolating to the end of the segment. Having completed the current (partial) segment $j$, the particle's travel time to stop $j$, $\Linkt\vi_j$, is used to estimate the arrival time,
 \begin{equation}
 \label{eq:particle_arrival_time}
 \Tarr\vi_j = \Vtime + \Linkt\vi_j.
@@ -23,7 +20,7 @@ Next, we iteratively add dwell time and travel time for stops and road segments,
 \end{equation}
 
 
-When estimating travel time, the particle's segment speed is simulated from the network state,
+When estimating travel time, the particle's segment speed is drawn from the network state,
 \begin{equation}
 \label{sec:particle_travel_time_pred}
 \Linkt\vi_j \sim
@@ -40,4 +37,4 @@ Having obtained arrival times for all $\Np^\star$ particles, the predictive dist
 p(\Tarr_j | \Tripr_k, \RouteNWstate_\Tripr) \approx
 \sum_{i=1}^{\Np^\star} \dirac_{\Tarr_j\vi}\left(\Tarr_j\right)
 \end{equation}
-from which we can obtain point estimates or quantiles---for example, the mean, median, or a 90\% credible region. Note that we do not use particle weights as these were used to obtain the subsample of size $\Np^\star$ earlier.
+from which we can obtain point estimates or quantiles---for example, the mean, median, or a 90\% credible region. Note that we no longer use particle weights, as these were used to obtain the subsample of size $\Np^\star$.
