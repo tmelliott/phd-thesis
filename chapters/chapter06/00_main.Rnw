@@ -14,6 +14,24 @@ We want to develop a simple point estimate that balances reliability and accurac
 Additionally, we are interested in the \emph{journey planning} problem. Many commuters need to catch multiple services to reach their destination, and while Auckland Transport has attempted to make transfering simple, it is seldom the case, particularly when transfering from a high to a low frequency route. For example, take a journey from X to Y: first, you catch the 70 route with a 10~minute frequency, then transfer at Z to the FF route with a 30~minute frequency. Which 70 do you catch? Assuming the schedule is accurate, the shortest journey is NN minutes, while the longest is NN+30 minutes.
 
 
+The first consideration is that \glspl{eta} are typically displayed as integers, so we need to decide how to round values. For example, 105~seconds is 1.75~minutes: should this be displayed as 2~minutes (standard rounding) or 1~minute (integer rounding)? We will be using Bayesian posterior predictive probabilities, so for example we may want to estimate the median such that $\Pr{A \geq a} = 0.5$; however, if we round $A$ in the above example to 2 minutes, then not only is the equality incorrect, but the probablity that the actual arrival time $A$ is after the estimated arrival time $a$ is \emph{less than 0.5}. Therefore, it makes sense to use integer rounding, or the \emph{floor} operator, to find the maximum value of $a \in \{0, 1, 2, \ldots\}$ such that $\Pr{A \geq a} \geq 0.5$.
+
+
+Computing the \gls{cdf} of arrival time with the particle filter is simple once we have decided on a rounding rule. The arrival time for each particle $\Tarr\vi$ is rounded down, $\lfloor\Tarr\vi\rfloor$, and then tabulated to count how many particles attain each arrival time. Then, the probability that the bus arrives within the interval $[a, a+1), a\in\{0,1,2,\ldots\}$ is given by
+\begin{equation}
+\label{eq:pf_pdf_arrivaltime}
+\Pr{A \in [a, a+1)} =
+\frac{\text{number of particles arriving in $a$~minutes}}{N^\star}
+\end{equation}
+which leads to the \gls{cdf}
+\begin{equation}
+\label{eq:pf_cdf_arrivaltime}
+\Pr{A < a} = \sum_{x=0}^{x=a-1} \Pr{A \in [x, x+1)}.
+\end{equation}
+The remainder of this chapter explores the choice of $a$ using \cref{eq:pf_cdf_arrivaltime} to calculate posterior predictive probabilities.
+
+
+
 \input{DIRNAME/eta_point.tex}
 \input{DIRNAME/eta_interval.tex}
 \input{DIRNAME/eta_transfer.tex}
