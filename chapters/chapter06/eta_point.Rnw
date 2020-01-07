@@ -1,4 +1,6 @@
 \section{Point estimate}
 \label{sec:etas-point}
 
+In a perfect world, it would be possible to predict exactly how long it would take a bus to arrive at a stop, and display this single number to passengers. Alas, as we saw in \cref{cha:prediction}, this is not a perfect world, and arrival time prediction inherently comes with a lot of uncertainty. Yet we still need to decide on the best single value to use as a point estimate of arrival time, since much of the intrastructure currently available only allows this. We also want to examine if it is possible to come up with a single statistic that performs well---on average---and, more importantly, better than the currently deployed method.
+
 
