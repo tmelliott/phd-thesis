@@ -7,7 +7,10 @@ The particle filter is a computationally demanding process, so here we give some
 \section{Resampling}
 \label{app:particle-resampling}
 
-Part of the particle filter update step is to, when required, resample the particles according to their weights. First, however, we will describe weighted resampling. Given a sample of size $N$, we use a \gls{rng} to obtain uniform numbers $u \in (0, 1)$. Since each particle has equal weight, we multiply $u$ by $N$ and round down (using the \emph{floor} function), so get
+Part of the particle filter update step is to, when required, resample the particles according to their weights. This involves generating random numbers to determine which particles to include in the sample, replacing the vector of particle states with the new sample. The latter is straightforward: we simply copy the sampled particles into a new vector and, once finished, replace the original vector with the new one.
+
+
+We will now describe unweighted resampling first before discussing weighted. Given a sample of size $N$, we use a \gls{rng} to obtain uniform numbers $u \in (0, 1)$. Since each particle has equal weight, we multiply $u$ by $N$ and round down (using the \emph{floor} function), so get
 \begin{equation}
 j = \lfloor uN \rfloor.
 \end{equation}
@@ -33,6 +36,7 @@ As before, we use a \gls{rng} to obtain a uniform random number $u$; to map the 
 \begin{equation}
 j : \sum_{i=1}^j w\vi[j] \leq u.
 \end{equation}
+
 
 
 
