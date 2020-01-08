@@ -58,8 +58,7 @@ curd <- setwd("../../data")
 source("load_data.R")
 setwd(curd)
 
-load("vps.rda")
-vps <- vps %>% distinct
+source("scripts/load_vps.R")
 
 library(RSQLite)
 suppressPackageStartupMessages(library(dbplyr))
@@ -107,6 +106,7 @@ dist_to_line <- function(x, s) {
     s <- sf::st_linestring(s %>% ungroup %>% select(shape_pt_lon, shape_pt_lat) %>% as.matrix)
     geosphere::dist2Line(x %>% select('lon', 'lat') %>% as.matrix, s)[, 1]
 }
+
 vpsd <- vps[sample(nrow(vps), 20000),] %>% group_by(route_id) %>%
     do({
         zz <- (.)
