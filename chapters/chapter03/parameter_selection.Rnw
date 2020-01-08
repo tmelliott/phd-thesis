@@ -155,7 +155,7 @@ giving us a set of dwell times
 
 <<observed_dwell,message=FALSE,warning=FALSE,echo=FALSE,fig.width=8,fig.height=3,fig.cap="Distribution of dwell times observed over the course of five days.">>=
 library(tidyverse)
-dwellfile <- "dwell.rda"
+dwellfile <- "data/dwell.rda"
 if (file.exists(dwellfile)) {
     load(dwellfile)
 } else {

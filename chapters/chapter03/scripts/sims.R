@@ -1,6 +1,6 @@
 suppressPackageStartupMessages(library(tidyverse))
 
-source("vehicle_simulation.R")
+source("scripts/vehicle_simulation.R")
 sim1 <- function(n = 120, noise = 0.09, seed = 1) {
     set.seed(seed)
     x <- numeric(n+1)

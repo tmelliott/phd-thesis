@@ -51,7 +51,7 @@ the weighted mean of the sample,
 
 
 <<sim1_gen,echo=FALSE,message=FALSE,cache=FALSE>>=
-source('sims.R')
+source("scripts/sims.R")
 s1 <- simulate_vehicle()
 segs <- lapply(1:nrow(s1$segments),
     function(i) s1$segments$distance[i] + c(0, s1$segments$length[i])
