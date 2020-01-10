@@ -1,0 +1,2 @@
+chapters/chapter06/data/eta_smry.rda filter=lfs diff=lfs merge=lfs -text
+chapters/chapter06/data/eta_q.rda filter=lfs diff=lfs merge=lfs -text

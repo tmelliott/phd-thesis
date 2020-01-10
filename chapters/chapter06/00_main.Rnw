@@ -11,29 +11,47 @@ The first problem we encounter is that, as already seen, predicting the arrival 
 We want to develop a simple point estimate that balances reliability and accuracy, as well as an interval estimate.
 
 
-Additionally, we are interested in the \emph{journey planning} problem. Many commuters need to catch multiple services to reach their destination, and while Auckland Transport has attempted to make transfering simple, it is seldom the case, particularly when transfering from a high to a low frequency route. For example, take a journey from X to Y: first, you catch the 70 route with a 10~minute frequency, then transfer at Z to the FF route with a 30~minute frequency. Which 70 do you catch? Assuming the schedule is accurate, the shortest journey is NN minutes, while the longest is NN+30 minutes.
+Additionally, we are interested in the \emph{journey planning} problem. Many commuters need to catch multiple services to reach their destination, and while Auckland Transport has attempted to make transferring simple, it is seldom the case, particularly when transferring from a high to a low-frequency route. For example, take a journey from X to Y: first, you catch the 70 route with a 10~minute frequency, then transfer at Z to the FF route with a 30~minute frequency. Which 70 do you catch? Assuming the schedule is accurate, the shortest journey is NN minutes, while the longest is NN+30 minutes.
 
 
-The first consideration is that \glspl{eta} are typically displayed as integers, so we need to decide how to round values. For example, 105~seconds is 1.75~minutes: should this be displayed as 2~minutes (standard rounding) or 1~minute (integer rounding)? We will be using Bayesian posterior predictive probabilities, so for example we may want to estimate the median such that $\Pr{A \geq a} = 0.5$; however, if we round $A$ in the above example to 2 minutes, then not only is the equality incorrect, but the probablity that the actual arrival time $A$ is after the estimated arrival time $a$ is \emph{less than 0.5}. Therefore, it makes sense to use integer rounding, or the \emph{floor} operator, to find the maximum value of $a \in \{0, 1, 2, \ldots\}$ such that $\Pr{A \geq a} \geq 0.5$.
+The first consideration is that \glspl{eta} are typically displayed as integers, so we need to decide how to round values. For example, 105~seconds is 1.75~minutes: should this be displayed as 2~minutes (standard rounding) or 1~minute (integer rounding)? We will be using Bayesian posterior predictive probabilities, so for example we may want to estimate the median such that $\Pr{A \geq a} = 0.5$; however, if we round $A$ in the above example to 2 minutes, then not only is the equality incorrect, but the probability that the actual arrival time $A$ is after the estimated arrival time $a$ is \emph{less than 0.5}. Therefore, it makes sense to use integer rounding, or the \emph{floor} operator, to find the maximum value of $a \in \{0, 1, 2, \ldots\}$ such that $\Pr{A \geq a} \geq 0.5$.
 
 
 Computing the \gls{cdf} of arrival time with the particle filter is simple once we have decided on a rounding rule. The arrival time for each particle $\Tarr\vi$ is rounded down, $\lfloor\Tarr\vi\rfloor$, and then tabulated to count how many particles attain each arrival time. Then, the probability that the bus arrives within the interval $[a, a+1), a\in\{0,1,2,\ldots\}$ is given by
 \begin{equation}
 \label{eq:pf_pdf_arrivaltime}
 \Pr{A \in [a, a+1)} =
-\frac{\text{number of particles arriving in $a$~minutes}}{N^\star}
+\frac{\text{number of particles arriving in $a$ to $a+1$~minutes}}{N^\star}
 \end{equation}
 which leads to the \gls{cdf}
 \begin{equation}
 \label{eq:pf_cdf_arrivaltime}
 \Pr{A < a} = \sum_{x=0}^{x=a-1} \Pr{A \in [x, x+1)}.
 \end{equation}
-The remainder of this chapter explores the choice of $a$ using \cref{eq:pf_cdf_arrivaltime} to calculate posterior predictive probabilities.
+For a chosen stop along a selected trip, this can be graphed, as we have done in \cref{fig:eta_cdf}. The remainder of this chapter explores the choice of summary statistics to display to commuters.
+
+<<eta_cdf,echo=FALSE,fig.width=6,fig.height=3,out.width=".8\\textwidth",fig.cap="CDF of arrival time.",fig.align="center">>=
+suppressPackageStartupMessages(library(tidyverse))
+d <- tibble(
+    t = 7:20,
+    n = c(1, 0, 5, 10, 32, 62, 37, 30, 9, 7, 4, 2, 0, 1),
+    q = cumsum(n / sum(n))
+)
+
+ggplot(d, aes(t, cumsum(n))) +
+  geom_path() +
+  theme_classic() +
+  scale_x_continuous("Arrival time (minutes)") +
+  scale_y_continuous("Number of particles arriving\nin less than a minutes",
+    sec.axis = sec_axis(~. / 200,
+      name = "Pr(A < a)"
+    )
+  )
+
+@
 
 
 
 \input{DIRNAME/eta_point.tex}
 \input{DIRNAME/eta_interval.tex}
 \input{DIRNAME/eta_transfer.tex}
-
-

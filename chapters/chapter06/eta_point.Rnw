@@ -1,6 +1,88 @@
 \section{Point estimate}
 \label{sec:etas-point}
 
-In a perfect world, it would be possible to predict exactly how long it would take a bus to arrive at a stop, and display this single number to passengers. Alas, as we saw in \cref{cha:prediction}, this is not a perfect world, and arrival time prediction inherently comes with a lot of uncertainty. Yet we still need to decide on the best single value to use as a point estimate of arrival time, since much of the intrastructure currently available only allows this. We also want to examine if it is possible to come up with a single statistic that performs well---on average---and, more importantly, better than the currently deployed method.
+In a perfect world, it would be possible to predict exactly how long it would take a bus to arrive at a stop, and display this single number to passengers. Alas, as we saw in \cref{cha:prediction}, this is not a perfect world, and arrival time prediction inherently comes with a lot of uncertainty. Yet we still need to decide on the best single value to use as a point estimate of arrival time, since much of the infrastructure currently available only allows this. We also want to examine if it is possible to come up with a single statistic that performs well---on average---and, more importantly, better than the currently deployed method.
 
 
+We have taken the arrival times estimates from \cref{cha:prediction} and, for each trip, stop, and time computed the \gls{cdf} of arrival time based on the particle, as in \cref{eq:pf_cdf_arrivaltime}. These \glspl{cdf} are combined with actual arrival data, as before, including the \gls{gtfs} estimate of arrival time.
+
+<<eta_load,echo=FALSE,cache=TRUE>>=
+suppressPackageStartupMessages({
+  library(tidyverse)
+  library(RSQLite)
+  library(dbplyr)
+  library(patchwork)
+})
+# load("data/eta_smry.rda")
+# q50_rmse <- sqrt(sum(eta_smry$err_gtfs^2))
+
+
+qfile <- "data/eta_q.rda"
+if (file.exists(qfile)) {
+  load(qfile)
+} else {
+  con <- dbConnect(SQLite(), "data/eta_quantiles.sqlite")
+  etas <- con %>% tbl("etas")
+
+  qx <- function(etas, q) {
+    if (q < 0 | q > 1) stop("q should be between 0 and 1")
+    etas %>%
+      group_by(trip_id, vehicle_id, stop_sequence, timestamp) %>%
+      filter(quantile <= q) %>%
+      summarize(
+        pf = max(eta, na.rm = TRUE),
+        gtfs = max(gtfs_eta, na.rm = TRUE),
+        actual = max(time_until_arrival, na.rm = TRUE)
+      ) %>%
+      collect() %>%
+      ungroup() %>%
+      mutate(
+        gtfs = gtfs %/% 60,
+        actual = actual / 60
+      )
+  }
+  q75 <- qx(etas, 0.75)
+  q50 <- qx(etas, 0.5)
+  q40 <- qx(etas, 0.4)
+
+  save(q75, q50, q40, file = qfile)
+}
+@
+
+<<eta_overal_results,echo=FALSE,cache=TRUE,dependson="eta_load",fig.width=10,fig.height=4,out.width="\\textwidth",fig.align="center",fig.cap="ETA stuff">>=
+pf_rmse75 <- with(q75, sqrt(mean((pf - actual)^2)))
+pf_rmse50 <- with(q50, sqrt(mean((pf - actual)^2)))
+pf_rmse40 <- with(q40, sqrt(mean((pf - actual)^2)))
+gtfs_rmse <- with(q50, sqrt(mean((gtfs - actual)^2)))
+rmse <- c(pf_rmse75, pf_rmse50, pf_rmse40, gtfs_rmse)
+
+pf_pcatch75 <- with(q75, mean(pf < actual))
+pf_pcatch50 <- with(q50, mean(pf < actual))
+pf_pcatch40 <- with(q40, mean(pf < actual))
+gtfs_pcatch <- with(q50, mean(gtfs < actual))
+pcatch <- c(pf_pcatch75, pf_pcatch50, pf_pcatch40, gtfs_pcatch)
+
+pf_ewait75 <- with(q75 %>% filter(pf < actual), mean(actual - pf))
+pf_ewait50 <- with(q50 %>% filter(pf < actual), mean(actual - pf))
+pf_ewait40 <- with(q40 %>% filter(pf < actual), mean(actual - pf))
+gtfs_ewait <- with(q50 %>% filter(gtfs < actual), mean(actual - gtfs))
+ewait <- c(pf_ewait75, pf_ewait50, pf_ewait40, gtfs_ewait)
+
+d <- tibble(m = c("PF75", "PF50", "PF40", "GTFS"),
+  rmse = rmse, pcatch = pcatch, ewait = ewait
+)
+
+p1 <- ggplot(d, aes(rmse, m)) +
+  geom_point() + geom_segment(aes(xend = 0, yend = m)) +
+  scale_x_continuous("RMSE (minutes)")
+p2 <- ggplot(d, aes(pcatch, m)) +
+  geom_point() + geom_segment(aes(xend = 0, yend = m)) +
+  scale_x_continuous("P(bus arrives after ETA)")
+p3 <- ggplot(d, aes(ewait, m)) +
+  geom_point() + geom_segment(aes(xend = 0, yend = m)) +
+  scale_x_continuous("Expected wait time (minutes)")
+
+p1 + p2 + p3 &
+  scale_y_discrete("Predictor") &
+  theme_classic()
+@
