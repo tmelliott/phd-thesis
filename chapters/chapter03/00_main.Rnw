@@ -136,6 +136,7 @@ Once the vehicle's state has been estimated, we can make inferences about the av
 
 
 \input{DIRNAME/vehicle_model.tex}
+\input{DIRNAME/vehicle_model_predict.tex}
 \input{DIRNAME/vehicle_likelihood.tex}
 
 \input{DIRNAME/vehicle_travel_times.tex}
