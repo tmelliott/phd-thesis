@@ -1,4 +1,117 @@
 \section{Interval estimate}
 \label{sec:etas-interval}
 
+Trying to decide on one single value to use as a summary of a distribution which often has a large component of uncertainty is difficult, and the choice of value depends on the cost of a bad prediction. An alternative to providing a point estimate, however, is to provide a \emph{prediction interval}. This leads to two questions: first, what values to choose, and second, how to describe the interval to non-statisticians.
 
+
+The choice of quantile should minimise the following:
+\begin{itemize}
+\item the probability of the bus arriving outside the intervals,
+\item the width of the intervals, and
+\item the probability of the bus arriving \emph{before} the interval.
+\end{itemize}
+The cost of the last of these again depends on the situation and needs of the commuter, and we will explore this a little later. Essentially, we want to choose the smallest interval that covers most of the probability, with a tendency to underestimate rather than overestimate (missing the bus is usually, but not always, worse than waiting a few minutes longer). For now, we will just look at possible values.
+
+
+<<eta_ci_load,echo=FALSE,cache=TRUE>>=
+suppressPackageStartupMessages({
+  library(tidyverse)
+  library(RSQLite)
+  library(dbplyr)
+  library(patchwork)
+})
+
+qfile <- "data/eta_ints_symmetric.rda"
+if (file.exists(qfile)) {
+  load(qfile)
+}
+con <- dbConnect(SQLite(), "data/eta_quantiles.sqlite")
+etas <- con %>% tbl("etas")
+
+intx <- function(etas, p) {
+  if (p <= 0 | p >= 1) stop("p should be between 0 and 1 (exclusive)")
+  alpha <- 1 - p
+  etas %>%
+    group_by(trip_id, stop_sequence, timestamp) %>%
+    select(trip_id, stop_sequence, timestamp, eta, quantile,
+      gtfs_eta, time_until_arrival) %>%
+    filter(quantile >= !!alpha / 2 & quantile <= 1 - !!alpha / 2) %>%
+    collect() %>%
+    summarize(
+      pf_lower = min(eta, na.rm = TRUE),
+      pf_upper = max(eta, na.rm = TRUE) + 1,
+      gtfs = max(gtfs_eta, na.rm = TRUE),
+      actual = max(time_until_arrival, na.rm = TRUE)
+    ) %>%
+    # collect() %>%
+    ungroup() %>%
+    filter(gtfs - actual > -60*60 & gtfs - actual < 2*60*60) %>%
+    mutate(
+      gtfs = gtfs %/% 60,
+      actual = actual / 60,
+      width = pf_upper - pf_lower
+    )
+
+}
+if (!exists("int99")) int99 <- intx(etas, 0.99)
+if (!exists("int95")) int95 <- intx(etas, 0.95)
+if (!exists("int90")) int90 <- intx(etas, 0.90)
+if (!exists("int80")) int80 <- intx(etas, 0.80)
+
+dbDisconnect(con)
+
+save(int99, int95, int90, int80, file = qfile)
+@
+
+
+To begin, we can examine \emph{symmetric} intervals\footnote{Of course, they won't be perfectly symmetric due to integer rounding.}. To the data from \cref{sec:etas-point} we computed 99\%, 95\%, 90\%, and 80\% intervals and evaluated both the coverage probability as well as the probability that the bus arrived \emph{before} the lower bound. These results are displayed in \cref{fig:eta_cis}.
+
+<<eta_cis,echo=FALSE,cache=TRUE,dependson="eta_ci_load",fig.width=10,fig.height=3,out.width="\\textwidth",fig.align="center",fig.cap="ETA CIs">>=
+# coverage prob
+cov99 <- with(int99, mean(actual >= pf_lower & actual <= pf_upper))
+cov95 <- with(int95, mean(actual >= pf_lower & actual <= pf_upper))
+cov90 <- with(int90, mean(actual >= pf_lower & actual <= pf_upper))
+cov80 <- with(int80, mean(actual >= pf_lower & actual <= pf_upper))
+cov <- c(cov99, cov95, cov90, cov80)
+
+pbefore99 <- with(int99, mean(actual < pf_lower))
+pbefore95 <- with(int95, mean(actual < pf_lower))
+pbefore90 <- with(int90, mean(actual < pf_lower))
+pbefore80 <- with(int80, mean(actual < pf_lower))
+pbefore <- c(pbefore99, pbefore95, pbefore90, pbefore80)
+
+len99 <- with(int99, mean(pf_upper - pf_lower))
+len95 <- with(int95, mean(pf_upper - pf_lower))
+len90 <- with(int90, mean(pf_upper - pf_lower))
+len80 <- with(int80, mean(pf_upper - pf_lower))
+len <- c(len99, len95, len90, len80)
+
+d <- tibble(
+  p = c(99, 95, 90, 80),
+  cov = cov, pbefore = pbefore, len = len
+)
+
+p1 <- ggplot(d, aes(cov, p)) +
+  geom_point() + geom_segment(aes(xend = 0, yend = p)) +
+  scale_x_continuous("Coverage probability")
+p2 <- ggplot(d, aes(pbefore, p)) +
+  geom_point() + geom_segment(aes(xend = 0, yend = p)) +
+  scale_x_continuous("P(bus arrives before lower)")
+p3 <- ggplot(d, aes(len, p)) +
+  geom_point() + geom_segment(aes(xend = 0, yend = p)) +
+  scale_x_continuous("Average width (minutes)")
+
+p1 + p2 + p3 &
+  scale_y_continuous("CI coverage (%)") &
+  theme_classic()
+
+@
+
+
+The graphs of coverage probability and average width show an increase with $\alpha$, as one would expect. Similarly, the probability that the bus arrives before the lower bound (which could have the outcome of a passenger missing their bus, for example) decreases with $\alpha$. The relationships are all more-or-less linear, with perhaps the exception of width, though we would expect each the width to increase more as the coverage increases, since the density is lower in the tails. So, everything is behaving normally: there does not seem to be any clear choice of values to use.
+
+
+Alternatively, we could use \emph{nonsymmetric intervals}, such that the lower and upper bounds are chosen separately. For example, we could use a lower bound of $\alpha_\text{lower} = 0.05$, representing an expected 5\% chance of the bus arriving earlier.
+
+
+We also can consider how things change \emph{over time}, and \emph{by stop sequence} (or alternatively by the percentage of the route completed).

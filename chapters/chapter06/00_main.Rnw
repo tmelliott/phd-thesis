@@ -54,4 +54,4 @@ ggplot(d, aes(t, cumsum(n))) +
 
 \input{DIRNAME/eta_point.tex}
 \input{DIRNAME/eta_interval.tex}
-\input{DIRNAME/eta_transfer.tex}
+\input{DIRNAME/eta_journey.tex}

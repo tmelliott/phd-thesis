@@ -20,55 +20,97 @@ suppressPackageStartupMessages({
 qfile <- "data/eta_q.rda"
 if (file.exists(qfile)) {
   load(qfile)
-} else {
-  con <- dbConnect(SQLite(), "data/eta_quantiles.sqlite")
-  etas <- con %>% tbl("etas")
-
-  qx <- function(etas, q) {
-    if (q < 0 | q > 1) stop("q should be between 0 and 1")
-    etas %>%
-      group_by(trip_id, vehicle_id, stop_sequence, timestamp) %>%
-      filter(quantile <= q) %>%
-      summarize(
-        pf = max(eta, na.rm = TRUE),
-        gtfs = max(gtfs_eta, na.rm = TRUE),
-        actual = max(time_until_arrival, na.rm = TRUE)
-      ) %>%
-      collect() %>%
-      ungroup() %>%
-      mutate(
-        gtfs = gtfs %/% 60,
-        actual = actual / 60
-      )
-  }
-  q75 <- qx(etas, 0.75)
-  q50 <- qx(etas, 0.5)
-  q40 <- qx(etas, 0.4)
-
-  save(q75, q50, q40, file = qfile)
 }
+con <- dbConnect(SQLite(), "data/eta_quantiles.sqlite")
+etas <- con %>% tbl("etas")
+
+# etas %>%
+#     select(trip_id, vehicle_id) %>%
+#     distinct() %>%
+#     group_by(trip_id) %>%
+#     tally() %>%
+#     filter(n > 1)
+# thedata <- etas %>%
+#   select(trip_id, stop_sequence, timestamp, gtfs_eta, time_until_arrival) %>%
+#   distinct() %>%
+#   collect() %>%
+#   mutate(gtfs_error = gtfs_eta - time_until_arrival)
+
+# thedata %>% filter(gtfs_error > -60*60 & gtfs_error < 2*60*60) %>%
+#   summarize(rmse = sqrt(mean(gtfs_error^2 / 60^2)))
+
+qx <- function(etas, q) {
+  if (q < 0 | q > 1) stop("q should be between 0 and 1")
+  etas %>%
+    group_by(trip_id, stop_sequence, timestamp) %>%
+    filter(quantile <= q) %>%
+    summarize(
+      pf = max(eta, na.rm = TRUE),
+      gtfs = max(gtfs_eta, na.rm = TRUE),
+      actual = max(time_until_arrival, na.rm = TRUE)
+    ) %>%
+    collect() %>%
+    ungroup() %>%
+    filter(gtfs - actual > -60*60 & gtfs - actual < 2*60*60) %>%
+    mutate(
+      gtfs = gtfs %/% 60,
+      actual = actual / 60
+    )
+
+}
+if (!exists("q90")) q90 <- qx(etas, 0.90)
+if (!exists("q75")) q75 <- qx(etas, 0.75)
+if (!exists("q60")) q60 <- qx(etas, 0.6)
+if (!exists("q50")) q50 <- qx(etas, 0.50)
+if (!exists("q40")) q40 <- qx(etas, 0.4)
+if (!exists("q25")) q25 <- qx(etas, 0.25)
+if (!exists("q05")) q05 <- qx(etas, 0.05)
+
+dbDisconnect(con)
+
+save(q90, q75, q60, q50, q40, q25, q05, file = qfile)
+
 @
 
-<<eta_overal_results,echo=FALSE,cache=TRUE,dependson="eta_load",fig.width=10,fig.height=4,out.width="\\textwidth",fig.align="center",fig.cap="ETA stuff">>=
+<<eta_overal_results,echo=FALSE,cache=TRUE,dependson="eta_load",fig.width=10,fig.height=3,out.width="\\textwidth",fig.align="center",fig.cap="ETA stuff">>=
+pf_rmse90 <- with(q90, sqrt(mean((pf - actual)^2)))
 pf_rmse75 <- with(q75, sqrt(mean((pf - actual)^2)))
+pf_rmse60 <- with(q60, sqrt(mean((pf - actual)^2)))
 pf_rmse50 <- with(q50, sqrt(mean((pf - actual)^2)))
 pf_rmse40 <- with(q40, sqrt(mean((pf - actual)^2)))
+pf_rmse25 <- with(q25, sqrt(mean((pf - actual)^2)))
+pf_rmse05 <- with(q05, sqrt(mean((pf - actual)^2)))
 gtfs_rmse <- with(q50, sqrt(mean((gtfs - actual)^2)))
-rmse <- c(pf_rmse75, pf_rmse50, pf_rmse40, gtfs_rmse)
+rmse <- c(pf_rmse90, pf_rmse75, pf_rmse60, pf_rmse50,
+  pf_rmse40, pf_rmse25, pf_rmse05, gtfs_rmse)
 
+
+pf_pcatch90 <- with(q90, mean(pf < actual))
 pf_pcatch75 <- with(q75, mean(pf < actual))
+pf_pcatch60 <- with(q60, mean(pf < actual))
 pf_pcatch50 <- with(q50, mean(pf < actual))
 pf_pcatch40 <- with(q40, mean(pf < actual))
+pf_pcatch25 <- with(q25, mean(pf < actual))
+pf_pcatch05 <- with(q05, mean(pf < actual))
 gtfs_pcatch <- with(q50, mean(gtfs < actual))
-pcatch <- c(pf_pcatch75, pf_pcatch50, pf_pcatch40, gtfs_pcatch)
+pcatch <- c(pf_pcatch90, pf_pcatch75, pf_pcatch60, pf_pcatch50,
+  pf_pcatch40, pf_pcatch25, pf_pcatch05, gtfs_pcatch)
 
+
+pf_ewait90 <- with(q90 %>% filter(pf < actual), mean(actual - pf))
 pf_ewait75 <- with(q75 %>% filter(pf < actual), mean(actual - pf))
+pf_ewait60 <- with(q60 %>% filter(pf < actual), mean(actual - pf))
 pf_ewait50 <- with(q50 %>% filter(pf < actual), mean(actual - pf))
 pf_ewait40 <- with(q40 %>% filter(pf < actual), mean(actual - pf))
+pf_ewait25 <- with(q25 %>% filter(pf < actual), mean(actual - pf))
+pf_ewait05 <- with(q05 %>% filter(pf < actual), mean(actual - pf))
 gtfs_ewait <- with(q50 %>% filter(gtfs < actual), mean(actual - gtfs))
-ewait <- c(pf_ewait75, pf_ewait50, pf_ewait40, gtfs_ewait)
+ewait <- c(pf_ewait90, pf_ewait75, pf_ewait60, pf_ewait50,
+  pf_ewait40, pf_ewait25, pf_ewait05, gtfs_ewait)
 
-d <- tibble(m = c("PF75", "PF50", "PF40", "GTFS"),
+d <- tibble(
+  m = c("PF90", "PF75", "PF60", "PF50",
+    "PF40", "PF25", "PF05", "GTFS"),
   rmse = rmse, pcatch = pcatch, ewait = ewait
 )
 
@@ -86,3 +128,5 @@ p1 + p2 + p3 &
   scale_y_discrete("Predictor") &
   theme_classic()
 @
+
+\Cref{fig:eta_overal_results} shows the \gls{rmse}, catch probability, and expected wait time for a range of particle filter quantiles along with the \gls{gtfs} values. For the particle filter, the lowest \gls{rmse} value is achieved when using the 60\% quantile, which obtains a \Sexpr{round(100*d$pcatch[3])}\% probability of the bus arriving after the \gls{eta} and an expected waiting time of \Sexpr{round(d$ewait[3], 1)}~minutes. The coverage of the quantiles are being overestimated---we would expect the 60\% quantile to have an approximately 40\% success rate---which indicates that the current implementation of the particle filter is underestimating arrival times.
