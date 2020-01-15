@@ -59,7 +59,16 @@ route_info <- con %>% tbl("routes") %>%
 trip_info <- con %>% tbl("trips") %>%
   filter(route_id %in% !!route_info$route_id) %>%
   select(trip_id, route_id) %>%
-  collect()
+  left_join(
+    con %>% tbl("stop_times") %>% filter(stop_sequence == 1) %>%
+      select(trip_id, departure_time) %>%
+      rename(trip_start_time = departure_time),
+    by = "trip_id"
+  ) %>%
+  collect() %>%
+  mutate(
+    trip_start_time = stringr::str_sub(trip_start_time, 1, 5)
+  )
 sids <- tapply(route_info$shape_id, route_info$option, function(x) x[1])
 shapes <- con %>% tbl("shapes") %>%
   filter(shape_id %in% !!sids) %>%
@@ -80,14 +89,14 @@ stop_info <- con %>% tbl("stops") %>%
   select(stop_id, stop_code, stop_lon, stop_lat) %>%
   collect()
 stops <- stops %>% left_join(stop_info, by = c("id" = "stop_code"))
-trip_info %>% group_by(route_id) %>%
-  summarize(trip_id = first(trip_id)) %>%
-  left_join(
-    con %>% tbl("stop_times") %>%
-      filter(stop_id %in% !!stop_info$stop_id) %>%
-      select(trip_id, stop_id, stop_sequence, arrival_time) %>% collect(),
-    by = "trip_id"
-  )
+#trip_info %>% group_by(route_id) %>%
+#  summarize(trip_id = first(trip_id)) %>%
+#  left_join(
+#    con %>% tbl("stop_times") %>%
+#      filter(stop_id %in% !!stop_info$stop_id) %>%
+#      select(trip_id, stop_id, stop_sequence, arrival_time) %>% collect(),
+#    by = "trip_id"
+#  )
 route_info <- route_info %>%
   mutate(
     from_seq = c(23L, 19L, 28L, 29L),
@@ -138,8 +147,10 @@ ggmap(map) +
 
 
 
+The first example we look at is a simple journey planning exercise: given the choice of two different options, which is the best to take? In \cref{fig:eta_journey_arrival_prep} we demonstrate such a situation for someone at the point indicated "Start", who has two possible options to get to the point indicated "End"\footnote{This is indeed the University of Auckland's statistics department, which seemed an appropriate choice}. Each of the options involve a short walk, so this needs to be accounted for when making a decision.
 
-<<eta_journey_arrival,echo=FALSE,cache=TRUE,dependson="eta_journey_arrival_prep">>=
+
+<<eta_journey_arrival,echo=FALSE,cache=TRUE,dependson="eta_journey_arrival_prep",message=FALSE,fig.width=8,fig.height=5,out.width="\\textwidth",fig.cap="ETA predictions for two route options. The coloured curves represent the CDF of arrival time for individual trips made at 7am. The vertical black lines indicate the estimated walking time (according to Google Maps) from the Start location to each stop.",fig.align="center">>=
 
 con <- dbConnect(SQLite(), "data/eta_quantiles.sqlite")
 
@@ -166,9 +177,9 @@ trip_results <- lapply(seq_len(nrow(route_info)),
 trip_results_after_7 <- trip_results %>%
   filter(
     timestamp > as.POSIXct("2019-08-29 7:00:00") &
-    timestamp < as.POSIXct("2019-08-29 8:00:00")
+    timestamp + eta*60 < as.POSIXct("2019-08-29 7:30:00")
   ) %>%
-  select(trip_id, stop_sequence, timestamp, eta, quantile,
+  select(trip_id, trip_start_time, stop_sequence, timestamp, eta, quantile,
     actual_arrival, time_until_arrival, gtfs_eta, route_id) %>%
   left_join(
     route_info %>% select(route_id, route_short_name, option, from_seq, to_seq),
@@ -179,25 +190,125 @@ trip_results_after_7 <- trip_results %>%
     is_destination = as.integer(stop_sequence == to_seq)
   )
 
-## mission 1: A or B to catch first bus?
-trip_results_arrival <-
-
-trip_results_after_7 %>%
+trip_eta_results <- trip_results_after_7 %>%
   filter(is_origin == 1) %>%
-  select(-from_seq, -to_seq, -is_origin, -is_destination) %>%
-  left_join(stops %>% filter(which == "Start") %>% select(option, walk)) %>%
-  arrange(timestamp, eta) %>%
   group_by(trip_id) %>%
   group_modify(~{
-    .x %>% mutate(
-      make_it = walk < eta
-    ) %>%
-    group_by(timestamp) %>%
-    summarize(
-      p_make_it = mean(make_it),
-      would_make_it = mean(walk < time_until_arrival / 60)
-    )
-  }) %>% arrange(timestamp)
+    .x %>% filter(timestamp == min(.x$timestamp))
+  }) %>%
+  left_join(stops %>% filter(which == "Start") %>% select(option, walk))
+
+ggplot(trip_eta_results, aes(timestamp + eta * 60, quantile,
+  group = trip_id, colour = route_short_name)) +
+  geom_path() +
+  geom_label(
+    aes(label = trip_start_time),
+    data = trip_eta_results %>% filter(quantile == 0)
+  ) +
+  facet_grid(option ~ .) +
+  geom_vline(aes(xintercept = as.POSIXct("2019-08-29 7:00:00") + walk * 60)) +
+  geom_text(
+    aes(
+      x = as.POSIXct("2019-08-29 7:00:00") + walk * 60,
+      y = 0.5,
+      label = paste(walk, "min walk"),
+      group = NULL,
+      colour = NULL
+    ),
+    data = stops %>% filter(which == "Start"),
+    angle = 90,
+    nudge_x = -30
+  ) +
+  theme_classic() +
+  theme(panel.background = element_blank()) +
+  scale_x_datetime("Estimated arrival time at 7am") +
+  scale_y_continuous("P(A < a)") +
+  labs(colour = "Route")
+
+## mission 1: A or B to catch first bus?
+#trip_results_arrival <-
+
+#trip_results_after_7 %>%
+#  filter(is_origin == 1) %>%
+#  select(-from_seq, -to_seq, -is_origin, -is_destination) %>%
+#  left_join(stops %>% filter(which == "Start") %>% select(option, walk)) %>%
+#  arrange(timestamp, eta) %>%
+#  group_by(trip_id) %>%
+#  group_modify(~{
+#    .x %>% mutate(
+#      make_it = walk < eta
+#    ) %>%
+ #   group_by(timestamp) %>%
+ #   summarize(
+#      p_make_it = mean(make_it),
+#      would_make_it = mean(walk < time_until_arrival / 60)
+#    )
+#  }) %>% arrange(timestamp)
+
+
+@
+
+
+\Cref{fig:eta_journey_arrival} shows the arrival time predictions by way of their \glspl{cdf} for upcoming trips at each stop, as at 7am. We also indicate the walking time to each of these stops, which indicates that, although option B has a bus arriving sooner, unless the passenger runs they will likely miss it. Ignoring this early trip, both options have a bus arriving shortly after the passenger does (and by coincidence the probability that they miss this next viable bus is less than 10\%).
+
+
+<<eta_journey_arriveby,echo=FALSE,cache=TRUE,dependson="eta_journey_arrival",message=FALSE,fig.width=8,fig.height=5,out.width="\\textwidth",fig.cap="ETA predictions for two route options. The coloured curves represent the CDF of arrival time for individual trips made at 7am. The vertical black lines indicate the estimated walking time (according to Google Maps) from the Start location to each stop.",fig.align="center">>=
+
+
+# commuter ready to leave at 7am
+trip_results_before_8 <- trip_results %>%
+  filter(
+    timestamp > as.POSIXct("2019-08-29 7:35:00") &
+    timestamp + eta*60 < as.POSIXct("2019-08-29 8:10:00")
+  ) %>%
+  select(trip_id, trip_start_time, stop_sequence, timestamp, eta, quantile,
+    actual_arrival, time_until_arrival, gtfs_eta, route_id) %>%
+  left_join(
+    route_info %>% select(route_id, route_short_name, option, from_seq, to_seq),
+    by = "route_id"
+  ) %>%
+  mutate(
+    is_origin = as.integer(stop_sequence == from_seq),
+    is_destination = as.integer(stop_sequence == to_seq)
+  )
+
+
+trip_eta_results2 <- trip_results_before_8 %>%
+  filter(is_destination == 1) %>%
+  group_by(trip_id) %>%
+  group_modify(~{
+    .x %>% filter(timestamp == min(.x$timestamp))
+  }) %>%
+  left_join(stops %>% filter(which == "End") %>% select(option, walk))
+
+ggplot(trip_eta_results2, aes(timestamp + eta * 60, quantile,
+  group = trip_id, colour = route_short_name)) +
+  geom_path() +
+  geom_label(
+    aes(label = trip_start_time),
+    data = trip_eta_results2 %>% filter(quantile == 0)
+  ) +
+  facet_grid(option ~ .) +
+  geom_vline(aes(xintercept = as.POSIXct("2019-08-29 8:00:00") - walk * 60)) +
+  #geom_vline(aes(xintercept = actual_arrival, colour = route_short_name)) +
+  geom_text(
+    aes(
+      x = as.POSIXct("2019-08-29 8:00:00") - walk * 60,
+      y = 0.5,
+      label = paste(walk, "min walk"),
+      group = NULL,
+      colour = NULL
+    ),
+    data = stops %>% filter(which == "End"),
+    angle = -90,
+    nudge_x = 60
+  ) +
+  theme_classic() +
+  theme(panel.background = element_blank()) +
+  scale_x_datetime("Estimated arrival time at 7am") +
+  scale_y_continuous("P(A < a)") +
+  labs(colour = "Route")
+
 
 
 @
