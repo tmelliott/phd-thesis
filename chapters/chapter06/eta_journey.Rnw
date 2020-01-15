@@ -1,2 +1,203 @@
 \section{Journey planning}
 \label{sec:etas-journey-planning}
+
+So far, we have explored probabilities and expectations associated with the arrival time of a given bus at a stop. However, there are several other applications where arrival time prediction can be used to make decisions. The first is to predict the arrival time of a given bus at a later stop and, more importantly, the probability that it arrives before a given time. For example, a passenger might want to know the probability a bus will get them to work on time. Secondly is to examing transfers: particularly in Auckland, many routes do not run to schedule, making it difficult for passengers who need to transfer from one route to another.
+
+
+<<eta_journey_arrival_prep,echo=FALSE,cache=TRUE,message=FALSE,fig.height=5,out.width="\\textwidth",fig.cap="Route options",fig.align="center">>=
+
+suppressPackageStartupMessages({
+  library(tidyverse)
+  library(ggmap)
+  library(RSQLite)
+})
+
+curd <- setwd("../../data")
+source("load_data.R")
+setwd(curd)
+
+# first find a trip to predict ...
+start <- "125 Balmoral Drive, Auckland"
+end <- "38 Princes Street, Auckland"
+
+coords <- tibble(
+  which = c("Start", "End"),
+  lat = c(-36.888387, -36.852788),
+  lon = c(174.754387, 174.768420)
+)
+
+routeA <- c("25B", "25L")
+routeB <- c("27H", "27W")
+
+stops <- tibble(
+  which = c("Start", "End", "Start", "End"),
+  option = c("A", "A", "B", "B"),
+  id = c("8417", "7089", "8517", "7147"),
+  walk = c(9, 2, 11, 3)
+)
+
+con <- dbConnect(SQLite(), db)
+route_info <- con %>% tbl("routes") %>%
+  filter(
+    route_short_name %in% c(routeA, routeB) &
+    version == 82.21 &
+    (
+      route_long_name %like% "%To Britomart%" |
+      route_long_name %like% "%To City Centre%"
+    )
+  ) %>%
+  select(route_id, route_short_name, route_long_name) %>%
+  left_join(
+    con %>% tbl("trips") %>% group_by(route_id) %>%
+      summarize(shape_id = min(shape_id, na.rm = TRUE)),
+    by = "route_id"
+  ) %>%
+  collect() %>%
+  mutate(
+    option = ifelse(route_short_name %in% routeA, "A", "B")
+  )
+trip_info <- con %>% tbl("trips") %>%
+  filter(route_id %in% !!route_info$route_id) %>%
+  select(trip_id, route_id) %>%
+  collect()
+sids <- tapply(route_info$shape_id, route_info$option, function(x) x[1])
+shapes <- con %>% tbl("shapes") %>%
+  filter(shape_id %in% !!sids) %>%
+  select(shape_id, shape_pt_lat, shape_pt_lon, shape_pt_sequence) %>%
+  arrange(shape_id, shape_pt_sequence) %>%
+  collect() %>%
+  filter(
+    shape_pt_lat > coords$lat[1] - 0.003 &
+    shape_pt_lat < coords$lat[2] + 0.003
+  ) %>%
+  mutate(
+    option = as.character(
+      sapply(shape_id, function(id) names(sids)[which(sids == id)])
+    )
+  )
+stop_info <- con %>% tbl("stops") %>%
+  filter(stop_code %in% !!stops$id & version == 82.21) %>%
+  select(stop_id, stop_code, stop_lon, stop_lat) %>%
+  collect()
+stops <- stops %>% left_join(stop_info, by = c("id" = "stop_code"))
+trip_info %>% group_by(route_id) %>%
+  summarize(trip_id = first(trip_id)) %>%
+  left_join(
+    con %>% tbl("stop_times") %>%
+      filter(stop_id %in% !!stop_info$stop_id) %>%
+      select(trip_id, stop_id, stop_sequence, arrival_time) %>% collect(),
+    by = "trip_id"
+  )
+route_info <- route_info %>%
+  mutate(
+    from_seq = c(23L, 19L, 28L, 29L),
+    to_seq = c(34L, 30L, 42L, 43L)
+  )
+dbDisconnect(con)
+
+xlim <- range(shapes$shape_pt_lon)
+ylim <- range(shapes$shape_pt_lat)
+
+## Get a map:
+map <- get_stamenmap(c(xlim[1], ylim[1], xlim[2], ylim[2]), zoom = 15)
+ggmap(map) +
+  geom_path(
+    aes(shape_pt_lon, shape_pt_lat, group = option, colour = option),
+    data = shapes,
+    lwd = 2
+  ) +
+  geom_path(
+    aes(shape_pt_lon, shape_pt_lat, group = option, colour = option),
+    data = shapes %>% filter(option == "A"),
+    lwd = 2,
+    lty = 2
+  ) +
+  geom_segment(
+    aes(lon, lat, xend = lon, yend = lat + 0.0015),
+    data = coords
+  ) +
+  geom_point(aes(lon, lat),
+    data = coords,
+    size = 3
+  ) +
+  geom_label(aes(lon, lat, label = which),
+    data = coords,
+    nudge_y = 0.0015
+  ) +
+  geom_point(aes(stop_lon, stop_lat, colour = option),
+    data = stops,
+    shape = 21,
+    fill = "white",
+    size = 3,
+    stroke = 2
+  ) +
+  theme_void() +
+  labs(colour = "Route option")
+
+@
+
+
+
+
+<<eta_journey_arrival,echo=FALSE,cache=TRUE,dependson="eta_journey_arrival_prep">>=
+
+con <- dbConnect(SQLite(), "data/eta_quantiles.sqlite")
+
+trip_etas <- con %>% tbl("etas")
+
+trip_results <- lapply(seq_len(nrow(route_info)),
+  function(i) {
+    rid <- route_info$route_id[i]
+    tids <- trip_info %>% filter(route_id == rid) %>% pull(trip_id)
+    rseq <- c(route_info$from_seq[i], route_info$to_seq[i])
+    trip_etas %>%
+      filter(
+        trip_id %in% tids &
+        stop_sequence %in% rseq
+      ) %>%
+      collect()
+  }
+) %>%
+  bind_rows() %>%
+  mutate(timestamp = as.POSIXct(timestamp, origin = "1970-01-01")) %>%
+  left_join(trip_info, by = "trip_id")
+
+# commuter ready to leave at 7am
+trip_results_after_7 <- trip_results %>%
+  filter(
+    timestamp > as.POSIXct("2019-08-29 7:00:00") &
+    timestamp < as.POSIXct("2019-08-29 8:00:00")
+  ) %>%
+  select(trip_id, stop_sequence, timestamp, eta, quantile,
+    actual_arrival, time_until_arrival, gtfs_eta, route_id) %>%
+  left_join(
+    route_info %>% select(route_id, route_short_name, option, from_seq, to_seq),
+    by = "route_id"
+  ) %>%
+  mutate(
+    is_origin = as.integer(stop_sequence == from_seq),
+    is_destination = as.integer(stop_sequence == to_seq)
+  )
+
+## mission 1: A or B to catch first bus?
+trip_results_arrival <-
+
+trip_results_after_7 %>%
+  filter(is_origin == 1) %>%
+  select(-from_seq, -to_seq, -is_origin, -is_destination) %>%
+  left_join(stops %>% filter(which == "Start") %>% select(option, walk)) %>%
+  arrange(timestamp, eta) %>%
+  group_by(trip_id) %>%
+  group_modify(~{
+    .x %>% mutate(
+      make_it = walk < eta
+    ) %>%
+    group_by(timestamp) %>%
+    summarize(
+      p_make_it = mean(make_it),
+      would_make_it = mean(walk < time_until_arrival / 60)
+    )
+  }) %>% arrange(timestamp)
+
+
+@
