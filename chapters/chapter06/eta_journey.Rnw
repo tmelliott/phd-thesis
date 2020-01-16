@@ -175,10 +175,17 @@ trip_results <- lapply(seq_len(nrow(route_info)),
 
 # commuter ready to leave at 7am
 trip_results_after_7 <- trip_results %>%
-  filter(
-    timestamp > as.POSIXct("2019-08-29 7:00:00") &
-    timestamp + eta*60 < as.POSIXct("2019-08-29 7:30:00")
-  ) %>%
+  group_by(trip_start_time) %>%
+  filter(timestamp > as.POSIXct("2019-08-29 7:00:00")) %>%
+  group_modify(~{
+    .x %>% mutate(
+      in_range = any(
+        .x$timestamp + eta * 60 > as.POSIXct("2019-08-29 7:00:00") & .x$timestamp + eta * 60 < as.POSIXct("2019-08-29 7:45:00")
+      )
+    )
+  }) %>%
+  ungroup() %>%
+  filter(in_range) %>%
   select(trip_id, trip_start_time, stop_sequence, timestamp, eta, quantile,
     actual_arrival, time_until_arrival, gtfs_eta, route_id) %>%
   left_join(
@@ -257,10 +264,17 @@ ggplot(trip_eta_results, aes(timestamp + eta * 60, quantile,
 
 # commuter ready to leave at 7am
 trip_results_before_8 <- trip_results %>%
-  filter(
-    timestamp > as.POSIXct("2019-08-29 7:35:00") &
-    timestamp + eta*60 < as.POSIXct("2019-08-29 8:10:00")
-  ) %>%
+  group_by(trip_start_time) %>%
+  filter(timestamp > as.POSIXct("2019-08-29 7:00:00")) %>%
+  group_modify(~{
+    .x %>% mutate(
+      in_range = any(
+        .x$timestamp + eta * 60 > as.POSIXct("2019-08-29 7:45:00") & .x$timestamp + eta * 60 < as.POSIXct("2019-08-29 8:00:00")
+      )
+    )
+  }) %>%
+  ungroup() %>%
+  filter(in_range) %>%
   select(trip_id, trip_start_time, stop_sequence, timestamp, eta, quantile,
     actual_arrival, time_until_arrival, gtfs_eta, route_id) %>%
   left_join(
@@ -309,6 +323,66 @@ ggplot(trip_eta_results2, aes(timestamp + eta * 60, quantile,
   scale_y_continuous("P(A < a)") +
   labs(colour = "Route")
 
+
+
+@
+
+
+<<eta_journey_results,echo=FALSE,cache=TRUE,dependson="eta_journey_arriveby",message=FALSE,fig.width=8,fig.height=5,out.width="\\textwidth",fig.cap="Results of the journey planning application, including actual arrival times.">>=
+
+trip_eta_results %>%
+  group_by(trip_id) %>%
+  summarize(
+    timestamp = first(timestamp),
+    trip_start_time = first(trip_start_time),
+    route_short_name = first(route_short_name),
+    option = first(option),
+    walk = first(walk),
+    eta_q05 = timestamp + max(eta[quantile <= 0.025]) * 60,
+    eta_q50 = timestamp + max(eta[quantile <= 0.5]) * 60,
+    eta_q95 = timestamp + max(eta[quantile <= 0.95]) * 60,
+    actual = as.POSIXct(first(actual_arrival), origin = "1970-01-01"),
+    gtfs = timestamp + first(gtfs_eta)
+  ) %>%
+  ggplot(aes(y = trip_start_time, colour = route_short_name)) +
+    geom_point(aes(eta_q50)) +
+    geom_segment(
+      aes(
+        x = eta_q05, xend = eta_q95, yend = trip_start_time
+      )
+    ) +
+    facet_grid(option+route_short_name ~ ., scales = "free_y") +
+    geom_vline(aes(xintercept = as.POSIXct("2019-08-29 7:00:00") + walk * 60)) +
+    geom_point(aes(actual), colour = "black") +
+    geom_point(aes(gtfs), shape = 4)
+
+
+
+trip_eta_results2 %>%
+  group_by(trip_id) %>%
+  summarize(
+    timestamp = first(timestamp),
+    trip_start_time = first(trip_start_time),
+    route_short_name = first(route_short_name),
+    option = first(option),
+    walk = first(walk),
+    eta_q05 = timestamp + max(eta[quantile <= 0.025]) * 60,
+    eta_q50 = timestamp + max(eta[quantile <= 0.5]) * 60,
+    eta_q95 = timestamp + max(eta[quantile <= 0.95]) * 60,
+    actual = as.POSIXct(first(actual_arrival), origin = "1970-01-01"),
+    gtfs = timestamp + first(gtfs_eta)
+  ) %>%
+  ggplot(aes(y = trip_start_time, colour = route_short_name)) +
+    geom_point(aes(eta_q50)) +
+    geom_segment(
+      aes(
+        x = eta_q05, xend = eta_q95, yend = trip_start_time
+      )
+    ) +
+    facet_grid(option+route_short_name ~ ., scales = "free_y") +
+    geom_vline(aes(xintercept = as.POSIXct("2019-08-29 8:00:00") - walk * 60)) +
+    geom_point(aes(actual), colour = "black") +
+    geom_point(aes(gtfs), shape = 4)
 
 
 @
