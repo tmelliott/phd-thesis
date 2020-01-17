@@ -89,14 +89,6 @@ stop_info <- con %>% tbl("stops") %>%
   select(stop_id, stop_code, stop_lon, stop_lat) %>%
   collect()
 stops <- stops %>% left_join(stop_info, by = c("id" = "stop_code"))
-#trip_info %>% group_by(route_id) %>%
-#  summarize(trip_id = first(trip_id)) %>%
-#  left_join(
-#    con %>% tbl("stop_times") %>%
-#      filter(stop_id %in% !!stop_info$stop_id) %>%
-#      select(trip_id, stop_id, stop_sequence, arrival_time) %>% collect(),
-#    by = "trip_id"
-#  )
 route_info <- route_info %>%
   mutate(
     from_seq = c(23L, 19L, 28L, 29L),
@@ -145,6 +137,9 @@ ggmap(map) +
 
 @
 
+\subsection{Simple journey}
+\label{sec:journey_simple}
+
 
 
 The first example we look at is a simple journey planning exercise: given the choice of two different options, which is the best to take? In \cref{fig:eta_journey_arrival_prep} we demonstrate such a situation for someone at the point indicated "Start", who has two possible options to get to the point indicated "End"\footnote{This is indeed the University of Auckland's statistics department, which seemed an appropriate choice}. Each of the options involve a short walk, so this needs to be accounted for when making a decision.
@@ -172,15 +167,19 @@ trip_results <- lapply(seq_len(nrow(route_info)),
   bind_rows() %>%
   mutate(timestamp = as.POSIXct(timestamp, origin = "1970-01-01")) %>%
   left_join(trip_info, by = "trip_id")
+dbDisconnect(con)
 
+TSTART <- as.POSIXct("2019-08-29 8:10:00")
+TEND <- as.POSIXct("2019-08-29 9:00:00")
 # commuter ready to leave at 7am
 trip_results_after_7 <- trip_results %>%
   group_by(trip_start_time) %>%
-  filter(timestamp > as.POSIXct("2019-08-29 7:00:00")) %>%
+  filter(timestamp <= TSTART) %>%
   group_modify(~{
     .x %>% mutate(
       in_range = any(
-        .x$timestamp + eta * 60 > as.POSIXct("2019-08-29 7:00:00") & .x$timestamp + eta * 60 < as.POSIXct("2019-08-29 7:45:00")
+        .x$timestamp + eta * 60 >= TSTART &
+        .x$timestamp + eta * 60 <= TEND
       )
     )
   }) %>%
@@ -198,11 +197,17 @@ trip_results_after_7 <- trip_results %>%
   )
 
 trip_eta_results <- trip_results_after_7 %>%
-  filter(is_origin == 1) %>%
+  filter(is_origin == 1 & time_until_arrival > 0) %>%
   group_by(trip_id) %>%
   group_modify(~{
-    .x %>% filter(timestamp == min(.x$timestamp))
+    .x %>%
+      filter(timestamp == max(.x$timestamp)) %>%
+      mutate(
+        keep_me = max(timestamp + eta * 60) >= TSTART
+      ) %>%
+      arrange(eta)
   }) %>%
+  filter(keep_me) %>%
   left_join(stops %>% filter(which == "Start") %>% select(option, walk))
 
 ggplot(trip_eta_results, aes(timestamp + eta * 60, quantile,
@@ -213,10 +218,11 @@ ggplot(trip_eta_results, aes(timestamp + eta * 60, quantile,
     data = trip_eta_results %>% filter(quantile == 0)
   ) +
   facet_grid(option ~ .) +
-  geom_vline(aes(xintercept = as.POSIXct("2019-08-29 7:00:00") + walk * 60)) +
+  geom_vline(aes(xintercept = TSTART + walk * 60), lty = 2) +
+  geom_vline(aes(xintercept = TSTART)) +
   geom_text(
     aes(
-      x = as.POSIXct("2019-08-29 7:00:00") + walk * 60,
+      x = TSTART + walk * 60,
       y = 0.5,
       label = paste(walk, "min walk"),
       group = NULL,
@@ -226,9 +232,15 @@ ggplot(trip_eta_results, aes(timestamp + eta * 60, quantile,
     angle = 90,
     nudge_x = -30
   ) +
+  # geom_point(aes(timestamp + gtfs_eta, 0.5), pch = 4) +
   theme_classic() +
   theme(panel.background = element_blank()) +
-  scale_x_datetime("Estimated arrival time at 7am") +
+  scale_x_datetime(
+    sprintf("Estimated arrival time at %s:%s%s",
+      as.integer(format(TSTART, "%H")),
+      format(TSTART, "%M"),
+      format(TSTART, "%P")
+  )) +
   scale_y_continuous("P(A < a)") +
   labs(colour = "Route")
 
@@ -259,22 +271,15 @@ ggplot(trip_eta_results, aes(timestamp + eta * 60, quantile,
 \Cref{fig:eta_journey_arrival} shows the arrival time predictions by way of their \glspl{cdf} for upcoming trips at each stop, as at 7am. We also indicate the walking time to each of these stops, which indicates that, although option B has a bus arriving sooner, unless the passenger runs they will likely miss it. Ignoring this early trip, both options have a bus arriving shortly after the passenger does (and by coincidence the probability that they miss this next viable bus is less than 10\%).
 
 
+
 <<eta_journey_arriveby,echo=FALSE,cache=TRUE,dependson="eta_journey_arrival",message=FALSE,fig.width=8,fig.height=5,out.width="\\textwidth",fig.cap="ETA predictions for two route options. The coloured curves represent the CDF of arrival time for individual trips made at 7am. The vertical black lines indicate the estimated walking time (according to Google Maps) from the Start location to each stop.",fig.align="center">>=
 
 
 # commuter ready to leave at 7am
 trip_results_before_8 <- trip_results %>%
   group_by(trip_start_time) %>%
-  filter(timestamp > as.POSIXct("2019-08-29 7:00:00")) %>%
-  group_modify(~{
-    .x %>% mutate(
-      in_range = any(
-        .x$timestamp + eta * 60 > as.POSIXct("2019-08-29 7:45:00") & .x$timestamp + eta * 60 < as.POSIXct("2019-08-29 8:00:00")
-      )
-    )
-  }) %>%
-  ungroup() %>%
-  filter(in_range) %>%
+  filter(timestamp > TSTART) %>%
+  filter(trip_id %in% trip_eta_results$trip_id) %>%
   select(trip_id, trip_start_time, stop_sequence, timestamp, eta, quantile,
     actual_arrival, time_until_arrival, gtfs_eta, route_id) %>%
   left_join(
@@ -291,7 +296,8 @@ trip_eta_results2 <- trip_results_before_8 %>%
   filter(is_destination == 1) %>%
   group_by(trip_id) %>%
   group_modify(~{
-    .x %>% filter(timestamp == min(.x$timestamp))
+    .x %>% filter(timestamp == min(.x$timestamp)) %>%
+      arrange(eta)
   }) %>%
   left_join(stops %>% filter(which == "End") %>% select(option, walk))
 
@@ -303,11 +309,12 @@ ggplot(trip_eta_results2, aes(timestamp + eta * 60, quantile,
     data = trip_eta_results2 %>% filter(quantile == 0)
   ) +
   facet_grid(option ~ .) +
-  geom_vline(aes(xintercept = as.POSIXct("2019-08-29 8:00:00") - walk * 60)) +
+  geom_vline(aes(xintercept = TEND - walk * 60), lty = 3) +
+  geom_vline(aes(xintercept = TEND)) +
   #geom_vline(aes(xintercept = actual_arrival, colour = route_short_name)) +
   geom_text(
     aes(
-      x = as.POSIXct("2019-08-29 8:00:00") - walk * 60,
+      x = TEND - walk * 60,
       y = 0.5,
       label = paste(walk, "min walk"),
       group = NULL,
@@ -317,9 +324,15 @@ ggplot(trip_eta_results2, aes(timestamp + eta * 60, quantile,
     angle = -90,
     nudge_x = 60
   ) +
+  # geom_point(aes(timestamp + gtfs_eta, 0.5), pch = 4) +
   theme_classic() +
   theme(panel.background = element_blank()) +
-  scale_x_datetime("Estimated arrival time at 7am") +
+  scale_x_datetime(
+    sprintf("Estimated arrival time at %s:%s%s",
+      as.integer(format(TSTART, "%H")),
+      format(TSTART, "%M"),
+      format(TSTART, "%P")
+  )) +
   scale_y_continuous("P(A < a)") +
   labs(colour = "Route")
 
@@ -327,62 +340,349 @@ ggplot(trip_eta_results2, aes(timestamp + eta * 60, quantile,
 
 @
 
+The next consideration is that the bus arrives \emph{on time} at the destination. In \cref{fig:eta_journey_arriveby}, we display the \glspl{cdf} of arrival time at the destination stop for each trip, including a dotted line indicating the necessary arrival time to account for walking from the stop to the destination.
+
 
 <<eta_journey_results,echo=FALSE,cache=TRUE,dependson="eta_journey_arriveby",message=FALSE,fig.width=8,fig.height=5,out.width="\\textwidth",fig.cap="Results of the journey planning application, including actual arrival times.">>=
 
-trip_eta_results %>%
-  group_by(trip_id) %>%
-  summarize(
-    timestamp = first(timestamp),
-    trip_start_time = first(trip_start_time),
-    route_short_name = first(route_short_name),
-    option = first(option),
-    walk = first(walk),
-    eta_q05 = timestamp + max(eta[quantile <= 0.025]) * 60,
-    eta_q50 = timestamp + max(eta[quantile <= 0.5]) * 60,
-    eta_q95 = timestamp + max(eta[quantile <= 0.95]) * 60,
-    actual = as.POSIXct(first(actual_arrival), origin = "1970-01-01"),
-    gtfs = timestamp + first(gtfs_eta)
-  ) %>%
-  ggplot(aes(y = trip_start_time, colour = route_short_name)) +
-    geom_point(aes(eta_q50)) +
-    geom_segment(
-      aes(
-        x = eta_q05, xend = eta_q95, yend = trip_start_time
+if (interactive())
+  trip_eta_results %>%
+    group_by(trip_id) %>%
+    summarize(
+      timestamp = first(timestamp),
+      trip_start_time = first(trip_start_time),
+      route_short_name = first(route_short_name),
+      option = first(option),
+      walk = first(walk),
+      eta_q05 = timestamp + max(eta[quantile <= 0.025]) * 60,
+      eta_q50 = timestamp + max(eta[quantile <= 0.5]) * 60,
+      eta_q95 = timestamp + max(eta[quantile <= 0.95]) * 60,
+      actual = as.POSIXct(first(actual_arrival), origin = "1970-01-01"),
+      gtfs = timestamp + first(gtfs_eta)
+    ) %>%
+    ggplot(aes(y = trip_start_time, colour = route_short_name)) +
+      geom_point(aes(eta_q50)) +
+      geom_segment(
+        aes(
+          x = eta_q05, xend = eta_q95, yend = trip_start_time
+        )
+      ) +
+      facet_grid(option+route_short_name ~ ., scales = "free_y") +
+      geom_vline(aes(xintercept = TSTART + walk * 60), lty = 3) +
+      geom_vline(aes(xintercept = TSTART)) +
+      geom_point(aes(actual), colour = "black") +
+      geom_point(aes(gtfs), shape = 4)
+
+
+if (interactive())
+  trip_eta_results2 %>%
+    group_by(trip_id) %>%
+    summarize(
+      timestamp = first(timestamp),
+      trip_start_time = first(trip_start_time),
+      route_short_name = first(route_short_name),
+      option = first(option),
+      walk = first(walk),
+      eta_q05 = timestamp + max(eta[quantile <= 0.025]) * 60,
+      eta_q50 = timestamp + max(eta[quantile <= 0.5]) * 60,
+      eta_q95 = timestamp + max(eta[quantile <= 0.95]) * 60,
+      actual = as.POSIXct(first(actual_arrival), origin = "1970-01-01"),
+      gtfs = timestamp + first(gtfs_eta)
+    ) %>%
+    ggplot(aes(y = trip_start_time, colour = route_short_name)) +
+      geom_point(aes(eta_q50)) +
+      geom_segment(
+        aes(
+          x = eta_q05, xend = eta_q95, yend = trip_start_time
+        )
+      ) +
+      facet_grid(option+route_short_name ~ ., scales = "free_y") +
+      geom_vline(aes(xintercept = TEND - walk * 60), lty = 3) +
+      geom_vline(aes(xintercept = TEND)) +
+      geom_point(aes(actual), colour = "black") +
+      geom_point(aes(gtfs), shape = 4)
+
+
+e_wait <- function(x, q) {
+  if (length(x) == 0) return(NA)
+  # standardise
+  q <- (q - min(q)) / diff(range(q))
+  p <- c(0, diff(q))
+  sum(x * p) / 60
+}
+
+trip_eta_results_comb <- bind_rows(trip_eta_results, trip_eta_results2) %>%
+  select(trip_id, trip_start_time, timestamp, eta, quantile,
+    actual_arrival, gtfs_eta, route_short_name, option, is_origin, walk) %>%
+    mutate(
+      eta_time = timestamp + 60 * eta,
+      after_walk = ifelse(is_origin, eta_time >= TSTART + 60 * walk, NA),
+      catch_wait = ifelse(is_origin,
+        as.integer(eta_time) - as.integer(TSTART) - 60 * walk,
+        NA
+      ),
+      before_walk = ifelse(is_origin, NA, eta_time <= TEND - 60 * walk),
+      arrive_wait = ifelse(is_origin, NA,
+        as.integer(TEND) -  60 * walk - as.integer(eta_time)
       )
-    ) +
-    facet_grid(option+route_short_name ~ ., scales = "free_y") +
-    geom_vline(aes(xintercept = as.POSIXct("2019-08-29 7:00:00") + walk * 60)) +
-    geom_point(aes(actual), colour = "black") +
-    geom_point(aes(gtfs), shape = 4)
+    ) %>%
+    group_by(trip_id) %>%
+    summarize(
+      option = first(option),
+      walk_to = first(walk[is_origin]),
+      walk_from = first(walk[!is_origin]),
+      trip_start_time = first(trip_start_time),
+      route_short_name = first(route_short_name),
+      timestamp = first(timestamp),
+      # P(catch | leave now)
+      p_catch = round(1 - min(c(1, quantile[after_walk & is_origin])), 2),
+      e_wait = round(e_wait(
+        catch_wait[after_walk & is_origin],
+        quantile[after_walk & is_origin]
+      ), 1),
+      journey_start = max(eta_time[quantile <= 0.5 & is_origin]),
+      journey_end = max(eta_time[quantile <= 0.5 & !is_origin]),
+      journey_length = round((as.integer(journey_end) - as.integer(journey_start)) / 60, 1),
+      p_arrive = round(max(c(0, quantile[before_walk & !is_origin])), 2),
+      gtfs_start = first((timestamp + gtfs_eta)[is_origin]),
+      gtfs_end = first((timestamp + gtfs_eta)[!is_origin]),
+      actual_start =
+        as.POSIXct(first(actual_arrival[is_origin]), origin = "1970-01-01"),
+      actual_end =
+        as.POSIXct(first(actual_arrival[!is_origin]), origin = "1970-01-01")
+    ) %>%
+    arrange(option, trip_start_time) %>%
+    select(option, walk_to, walk_from, route_short_name, trip_start_time,
+      p_catch, journey_length, p_arrive, gtfs_start, gtfs_end,
+      actual_start, actual_end) %>%
+    mutate(
+      did_catch = actual_start >= TSTART + 60 * walk_to,
+      did_arrive = actual_end <= TEND - 60 * walk_from,
+      gtfs_start = format(gtfs_start, "%H:%M"),
+      gtfs_end = format(gtfs_end, "%H:%M"),
+      actual_start = format(actual_start, "%H:%M"),
+      actual_end = format(actual_end, "%H:%M"),
+    )
 
 
-
-trip_eta_results2 %>%
-  group_by(trip_id) %>%
-  summarize(
-    timestamp = first(timestamp),
-    trip_start_time = first(trip_start_time),
-    route_short_name = first(route_short_name),
-    option = first(option),
-    walk = first(walk),
-    eta_q05 = timestamp + max(eta[quantile <= 0.025]) * 60,
-    eta_q50 = timestamp + max(eta[quantile <= 0.5]) * 60,
-    eta_q95 = timestamp + max(eta[quantile <= 0.95]) * 60,
-    actual = as.POSIXct(first(actual_arrival), origin = "1970-01-01"),
-    gtfs = timestamp + first(gtfs_eta)
+tab <- trip_eta_results_comb %>%
+  select(option, route_short_name, trip_start_time, p_catch, journey_length,
+    p_arrive, did_catch, did_arrive) %>%
+  mutate(
+    did_catch = ifelse(did_catch, "Y", "N"),
+    did_arrive = ifelse(did_arrive, "Y", "N")
   ) %>%
-  ggplot(aes(y = trip_start_time, colour = route_short_name)) +
-    geom_point(aes(eta_q50)) +
-    geom_segment(
-      aes(
-        x = eta_q05, xend = eta_q95, yend = trip_start_time
-      )
-    ) +
-    facet_grid(option+route_short_name ~ ., scales = "free_y") +
-    geom_vline(aes(xintercept = as.POSIXct("2019-08-29 8:00:00") - walk * 60)) +
-    geom_point(aes(actual), colour = "black") +
-    geom_point(aes(gtfs), shape = 4)
+  rename(
+    "Option" = option,
+    "Route" = route_short_name,
+    "Trip" = trip_start_time,
+    "$P_\\text{catch}$" = p_catch,
+    "$E_\\text{travel}$" = journey_length,
+    "$P_\\text{arrive}$" = p_arrive,
+    "Caught" = did_catch,
+    "Arrived on time" = did_arrive
+  )
 
+options(knitr.kable.NA = "")
+lineAfter <- max(which(tab$Option == "A"))
+knitr::kable(
+    tab,
+    format = "latex",
+    booktabs = TRUE,
+    caption = "Journey planning.",
+    escape = FALSE,
+    linesep = ""
+) %>%
+  kableExtra::row_spec(lineAfter, extra_latex_after = "\\midrule")
+@
+
+
+\begin{itemize}
+
+\item
+first problem: ensuring we don't miss the bus
+
+\item
+second problem: ensuring we get to destination (work) on time---depends on cost of being late (coffee with a friend vs work vs job interview)
+
+\item
+third problem: both of the above, while minimising waiting time?
+
+\item
+finally, don't current get ETAs for trips that haven't started yet ... this is something we should probably implement sooner rather than later :)
+
+
+\end{itemize}
+
+
+<<eta_journey_results_avg,echo=FALSE,cache=TRUE,dependson="-1">>=
+
+# 5-minute intervals from 6am--6pm:
+tstart <-
+  seq(as.POSIXct("2019-08-29 6:00:00"), as.POSIXct("2019-08-29 18:00:00"),
+    by = 5 * 60)
+# end time is 15-minute intervals (so 30-45 minute gaps)
+tend <- rep(
+  seq(min(tstart), max(tstart), by = 30 * 60) + 60 * 60,
+  each = 6)[seq_along(tstart)]
+
+all_results <- pbapply::pblapply(seq_along(tstart),
+  function(i) {
+    TSTART <- tstart[i]
+    TEND <- tend[i]
+
+    ## part 1: leave after
+    res_leave_after <- trip_results %>%
+      group_by(trip_start_time) %>%
+      filter(timestamp <= TSTART) %>%
+      group_modify(~{
+        .x %>% mutate(
+          in_range = any(
+            .x$timestamp + eta * 60 >= TSTART &
+            .x$timestamp + eta * 60 <= TEND
+          )
+        )
+      }) %>%
+      ungroup() %>%
+      filter(in_range) %>%
+      select(trip_id, trip_start_time, stop_sequence, timestamp, eta, quantile,
+        actual_arrival, time_until_arrival, gtfs_eta, route_id) %>%
+      left_join(
+        route_info %>% select(route_id, route_short_name, option, from_seq, to_seq),
+        by = "route_id"
+      ) %>%
+      mutate(
+        is_origin = as.integer(stop_sequence == from_seq),
+        is_destination = as.integer(stop_sequence == to_seq)
+      )
+
+    # summarize
+    res_eta_results <- res_leave_after %>%
+      filter(is_origin == 1 & time_until_arrival > 0) %>%
+      group_by(trip_id) %>%
+      group_modify(~{
+        .x %>%
+          filter(timestamp == max(.x$timestamp)) %>%
+          mutate(
+            keep_me = max(timestamp + eta * 60) >= TSTART
+          ) %>%
+          arrange(eta)
+      }) %>%
+      filter(keep_me) %>%
+      left_join(
+        stops %>% filter(which == "Start") %>% select(option, walk),
+        by = "option"
+      )
+
+
+    ## Part 2: arrive by
+    res_arrive_before <- trip_results %>%
+      group_by(trip_start_time) %>%
+      filter(timestamp > TSTART) %>%
+      filter(trip_id %in% res_eta_results$trip_id) %>%
+      select(trip_id, trip_start_time, stop_sequence, timestamp, eta, quantile,
+        actual_arrival, time_until_arrival, gtfs_eta, route_id) %>%
+      left_join(
+        route_info %>% select(route_id, route_short_name, option, from_seq, to_seq),
+        by = "route_id"
+      ) %>%
+      mutate(
+        is_origin = as.integer(stop_sequence == from_seq),
+        is_destination = as.integer(stop_sequence == to_seq)
+      )
+
+
+    res_eta_results2 <- res_arrive_before %>%
+      filter(is_destination == 1) %>%
+      group_by(trip_id) %>%
+      group_modify(~{
+        .x %>% filter(timestamp == min(.x$timestamp)) %>%
+          arrange(eta)
+      }) %>%
+      left_join(
+        stops %>% filter(which == "End") %>% select(option, walk),
+        by = "option"
+      )
+
+    ## Part 3: summarize probabilities, actuals
+    res_comb <- bind_rows(res_eta_results, res_eta_results2) %>%
+      select(trip_id, trip_start_time, timestamp, eta, quantile,
+        actual_arrival, gtfs_eta, route_short_name, option, is_origin, walk) %>%
+        mutate(
+          eta_time = timestamp + 60 * eta,
+          after_walk = ifelse(is_origin, eta_time >= TSTART + 60 * walk, NA),
+          catch_wait = ifelse(is_origin,
+            as.integer(eta_time) - as.integer(TSTART) - 60 * walk,
+            NA
+          ),
+          before_walk = ifelse(is_origin, NA, eta_time <= TEND - 60 * walk),
+          arrive_wait = ifelse(is_origin, NA,
+            as.integer(TEND) -  60 * walk - as.integer(eta_time)
+          )
+        ) %>%
+        group_by(trip_id) %>%
+        summarize(
+          option = first(option),
+          walk_to = first(walk[is_origin]),
+          walk_from = first(walk[!is_origin]),
+          trip_start_time = first(trip_start_time),
+          route_short_name = first(route_short_name),
+          timestamp = first(timestamp),
+          # P(catch | leave now)
+          p_catch = round(1 - min(c(1, quantile[after_walk & is_origin])), 2),
+          e_wait = round(e_wait(
+            catch_wait[after_walk & is_origin],
+            quantile[after_walk & is_origin]
+          ), 1),
+          journey_start = max(eta_time[quantile <= 0.5 & is_origin]),
+          journey_end = max(eta_time[quantile <= 0.5 & !is_origin]),
+          journey_length = round((as.integer(journey_end) - as.integer(journey_start)) / 60, 1),
+          p_arrive = round(max(c(0, quantile[before_walk & !is_origin])), 2),
+          gtfs_start = first((timestamp + gtfs_eta)[is_origin]),
+          gtfs_end = first((timestamp + gtfs_eta)[!is_origin]),
+          actual_start =
+            as.POSIXct(first(actual_arrival[is_origin]), origin = "1970-01-01"),
+          actual_end =
+            as.POSIXct(first(actual_arrival[!is_origin]), origin = "1970-01-01")
+        ) %>%
+        arrange(option, trip_start_time) %>%
+        select(option, walk_to, walk_from, route_short_name, trip_start_time,
+          p_catch, journey_length, p_arrive, gtfs_start, gtfs_end,
+          actual_start, actual_end) %>%
+        mutate(
+          did_catch = actual_start >= TSTART + 60 * walk_to,
+          did_arrive = actual_end <= TEND - 60 * walk_from,
+          gtfs_start = format(gtfs_start, "%H:%M"),
+          gtfs_end = format(gtfs_end, "%H:%M"),
+          actual_start = format(actual_start, "%H:%M"),
+          actual_end = format(actual_end, "%H:%M"),
+        )
+
+
+    list(
+      leave_at = TSTART,
+      arrive_by = TEND,
+      cdf_leave = res_eta_results,
+      cdf_arrive = res_eta_results2,
+      summary = res_comb
+    )
+  }
+)
+
+## Now plot p-catch versus did_catch
+map(all_results, "summary") %>%
+  bind_rows %>%
+  mutate(
+    did_catch = as.integer(did_catch),
+    did_arrive = as.integer(did_arrive)
+  ) %>%
+  ggplot(aes(p_catch)) +
+    geom_histogram() +
+    facet_grid(did_catch ~ .)
 
 @
+
+And then do it for a whole lot of different routes and stops and times ... ? To compare how well our predictions work versus GTFS.
+
+
+And do a comparison of what the currently available information would allow (uses SCHEDULED travel time)
