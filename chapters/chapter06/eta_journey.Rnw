@@ -515,7 +515,7 @@ finally, don't current get ETAs for trips that haven't started yet ... this is s
 \end{itemize}
 
 
-<<eta_journey_results_avg,echo=FALSE,cache=TRUE,dependson="-1">>=
+<<eta_journey_results_avg,echo=FALSE,cache=TRUE,dependson="-1",message=FALSE,fig.width=8,fig.height=3,out.width="\\textwidth",fig.cap="Results of performing the same journey planning prediction with different starting times (from 6am to 6pm), using the same start and end locations. Observations are whether or not the passenger would have arrived at the stop before the bus, jittered to better see each observation. The smoothed curve represents the mean, and indicates that on average our method is good at determining if the bus can be caught or not. Additionally, predictive probabilities of 0 and 1 have been removed.",fig.align="center">>=
 
 # 5-minute intervals from 6am--6pm:
 tstart <-
@@ -526,159 +526,203 @@ tend <- rep(
   seq(min(tstart), max(tstart), by = 30 * 60) + 60 * 60,
   each = 6)[seq_along(tstart)]
 
-all_results <- pbapply::pblapply(seq_along(tstart),
-  function(i) {
-    TSTART <- tstart[i]
-    TEND <- tend[i]
+all_results_file <- "data/all_results.rda"
+if (file.exists(all_results_file)) {
+  load(all_results_file)
+} else {
+  all_results <- pbapply::pblapply(seq_along(tstart),
+    function(i) {
+      TSTART <- tstart[i]
+      TEND <- tend[i]
 
-    ## part 1: leave after
-    res_leave_after <- trip_results %>%
-      group_by(trip_start_time) %>%
-      filter(timestamp <= TSTART) %>%
-      group_modify(~{
-        .x %>% mutate(
-          in_range = any(
-            .x$timestamp + eta * 60 >= TSTART &
-            .x$timestamp + eta * 60 <= TEND
+      ## part 1: leave after
+      res_leave_after <- trip_results %>%
+        group_by(trip_start_time) %>%
+        filter(timestamp <= TSTART) %>%
+        group_modify(~{
+          .x %>% mutate(
+            in_range = any(
+              .x$timestamp + eta * 60 >= TSTART &
+              .x$timestamp + eta * 60 <= TEND
+            )
           )
-        )
-      }) %>%
-      ungroup() %>%
-      filter(in_range) %>%
-      select(trip_id, trip_start_time, stop_sequence, timestamp, eta, quantile,
-        actual_arrival, time_until_arrival, gtfs_eta, route_id) %>%
-      left_join(
-        route_info %>% select(route_id, route_short_name, option, from_seq, to_seq),
-        by = "route_id"
-      ) %>%
-      mutate(
-        is_origin = as.integer(stop_sequence == from_seq),
-        is_destination = as.integer(stop_sequence == to_seq)
-      )
-
-    # summarize
-    res_eta_results <- res_leave_after %>%
-      filter(is_origin == 1 & time_until_arrival > 0) %>%
-      group_by(trip_id) %>%
-      group_modify(~{
-        .x %>%
-          filter(timestamp == max(.x$timestamp)) %>%
-          mutate(
-            keep_me = max(timestamp + eta * 60) >= TSTART
-          ) %>%
-          arrange(eta)
-      }) %>%
-      filter(keep_me) %>%
-      left_join(
-        stops %>% filter(which == "Start") %>% select(option, walk),
-        by = "option"
-      )
-
-
-    ## Part 2: arrive by
-    res_arrive_before <- trip_results %>%
-      group_by(trip_start_time) %>%
-      filter(timestamp > TSTART) %>%
-      filter(trip_id %in% res_eta_results$trip_id) %>%
-      select(trip_id, trip_start_time, stop_sequence, timestamp, eta, quantile,
-        actual_arrival, time_until_arrival, gtfs_eta, route_id) %>%
-      left_join(
-        route_info %>% select(route_id, route_short_name, option, from_seq, to_seq),
-        by = "route_id"
-      ) %>%
-      mutate(
-        is_origin = as.integer(stop_sequence == from_seq),
-        is_destination = as.integer(stop_sequence == to_seq)
-      )
-
-
-    res_eta_results2 <- res_arrive_before %>%
-      filter(is_destination == 1) %>%
-      group_by(trip_id) %>%
-      group_modify(~{
-        .x %>% filter(timestamp == min(.x$timestamp)) %>%
-          arrange(eta)
-      }) %>%
-      left_join(
-        stops %>% filter(which == "End") %>% select(option, walk),
-        by = "option"
-      )
-
-    ## Part 3: summarize probabilities, actuals
-    res_comb <- bind_rows(res_eta_results, res_eta_results2) %>%
-      select(trip_id, trip_start_time, timestamp, eta, quantile,
-        actual_arrival, gtfs_eta, route_short_name, option, is_origin, walk) %>%
-        mutate(
-          eta_time = timestamp + 60 * eta,
-          after_walk = ifelse(is_origin, eta_time >= TSTART + 60 * walk, NA),
-          catch_wait = ifelse(is_origin,
-            as.integer(eta_time) - as.integer(TSTART) - 60 * walk,
-            NA
-          ),
-          before_walk = ifelse(is_origin, NA, eta_time <= TEND - 60 * walk),
-          arrive_wait = ifelse(is_origin, NA,
-            as.integer(TEND) -  60 * walk - as.integer(eta_time)
-          )
+        }) %>%
+        ungroup() %>%
+        filter(in_range) %>%
+        select(trip_id, trip_start_time, stop_sequence, timestamp, eta, quantile,
+          actual_arrival, time_until_arrival, gtfs_eta, route_id) %>%
+        left_join(
+          route_info %>% select(route_id, route_short_name, option, from_seq, to_seq),
+          by = "route_id"
         ) %>%
+        mutate(
+          is_origin = as.integer(stop_sequence == from_seq),
+          is_destination = as.integer(stop_sequence == to_seq)
+        )
+
+      # summarize
+      res_eta_results <- res_leave_after %>%
+        filter(is_origin == 1 & time_until_arrival > 0) %>%
         group_by(trip_id) %>%
-        summarize(
-          option = first(option),
-          walk_to = first(walk[is_origin]),
-          walk_from = first(walk[!is_origin]),
-          trip_start_time = first(trip_start_time),
-          route_short_name = first(route_short_name),
-          timestamp = first(timestamp),
-          # P(catch | leave now)
-          p_catch = round(1 - min(c(1, quantile[after_walk & is_origin])), 2),
-          e_wait = round(e_wait(
-            catch_wait[after_walk & is_origin],
-            quantile[after_walk & is_origin]
-          ), 1),
-          journey_start = max(eta_time[quantile <= 0.5 & is_origin]),
-          journey_end = max(eta_time[quantile <= 0.5 & !is_origin]),
-          journey_length = round((as.integer(journey_end) - as.integer(journey_start)) / 60, 1),
-          p_arrive = round(max(c(0, quantile[before_walk & !is_origin])), 2),
-          gtfs_start = first((timestamp + gtfs_eta)[is_origin]),
-          gtfs_end = first((timestamp + gtfs_eta)[!is_origin]),
-          actual_start =
-            as.POSIXct(first(actual_arrival[is_origin]), origin = "1970-01-01"),
-          actual_end =
-            as.POSIXct(first(actual_arrival[!is_origin]), origin = "1970-01-01")
-        ) %>%
-        arrange(option, trip_start_time) %>%
-        select(option, walk_to, walk_from, route_short_name, trip_start_time,
-          p_catch, journey_length, p_arrive, gtfs_start, gtfs_end,
-          actual_start, actual_end) %>%
-        mutate(
-          did_catch = actual_start >= TSTART + 60 * walk_to,
-          did_arrive = actual_end <= TEND - 60 * walk_from,
-          gtfs_start = format(gtfs_start, "%H:%M"),
-          gtfs_end = format(gtfs_end, "%H:%M"),
-          actual_start = format(actual_start, "%H:%M"),
-          actual_end = format(actual_end, "%H:%M"),
+        group_modify(~{
+          .x %>%
+            filter(timestamp == max(.x$timestamp)) %>%
+            mutate(
+              keep_me = max(timestamp + eta * 60) >= TSTART
+            ) %>%
+            arrange(eta)
+        }) %>%
+        filter(keep_me) %>%
+        left_join(
+          stops %>% filter(which == "Start") %>% select(option, walk),
+          by = "option"
         )
 
 
-    list(
-      leave_at = TSTART,
-      arrive_by = TEND,
-      cdf_leave = res_eta_results,
-      cdf_arrive = res_eta_results2,
-      summary = res_comb
-    )
-  }
-)
+      ## Part 2: arrive by
+      res_arrive_before <- trip_results %>%
+        group_by(trip_start_time) %>%
+        filter(timestamp > TSTART) %>%
+        filter(trip_id %in% res_eta_results$trip_id) %>%
+        select(trip_id, trip_start_time, stop_sequence, timestamp, eta, quantile,
+          actual_arrival, time_until_arrival, gtfs_eta, route_id) %>%
+        left_join(
+          route_info %>% select(route_id, route_short_name, option, from_seq, to_seq),
+          by = "route_id"
+        ) %>%
+        mutate(
+          is_origin = as.integer(stop_sequence == from_seq),
+          is_destination = as.integer(stop_sequence == to_seq)
+        )
+
+
+      res_eta_results2 <- res_arrive_before %>%
+        filter(is_destination == 1) %>%
+        group_by(trip_id) %>%
+        group_modify(~{
+          .x %>% filter(timestamp == min(.x$timestamp)) %>%
+            arrange(eta)
+        }) %>%
+        left_join(
+          stops %>% filter(which == "End") %>% select(option, walk),
+          by = "option"
+        )
+
+      ## Part 3: summarize probabilities, actuals
+      res_comb <- bind_rows(res_eta_results, res_eta_results2) %>%
+        select(trip_id, trip_start_time, timestamp, eta, quantile,
+          actual_arrival, gtfs_eta, route_short_name, option, is_origin, walk) %>%
+          mutate(
+            eta_time = timestamp + 60 * eta,
+            after_walk = ifelse(is_origin, eta_time >= TSTART + 60 * walk, NA),
+            catch_wait = ifelse(is_origin,
+              as.integer(eta_time) - as.integer(TSTART) - 60 * walk,
+              NA
+            ),
+            before_walk = ifelse(is_origin, NA, eta_time <= TEND - 60 * walk),
+            arrive_wait = ifelse(is_origin, NA,
+              as.integer(TEND) -  60 * walk - as.integer(eta_time)
+            )
+          ) %>%
+          group_by(trip_id) %>%
+          summarize(
+            option = first(option),
+            walk_to = first(walk[is_origin]),
+            walk_from = first(walk[!is_origin]),
+            trip_start_time = first(trip_start_time),
+            route_short_name = first(route_short_name),
+            timestamp = first(timestamp),
+            # P(catch | leave now)
+            p_catch = round(1 - min(c(1, quantile[after_walk & is_origin])), 2),
+            e_wait = round(e_wait(
+              catch_wait[after_walk & is_origin],
+              quantile[after_walk & is_origin]
+            ), 1),
+            journey_start = max(eta_time[quantile <= 0.5 & is_origin]),
+            journey_end = max(eta_time[quantile <= 0.5 & !is_origin]),
+            journey_length = round((as.integer(journey_end) - as.integer(journey_start)) / 60, 1),
+            p_arrive = round(max(c(0, quantile[before_walk & !is_origin])), 2),
+            gtfs_start = first((timestamp + gtfs_eta)[is_origin]),
+            gtfs_end = first((timestamp + gtfs_eta)[!is_origin]),
+            actual_start =
+              as.POSIXct(first(actual_arrival[is_origin]), origin = "1970-01-01"),
+            actual_end =
+              as.POSIXct(first(actual_arrival[!is_origin]), origin = "1970-01-01")
+          ) %>%
+          arrange(option, trip_start_time) %>%
+          select(option, walk_to, walk_from, route_short_name, trip_start_time,
+            p_catch, journey_length, p_arrive, gtfs_start, gtfs_end,
+            actual_start, actual_end) %>%
+          mutate(
+            did_catch = actual_start >= TSTART + 60 * walk_to,
+            did_arrive = actual_end <= TEND - 60 * walk_from,
+            gtfs_catch = gtfs_start >= TSTART + 60 * walk_to,
+            gtfs_arrive = gtfs_end <= TEND - 60 * walk_from,
+            gtfs_start = format(gtfs_start, "%H:%M"),
+            gtfs_end = format(gtfs_end, "%H:%M"),
+            actual_start = format(actual_start, "%H:%M"),
+            actual_end = format(actual_end, "%H:%M"),
+          )
+
+
+      list(
+        leave_at = TSTART,
+        arrive_by = TEND,
+        cdf_leave = res_eta_results,
+        cdf_arrive = res_eta_results2,
+        summary = res_comb
+      )
+    }
+  )
+  save(all_results, file = all_results_file)
+}
 
 ## Now plot p-catch versus did_catch
-map(all_results, "summary") %>%
+mdata <- map(all_results, "summary") %>%
   bind_rows %>%
   mutate(
     did_catch = as.integer(did_catch),
-    did_arrive = as.integer(did_arrive)
-  ) %>%
-  ggplot(aes(p_catch)) +
-    geom_histogram() +
-    facet_grid(did_catch ~ .)
+    did_arrive = as.integer(did_arrive),
+    gtfs_catch = as.integer(gtfs_catch),
+    gtfs_arrive = as.integer(gtfs_arrive)
+  )
+
+mdata %>%
+  filter(p_catch > 0 & p_catch < 1) %>%
+  ggplot(aes(p_catch + rnorm(length(p_catch), 0, 0.01), did_catch)) +
+    ggbeeswarm::geom_beeswarm(groupOnX = FALSE, priority = "random") +
+    #geom_abline() +
+    geom_smooth(colour = "orangered") +
+    theme_classic() +
+    scale_x_continuous("Predictive probabilty of catching the bus") +
+    scale_y_continuous("Observed capture response",
+      breaks = 0:1,
+      labels = c("No", "Yes")
+    )
+
+#mdata %>%
+#  filter(p_arrive > 0 & p_arrive < 1) %>%
+#  ggplot(aes(p_arrive + rnorm(length(p_arrive), 0, 0.01), did_arrive)) +
+#    ggbeeswarm::geom_beeswarm(groupOnX = FALSE, priority = "random") +
+#    #geom_abline() +
+#    geom_smooth(colour = "orangered") +
+#    theme_classic() +
+#    scale_x_continuous("Predictive probabilty of arriving on time") +
+#    scale_y_continuous("Observed arrival response",
+#      breaks = 0:1,
+#      labels = c("No", "Yes")
+#    )
+
+## the same for GTFS?
+#mdata %>%
+  #ggplot(aes(gtfs_catch, did_catch)) +
+  #  geom_col()
+
+#mdata %>% select(p_catch, did_catch) %>% mutate(p_catch=as.integer(p_catch>0.25)) %>% table
+
+## Some graph to show changing value of p_catch threshold and reliability
+# (true positive vs false positive) compared to GTFS
+# -> advantage is that we can change the threshold; GTFS cannot.
 
 @
 
@@ -686,3 +730,271 @@ And then do it for a whole lot of different routes and stops and times ... ? To 
 
 
 And do a comparison of what the currently available information would allow (uses SCHEDULED travel time)
+
+
+\subsection{Multi-stage journey}
+\label{sec:journey_transfer}
+
+A more complex scenario is one where the passenger must transfer from one route onto another. This is a common situation for people commuting for further afield, where there are often serveral \emph{feeder routes} which connect at a hub which usually has more frequent trips to another hub. One such example is at the Westgate station, where passengers can catch one of several feeder routes and transfer to the main route 110 into the city.
+
+
+
+<<eta_journey_transfer_prep,echo=FALSE,cache=TRUE,warning=FALSE,message=FALSE,fig.height=3,out.width="\\textwidth",fig.cap="Transfer options",fig.align="center">>=
+
+suppressPackageStartupMessages({
+  library(tidyverse)
+  library(ggmap)
+  library(RSQLite)
+})
+
+curd <- setwd("../../data")
+source("load_data.R")
+setwd(curd)
+
+
+routes <- c("111", "110", "125X")
+
+#stops <- tibble(
+#  which = c("Start", "End", "Start", "End"),
+#  option = c("A", "A", "B", "B"),
+#  id = c("8417", "7089", "8517", "7147"),
+#  walk = c(9, 2, 11, 3)
+#)
+
+con <- dbConnect(SQLite(), db)
+route_info <- con %>% tbl("routes") %>%
+  filter(
+    route_short_name %in% routes &
+    version == 82.21 &
+    (
+      route_long_name %like% "%To Britomart%" |
+      route_long_name %like% "%To City Centre%" |
+      route_long_name %like% "%Royal Heights%"
+    )
+  ) %>%
+  select(route_id, route_short_name, route_long_name) %>%
+  left_join(
+    con %>% tbl("trips") %>% group_by(route_id) %>%
+      summarize(shape_id = min(shape_id, na.rm = TRUE)),
+    by = "route_id"
+  ) %>%
+  collect()
+trip_info <- con %>% tbl("trips") %>%
+  filter(route_id %in% !!route_info$route_id) %>%
+  select(trip_id, route_id, service_id) %>%
+  left_join(
+    con %>% tbl("stop_times") %>% filter(stop_sequence == 1) %>%
+      select(trip_id, departure_time) %>%
+      rename(trip_start_time = departure_time),
+    by = "trip_id"
+  ) %>%
+  left_join(
+    con %>% tbl("calendar") %>% select(service_id, monday),
+    by = "service_id"
+  ) %>%
+  filter(monday == 1) %>%
+  select(-monday, -service_id) %>%
+  collect() %>%
+  mutate(
+    trip_start_time = stringr::str_sub(trip_start_time, 1, 5)
+  )
+shapes <- con %>% tbl("shapes") %>%
+  filter(shape_id %in% !!route_info$shape_id) %>%
+  select(shape_id, shape_pt_lat, shape_pt_lon, shape_pt_sequence) %>%
+  arrange(shape_id, shape_pt_sequence) %>%
+  collect() %>%
+  left_join(route_info, by = "shape_id")
+#stop_info <- con %>% tbl("stops") %>%
+#  filter(stop_code %in% !!stops$id & version == 82.21) %>%
+#  select(stop_id, stop_code, stop_lon, stop_lat) %>%
+#  collect()
+#stops <- stops %>% left_join(stop_info, by = c("id" = "stop_code"))
+dbDisconnect(con)
+
+xlim <- extendrange(
+  range(shapes$shape_pt_lon[shapes$route_short_name == "110"]),
+  f = 0.1
+)
+ylim <- extendrange(
+  range(shapes$shape_pt_lat[shapes$route_short_name == "110"]),
+  f = 0.1
+)
+
+## Get a map:
+map <- get_stamenmap(c(xlim[1], ylim[1], xlim[2], ylim[2]), zoom = 14)
+ggmap(map) +
+  geom_path(
+    aes(shape_pt_lon, shape_pt_lat,
+      group = route_short_name, colour = route_short_name),
+    data = shapes,
+    lwd = 2
+  ) +
+  geom_path(
+    aes(shape_pt_lon, shape_pt_lat,
+      group = route_short_name, colour = route_short_name),
+    data = shapes %>% filter(route_short_name == "110"),
+    lwd = 2,
+    lty = 2
+  ) +
+  theme_void() +
+  theme(legend.position = "bottom") +
+  labs(colour = "Route")
+
+@
+
+<<eta_journey_transfer_times,echo=FALSE,cache=TRUE,dependson="-1">>=
+
+trip_times <- trip_info %>%
+  left_join(route_info, by = "route_id") %>%
+  #arrange(route_short_name, trip_start_time) %>%
+  mutate(
+    trip_time = sapply(trip_start_time,
+      function(x) {
+        sum(as.integer(strsplit(x, ":")[[1]]) / c(1, 60))
+      }
+    )
+  )
+
+## 110: at :05 and :35 past each hour
+## 111: at :15 and :45 past each hour
+
+r125X_times <- trip_times %>% filter(route_short_name == "125X") %>%
+  arrange(trip_start_time) %>% pull(trip_start_time)
+
+mat <- tibble(
+  "Route" = c("110", "111", "125X"),
+  "Time" = c(
+    "5:05, 5:35, and every 30~minutes after",
+    "5:45, 6:15, and every 30~minutes after",
+    paste(r125X_times, collapse = ", ")
+  )
+)
+options(knitr.kable.NA = "")
+knitr::kable(
+    mat,
+    format = "latex",
+    booktabs = TRUE,
+    caption = "Trip time table.",
+    escape = FALSE,
+    linesep = ""
+)
+
+@
+
+The 111 is a feeder route which runs every half hour, departing Westgate and doing a loop before returning to Westgate. Another route, the 125X, travels directly from Westgate to the CBD (in the morning), and the reverse in the evening, so it makes for a very quick commute. The decision, then, is which combination of 111 and 125X \emph{or} 111 and 110 does one catch to A: get to work on time, and B: get home as quickly as possible. The routes are shown in \cref{fig:eta_journey_transfer_prep}. The 125X runs only a few times, and starts in Hellensville (not shown in the map), so it has an uncertain arrival time at Westgate, although according to the \gls{gtfs} stop times (\cref{tab:eta_journey_125X_times}) the Westgate stop (bold in the table) is a \emph{layover}, meaning the bus should wait until the specified time to depart, though as we saw in \cref{fig:layover_observance} this is not always the case.
+
+<<eta_journey_125X_times,echo=FALSE,cache=TRUE,dependson="-1">>=
+
+con <- dbConnect(SQLite(), db)
+trip_timetable <- con %>% tbl("stop_times") %>%
+  filter(
+    trip_id == !!trip_times$trip_id[trip_times$route_short_name == "125X"][1]
+  ) %>%
+  arrange(stop_sequence) %>%
+  select(stop_id, stop_sequence, arrival_time, departure_time) %>%
+  left_join(
+    con %>% tbl("stops") %>% select("stop_id", "stop_code", "stop_name"),
+    by = "stop_id"
+  ) %>%
+  collect() %>%
+  mutate(
+    layover = arrival_time != departure_time
+  ) %>%
+  filter(layover | stop_sequence %in% range(stop_sequence)) %>%
+  select(stop_sequence, stop_code, stop_name, departure_time) %>%
+  rename(
+    "Stop code" = stop_code,
+    "Location" = stop_name,
+    "Scheduled time" = departure_time
+  )
+dbDisconnect(con)
+
+
+options(knitr.kable.NA = "")
+knitr::kable(
+    trip_timetable %>% select(-stop_sequence),
+    format = "latex",
+    booktabs = TRUE,
+    caption = "Trip time table.",
+    escape = FALSE,
+    linesep = ""
+) %>%
+  kableExtra::row_spec(4, bold = TRUE)
+
+@
+
+
+The issue now is that, while it will work OK for the 125X, the 110 begins at Westgate, so there are no arrival time predictions until it commences the route. Until our application has been updated to make predictions for upcoming routes also, we will use the travel time preditions from the previous trip at the beginning of its route. That is, to predict the arrival time of the 10:35 110 in town, we use the initial prediction for the same stop for the 10:05 trip.
+
+
+<<eta_journey_125X_times,echo=FALSE,cache=TRUE,dependson="-1">>=
+
+## compute the arrival time of the 111 at Westgate:
+
+
+con <- dbConnect(SQLite(), "data/eta_quantiles.sqlite")
+
+trip_etas <- con %>% tbl("etas")
+
+rid_111 <- route_info$route_id[route_info$route_short_name == "111"]
+tids_111 <- trip_info %>% filter(route_id == rid_111) %>% pull(trip_id)
+rseq_111 <- trip_etas %>% filter(trip_id %in% tids_111) %>%
+  summarize(stop_max = max(stop_sequence, na.rm = TRUE)) %>%
+  collect()
+trip_111 <- trip_etas %>%
+  filter(trip_id %in% tids_111) %>%
+  filter(stop_sequence == !!rseq_111$stop_max) %>%
+  collect() %>%
+  mutate(timestamp = as.POSIXct(timestamp, origin = "1970-01-01")) %>%
+  left_join(trip_info, by = "trip_id")
+
+
+
+rid_125X <- route_info$route_id[route_info$route_short_name == "125X"]
+tids_125X <- trip_info %>% filter(route_id == rid_125X) %>% pull(trip_id)
+trip_125X <- trip_etas %>%
+  filter(trip_id %in% tids_125X) %>%
+  filter(stop_sequence == 35) %>%
+  collect() %>%
+  mutate(timestamp = as.POSIXct(timestamp, origin = "1970-01-01")) %>%
+  left_join(trip_info, by = "trip_id")
+
+dbDisconnect(con)
+
+
+
+
+trip_110_depart <- tibble(
+  time = as.POSIXct(paste("2019-08-29", c("6:35:00", "7:05:00", "7:35:00")))
+)
+
+
+TSTART <- as.POSIXct("2019-08-29 7:00:00")
+trip_125X_depart <- trip_125X %>% filter(timestamp <= TSTART) %>%
+  group_by(trip_id) %>%
+  group_modify(~{
+    .x %>% filter(timestamp == max(timestamp))
+  }) %>%
+  arrange(trip_start_time, eta)
+
+trip_111 %>% filter(timestamp <= TSTART) %>%
+  group_by(trip_id) %>%
+  group_modify(~{
+    .x %>% filter(timestamp == max(timestamp))
+  }) %>%
+  arrange(trip_start_time, eta) %>%
+  ggplot(aes(timestamp + eta * 60, quantile, group = trip_start_time)) +
+    geom_path(aes(colour = "111")) +
+    geom_segment(
+      aes(
+        time, 1,
+        xend = time,
+        yend = 0,
+        colour = "110", group = NULL
+      ),
+      data = trip_110_depart
+    ) +
+    geom_path(aes(colour = "125X"), data = trip_125X_depart)
+
+
+@
