@@ -927,7 +927,7 @@ knitr::kable(
 The issue now is that, while it will work OK for the 125X, the 110 begins at Westgate, so there are no arrival time predictions until it commences the route. Until our application has been updated to make predictions for upcoming routes also, we will use the travel time preditions from the previous trip at the beginning of its route. That is, to predict the arrival time of the 10:35 110 in town, we use the initial prediction for the same stop for the 10:05 trip.
 
 
-<<eta_journey_125X_times,echo=FALSE,cache=TRUE,dependson="-1">>=
+<<eta_journey_etas,echo=FALSE,cache=TRUE,dependson="-1",fig.width=6,fig.height=2,out.width=".8\\textwidth",fig.cap="Arrival time distributions for A: the 111 and 125X at Westgate, and B: the 111 and 110 at Royal Road.",fig.subcap=c("Westgate transfer", "Royal Road transfer","CBD arrival"),fig.ncol=1,fig.sep=rep("\\\\", 3),fig.align="center">>=
 
 ## compute the arrival time of the 111 at Westgate:
 
@@ -943,21 +943,44 @@ rseq_111 <- trip_etas %>% filter(trip_id %in% tids_111) %>%
   collect()
 trip_111 <- trip_etas %>%
   filter(trip_id %in% tids_111) %>%
-  filter(stop_sequence == !!rseq_111$stop_max) %>%
+  filter(stop_sequence %in% c(20, 24)) %>%
   collect() %>%
   mutate(timestamp = as.POSIXct(timestamp, origin = "1970-01-01")) %>%
   left_join(trip_info, by = "trip_id")
+
 
 
 
 rid_125X <- route_info$route_id[route_info$route_short_name == "125X"]
 tids_125X <- trip_info %>% filter(route_id == rid_125X) %>% pull(trip_id)
+rseq_125X <- trip_etas %>% filter(trip_id %in% tids_125X) %>%
+  summarize(stop_max = max(stop_sequence, na.rm = TRUE)) %>%
+  collect()
 trip_125X <- trip_etas %>%
   filter(trip_id %in% tids_125X) %>%
-  filter(stop_sequence == 35) %>%
+  filter(stop_sequence %in% c(35, 36)) %>%
   collect() %>%
   mutate(timestamp = as.POSIXct(timestamp, origin = "1970-01-01")) %>%
   left_join(trip_info, by = "trip_id")
+
+
+# 110 stop 6
+rid_110 <- route_info$route_id[route_info$route_short_name == "110"]
+tids_110 <- trip_info %>% filter(route_id == rid_110) %>% pull(trip_id)
+rseq_110 <- trip_etas %>% filter(trip_id %in% tids_110) %>%
+  summarize(stop_max = max(stop_sequence, na.rm = TRUE)) %>%
+  collect()
+trip_110 <- trip_etas %>%
+  filter(trip_id %in% tids_110) %>%
+  filter(stop_sequence %in% c(6, 29)) %>%
+  collect() %>%
+  mutate(timestamp = as.POSIXct(timestamp, origin = "1970-01-01")) %>%
+  left_join(trip_info, by = "trip_id") %>%
+  mutate(
+    trip_start = as.POSIXct(paste0("2019-08-29 ", trip_start_time, ":00")),
+    stop_travel_time = as.integer(timestamp) + eta * 60 - as.integer(trip_start)
+  )
+
 
 dbDisconnect(con)
 
@@ -965,26 +988,38 @@ dbDisconnect(con)
 
 
 trip_110_depart <- tibble(
-  time = as.POSIXct(paste("2019-08-29", c("6:35:00", "7:05:00", "7:35:00")))
+  time = as.POSIXct(paste("2019-08-29", c("7:05:00", "7:35:00")))
 )
 
 
-TSTART <- as.POSIXct("2019-08-29 7:00:00")
-trip_125X_depart <- trip_125X %>% filter(timestamp <= TSTART) %>%
+TSTART <- as.POSIXct("2019-08-29 6:50:00")
+trip_125X_depart <- trip_125X %>%
+  filter(timestamp <= TSTART & stop_sequence == 35) %>%
   group_by(trip_id) %>%
   group_modify(~{
-    .x %>% filter(timestamp == max(timestamp))
+    .x <- .x %>% filter(timestamp == max(timestamp))
+    if (any(.x$timestamp + .x$eta * 60 < TSTART)) return(.x %>% filter(FALSE))
+    if (max(.x$quantile) < 1) return(.x %>% filter(FALSE))
+    .x
   }) %>%
   arrange(trip_start_time, eta)
 
-trip_111 %>% filter(timestamp <= TSTART) %>%
+
+trip_111_arrive <- trip_111 %>%
+  filter(timestamp <= TSTART & stop_sequence == 24) %>%
   group_by(trip_id) %>%
   group_modify(~{
-    .x %>% filter(timestamp == max(timestamp))
+    .x <- .x %>% filter(timestamp == max(timestamp))
+    if (any(.x$timestamp + .x$eta * 60 < TSTART)) return(.x %>% filter(FALSE))
+    .x
   }) %>%
-  arrange(trip_start_time, eta) %>%
+  arrange(trip_start_time, eta)
+
+trip_111_arrive %>%
   ggplot(aes(timestamp + eta * 60, quantile, group = trip_start_time)) +
     geom_path(aes(colour = "111")) +
+    geom_path(aes(colour = "125X"),
+      data = trip_125X_depart %>% filter(stop_sequence == 35)) +
     geom_segment(
       aes(
         time, 1,
@@ -994,7 +1029,223 @@ trip_111 %>% filter(timestamp <= TSTART) %>%
       ),
       data = trip_110_depart
     ) +
-    geom_path(aes(colour = "125X"), data = trip_125X_depart)
+    theme_classic() +
+    scale_x_datetime("Time") +
+    scale_y_continuous("P(A < a)") +
+    labs(colour = "Route")
+
+
+
+trip_110_depart <- trip_110 %>%
+  filter(timestamp <= TSTART & stop_sequence == 6) %>%
+  group_by(trip_id) %>%
+  group_modify(~{
+    .x <- .x %>% filter(timestamp == min(timestamp))
+    if (any(.x$timestamp + .x$eta * 60 < TSTART - 60 * 30))
+      return(.x %>% filter(FALSE))
+    if (max(.x$quantile) < 1) return(.x %>% filter(FALSE))
+    .x
+  }) %>%
+  arrange(trip_start_time, eta)
+
+
+trip_111_depart <- trip_111 %>%
+  filter(timestamp <= TSTART & stop_sequence == 20) %>%
+  group_by(trip_id) %>%
+  group_modify(~{
+    .x <- .x %>% filter(timestamp == max(timestamp))
+    if (any(.x$timestamp + .x$eta * 60 < TSTART)) return(.x %>% filter(FALSE))
+    .x
+  }) %>%
+  arrange(trip_start_time, eta)
+
+trip_111_depart %>%
+  ggplot(aes(timestamp + eta * 60, quantile, group = trip_start_time)) +
+    geom_path(aes(colour = "111")) +
+    geom_path(aes(timestamp + eta * 60 + 30 * 60, colour = "110"),
+      data = trip_110_depart) +
+    geom_path(aes(x, y, group = NULL, colour = "125X"),
+      data = tibble(x = trip_111$timestamp[1] + NA, y = 1),
+      na.rm = TRUE) +
+    theme_classic() +
+    scale_x_datetime("Time") +
+    scale_y_continuous("P(A < a)") +
+    labs(colour = "Route")
+
+
+
+## arrival in town
+final_arrival <- bind_rows(
+
+  trip_110 %>%
+    filter(timestamp <= TSTART & stop_sequence == 29) %>%
+    filter(trip_id %in% trip_110_depart$trip_id) %>%
+    group_by(trip_id) %>%
+    group_modify(~{
+      .x <- .x %>% filter(timestamp == min(timestamp))
+      if (any(.x$timestamp + .x$eta * 60 < TSTART - 60 * 30))
+        return(.x %>% filter(FALSE))
+      if (max(.x$quantile) < 1) return(.x %>% filter(FALSE))
+      .x
+    }) %>%
+    mutate(eta = eta + 30) %>%
+    arrange(trip_start_time, eta),
+
+  trip_125X %>%
+    filter(timestamp <= TSTART & stop_sequence == 36) %>%
+    filter(trip_id %in% trip_125X_depart$trip_id) %>%
+    group_by(trip_id) %>%
+    group_modify(~{
+      .x <- .x %>% filter(timestamp == max(timestamp))
+      if (any(.x$timestamp + .x$eta * 60 < TSTART)) return(.x %>% filter(FALSE))
+      if (max(.x$quantile) < 1) return(.x %>% filter(FALSE))
+      .x
+    }) %>%
+    arrange(trip_start_time, eta)
+
+) %>%
+  group_by(trip_id) %>%
+  left_join(
+    route_info %>% select(route_id, route_short_name),
+    by = "route_id"
+  ) %>%
+  arrange(trip_id, eta)
+
+final_arrival %>%
+  ggplot(aes(timestamp + eta * 60, quantile,
+    group = trip_start_time, colour = route_short_name)) +
+    geom_path() +
+    geom_path(aes(x, y, group = NULL, colour = "111"),
+      data = tibble(x = trip_111$timestamp[1] + NA, y = 1),
+      na.rm = TRUE) +
+    theme_classic() +
+    scale_x_datetime("Time") +
+    scale_y_continuous("P(A < a)") +
+    labs(colour = "Route")
+
+
+
+## Versus the GTFS schedule...
+con <- dbConnect(SQLite(), db)
+trip_timetable <- con %>% tbl("stop_times") %>%
+  filter(
+    trip_id %in%
+      !!trip_times$trip_id[
+        trip_times$route_short_name %in% c("125X", "110", "111")
+      ]
+  ) %>%
+  arrange(trip_id, stop_sequence) %>%
+  select(trip_id, stop_id, stop_sequence, arrival_time) %>%
+  collect() %>%
+  left_join(trip_info %>% select(trip_id, route_id), by = "trip_id") %>%
+  left_join(
+    route_info %>% select(route_id, route_short_name),
+    by = "route_id"
+  ) %>%
+  filter(
+    (route_short_name == "110" & stop_sequence %in% c(1, 6, 29)) |
+    (route_short_name == "125X" & stop_sequence %in% c(35, 36)) |
+    (route_short_name == "111" & stop_sequence %in% c(1, 20, 25))
+  )
+dbDisconnect(con)
+
+all_trips <- c(
+  trip_125X_depart$trip_id,
+  trip_110_depart$trip_id,
+  trip_111_depart$trip_id
+) %>% unique()
+
+
+r110ID <- trip_timetable %>%
+  filter(
+    route_short_name == "110" &
+    stop_sequence == 1 &
+    arrival_time == "07:05:00"
+  ) %>%
+  pull(trip_id)
+
+# westgate
+westgate111 <- trip_111_arrive %>%
+  filter(stop_sequence == 24) %>%
+  ungroup() %>%
+  summarize(
+    gtfs = min(timestamp) + min(gtfs_eta),
+    arrival = as.POSIXct(min(actual_arrival), origin = "1970-01-01")
+  )
+
+westgate125X <- trip_125X_depart %>%
+  filter(stop_sequence == 35) %>%
+  ungroup() %>%
+  summarize(
+    gtfs = min(timestamp) + min(gtfs_eta),
+    arrival = as.POSIXct(min(actual_arrival), origin = "1970-01-01")
+  )
+
+# royal road
+royal111 <- trip_111_depart %>%
+  filter(stop_sequence == 20) %>%
+  ungroup() %>%
+  summarize(
+    gtfs = min(timestamp) + min(gtfs_eta),
+    arrival = as.POSIXct(min(actual_arrival), origin = "1970-01-01")
+  )
+
+royal110 <- trip_110 %>%
+  filter(stop_sequence == 6 & trip_start_time == "07:05") %>%
+  summarize(
+    arrival = as.POSIXct(min(actual_arrival), origin = "1970-01-01")
+  ) %>%
+  mutate(
+    gtfs = trip_timetable %>%
+      filter(trip_id == r110ID & stop_sequence == 6) %>%
+      mutate(
+        arrival_time = as.POSIXct(paste("2019-08-29", arrival_time))
+      ) %>%
+      pull(arrival_time)
+  )
+
+
+cbd110 <- trip_110 %>%
+  filter(stop_sequence == 29 & trip_start_time == "07:05") %>%
+  summarize(
+    arrival = as.POSIXct(min(actual_arrival), origin = "1970-01-01")
+  ) %>%
+  mutate(
+    gtfs = trip_timetable %>%
+      filter(trip_id == r110ID & stop_sequence == 29) %>%
+      mutate(
+        arrival_time = as.POSIXct(paste("2019-08-29", arrival_time))
+      ) %>%
+      pull(arrival_time)
+  )
+
+cbd125X <- final_arrival %>%
+  filter(route_short_name == "125X" & stop_sequence == 36) %>%
+  ungroup() %>%
+  summarize(
+    gtfs = min(timestamp) + min(gtfs_eta),
+    arrival = as.POSIXct(min(actual_arrival), origin = "1970-01-01")
+  )
+
+
+bind_rows(westgate111, westgate125X, royal111, royal110, cbd125X, cbd110) %>%
+  mutate(
+    stop = rep(c("Westgate", "Royal Road", "CBD"), each = 2),
+    route = c("111", "125X", "111", "110", "125X", "110"),
+    gtfs = format(gtfs, "%H:%M"),
+    arrival = format(arrival, "%H:%M")
+  ) %>%
+  select(stop, route, gtfs, arrival) %>%
+  kable(
+    format = "latex",
+    booktabs = TRUE,
+    caption = "Transfer journey results",
+    escape = FALSE,
+    linesep = ""
+  ) %>%
+  kableExtra::row_spec(2, extra_latex_after = "\\midrule") %>%
+  kableExtra::row_spec(4, extra_latex_after = "\\midrule")
+
 
 
 @
