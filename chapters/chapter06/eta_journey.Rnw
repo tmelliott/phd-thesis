@@ -752,14 +752,14 @@ source("load_data.R")
 setwd(curd)
 
 
-routes <- c("111", "110", "125X")
+## Let's try that all again ...
+DATE <- "2019-08-29"
+routes <- c("27H", "27W", "24R", "24B", "22R", "22N")
 
-#stops <- tibble(
-#  which = c("Start", "End", "Start", "End"),
-#  option = c("A", "A", "B", "B"),
-#  id = c("8417", "7089", "8517", "7147"),
-#  walk = c(9, 2, 11, 3)
-#)
+stops <- tibble(
+  which = c("Start", "Transfer", "End"),
+  id = c("8513", "7151", "1090"),
+)
 
 con <- dbConnect(SQLite(), db)
 route_info <- con %>% tbl("routes") %>%
@@ -768,9 +768,9 @@ route_info <- con %>% tbl("routes") %>%
     version == 82.21 &
     (
       route_long_name %like% "%To Britomart%" |
-      route_long_name %like% "%To City Centre%" |
-      route_long_name %like% "%Royal Heights%"
-    )
+      route_long_name %like% "%To City Centre%"
+    ) &
+    !route_long_name %like% "Blockhouse%"
   ) %>%
   select(route_id, route_short_name, route_long_name) %>%
   left_join(
@@ -778,7 +778,10 @@ route_info <- con %>% tbl("routes") %>%
       summarize(shape_id = min(shape_id, na.rm = TRUE)),
     by = "route_id"
   ) %>%
-  collect()
+  collect() %>%
+  mutate(
+    transfer = ifelse(route_short_name %in% c("27H", "27W"), "A", "B")
+  )
 trip_info <- con %>% tbl("trips") %>%
   filter(route_id %in% !!route_info$route_id) %>%
   select(trip_id, route_id, service_id) %>%
@@ -796,7 +799,8 @@ trip_info <- con %>% tbl("trips") %>%
   select(-monday, -service_id) %>%
   collect() %>%
   mutate(
-    trip_start_time = stringr::str_sub(trip_start_time, 1, 5)
+    trip_start_time = stringr::str_sub(trip_start_time, 1, 5),
+    trip_start = as.POSIXct(paste(DATE, trip_start_time))
   )
 shapes <- con %>% tbl("shapes") %>%
   filter(shape_id %in% !!route_info$shape_id) %>%
@@ -804,49 +808,95 @@ shapes <- con %>% tbl("shapes") %>%
   arrange(shape_id, shape_pt_sequence) %>%
   collect() %>%
   left_join(route_info, by = "shape_id")
-#stop_info <- con %>% tbl("stops") %>%
-#  filter(stop_code %in% !!stops$id & version == 82.21) %>%
-#  select(stop_id, stop_code, stop_lon, stop_lat) %>%
-#  collect()
-#stops <- stops %>% left_join(stop_info, by = c("id" = "stop_code"))
+stop_info <- con %>% tbl("stops") %>%
+  filter(stop_code %in% !!stops$id & version == 82.21) %>%
+  select(stop_id, stop_code, stop_lon, stop_lat) %>%
+  collect()
+stops <- stops %>% left_join(stop_info, by = c("id" = "stop_code"))
+trip_stops <- con %>% tbl("stop_times") %>%
+  filter(
+    trip_id %in% !!trip_info$trip_id &
+    stop_id %in% !!stop_info$stop_id
+  ) %>%
+  collect()
 dbDisconnect(con)
 
+
 xlim <- extendrange(
-  range(shapes$shape_pt_lon[shapes$route_short_name == "110"]),
-  f = 0.1
+  range(shapes %>% filter(route_short_name == "27W") %>% pull(shape_pt_lon)),
+  f = 0.
 )
-ylim <- extendrange(
-  range(shapes$shape_pt_lat[shapes$route_short_name == "110"]),
-  f = 0.1
-)
+ylim <- extendrange(range(stops$stop_lat), f = 0.1)
 
 ## Get a map:
 map <- get_stamenmap(c(xlim[1], ylim[1], xlim[2], ylim[2]), zoom = 14)
 ggmap(map) +
   geom_path(
     aes(shape_pt_lon, shape_pt_lat,
-      group = route_short_name, colour = route_short_name),
-    data = shapes,
-    lwd = 2
+      group = route_short_name, colour = transfer),
+    data = shapes %>% arrange(shape_pt_sequence),
+    lwd = 2,
+    na.rm = TRUE
   ) +
   geom_path(
     aes(shape_pt_lon, shape_pt_lat,
-      group = route_short_name, colour = route_short_name),
-    data = shapes %>% filter(route_short_name == "110"),
+      group = route_short_name, colour = transfer),
+    data = shapes %>% filter(route_short_name == "24B"),
     lwd = 2,
     lty = 2
   ) +
+  geom_point(aes(stop_lon, stop_lat),
+    data = stops,
+    shape = 21,
+    fill = "white",
+    size = 3,
+    stroke = 2
+  ) +
   theme_void() +
   theme(legend.position = "bottom") +
-  labs(colour = "Route")
+  labs(colour = "Journey leg")
 
 @
+
+
+
+<<eta_journey_transfer_prob,echo=FALSE,cache=TRUE,dependson="-1">>=
+
+TSTART <- as.POSIXct(paste(DATE, "7:00:00"))
+con <- dbConnect(SQLite(), "data/eta_quantiles.sqlite")
+trip_etas <- con %>% tbl("etas") %>%
+  filter(
+    timestamp <= !!as.integer(TSTART) &
+    trip_id %in% !!trip_info$trip_id
+  ) %>%
+  select(trip_id, stop_sequence, timestamp, eta, quantile,
+    gtfs_eta, actual_arrival) %>%
+  collect() %>%
+  left_join(
+    trip_stops %>% select(trip_id, stop_id, stop_sequence),
+    by = c("trip_id", "stop_sequence")
+  ) %>%
+  filter(stop_id %in% stop_info$stop_id) %>%
+  left_join(trip_info, by = "trip_id") %>%
+  left_join(route_info, by = "route_id")
+
+ggplot(trip_etas, aes(timestamp + eta * 60, quantile)) +
+  geom_path(aes(group = trip_id, colour = transfer))
+
+
+
+@
+
+
+
+
+
+
 
 <<eta_journey_transfer_times,echo=FALSE,cache=TRUE,dependson="-1">>=
 
 trip_times <- trip_info %>%
   left_join(route_info, by = "route_id") %>%
-  #arrange(route_short_name, trip_start_time) %>%
   mutate(
     trip_time = sapply(trip_start_time,
       function(x) {
@@ -988,11 +1038,11 @@ dbDisconnect(con)
 
 
 trip_110_depart <- tibble(
-  time = as.POSIXct(paste("2019-08-29", c("7:05:00", "7:35:00")))
+  time = as.POSIXct(paste("2019-08-29", c("7:05:00", "7:35:00"))) - 30*60
 )
 
 
-TSTART <- as.POSIXct("2019-08-29 6:50:00")
+TSTART <- as.POSIXct("2019-08-29 6:25:00")
 trip_125X_depart <- trip_125X %>%
   filter(timestamp <= TSTART & stop_sequence == 35) %>%
   group_by(trip_id) %>%
@@ -1160,7 +1210,7 @@ r110ID <- trip_timetable %>%
   filter(
     route_short_name == "110" &
     stop_sequence == 1 &
-    arrival_time == "07:05:00"
+    arrival_time == "06:35:00"
   ) %>%
   pull(trip_id)
 
@@ -1191,7 +1241,7 @@ royal111 <- trip_111_depart %>%
   )
 
 royal110 <- trip_110 %>%
-  filter(stop_sequence == 6 & trip_start_time == "07:05") %>%
+  filter(stop_sequence == 6 & trip_start_time == "06:35") %>%
   summarize(
     arrival = as.POSIXct(min(actual_arrival), origin = "1970-01-01")
   ) %>%
@@ -1206,7 +1256,7 @@ royal110 <- trip_110 %>%
 
 
 cbd110 <- trip_110 %>%
-  filter(stop_sequence == 29 & trip_start_time == "07:05") %>%
+  filter(stop_sequence == 29 & trip_start_time == "06:35") %>%
   summarize(
     arrival = as.POSIXct(min(actual_arrival), origin = "1970-01-01")
   ) %>%
