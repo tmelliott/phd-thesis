@@ -157,7 +157,7 @@ to the examination process.}
 
 % \vfill
 \vspace{1cm}
-{\large July 2019}%\\[4cm] % Date
+{\large April 2020}%\\[4cm] % Date
 %\includegraphics{Logo} % University/department logo - uncomment to place it
 
 \vfill

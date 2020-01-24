@@ -700,18 +700,33 @@ mdata %>%
       labels = c("No", "Yes")
     )
 
-#mdata %>%
-#  filter(p_arrive > 0 & p_arrive < 1) %>%
-#  ggplot(aes(p_arrive + rnorm(length(p_arrive), 0, 0.01), did_arrive)) +
-#    ggbeeswarm::geom_beeswarm(groupOnX = FALSE, priority = "random") +
-#    #geom_abline() +
-#    geom_smooth(colour = "orangered") +
-#    theme_classic() +
-#    scale_x_continuous("Predictive probabilty of arriving on time") +
-#    scale_y_continuous("Observed arrival response",
-#      breaks = 0:1,
-#      labels = c("No", "Yes")
-#    )
+
+gtfs_catch_tab <- table(
+  gtfs = ifelse(mdata$gtfs_catch, "Yes", "No"),
+  outcome = ifelse(mdata$did_catch, "Yes", "No")
+)
+gtfs_catch_pc <-
+  round(sweep(gtfs_catch_tab, 1, rowSums(gtfs_catch_tab), "/"), 2)
+
+gtfs_arrive_tab <- table(
+  gtfs = ifelse(mdata$gtfs_arrive, "Yes", "No"),
+  outcome = ifelse(mdata$did_arrive, "Yes", "No")
+)
+gtfs_arrive_pc <-
+  round(sweep(gtfs_arrive_tab, 1, rowSums(gtfs_arrive_tab), "/"), 2)
+
+options(knitr.kable.NA = "")
+knitr::kable(cbind(gtfs_catch_pc, NA, gtfs_arrive_pc),
+  format = "latex",
+  booktabs = TRUE,
+  caption = "GTFS prediction outcomes for arriving at stop before bus.",
+  escape = FALSE,
+  linesep = ""
+) %>%
+  kableExtra::add_header_above(
+    c(" ", "Catch bus" = 2, "", "Arrive on time" = 2)
+  )
+
 
 ## the same for GTFS?
 #mdata %>%
@@ -995,17 +1010,17 @@ transfer_departures <- stop_arrivals %>%
     gtfs_eta, actual_arrival)
 
 f <- Vectorize(
-  function(a, b, what = 1) {
-    ta <- transfer_arrivals %>% filter(trip_start_time == a)
-    tb <- transfer_departures %>% filter(trip_start_time == b)
+  function(a, b, what = 1, dat1, dat2) {
+    ta <- dat1 %>% filter(trip_start_time == a)
+    tb <- dat2 %>% filter(trip_start_time == b)
 
     if (what == 1) {
-      etas <- 1:max(ta$eta, tb$eta)
+      etas <- 0:max(ta$eta, tb$eta)
       ea <- ifelse(etas < max(ta$eta), 0, 1)
       eb <- ifelse(etas < max(tb$eta), 1, 0)
 
-      ea[ta$eta] <- ta$quantile
-      eb[tb$eta] <- 1 - tb$quantile
+      ea[ta$eta + 1] <- ta$quantile
+      eb[tb$eta + 1] <- 1 - tb$quantile
 
       ea <- cummax(ea)
       eb <- cummin(eb)
@@ -1015,8 +1030,8 @@ f <- Vectorize(
 
     if (what == 2) {
       # gtfs prediction (min between)
-      ga <- ta$timestamp[1] + ta$eta[1] * 60
-      gb <- tb$timestamp[1] + tb$eta[1] * 60
+      ga <- ta$timestamp[1] + ta$gtfs_eta[1] * 60
+      gb <- tb$timestamp[1] + tb$gtfs_eta[1] * 60
       if (ga < gb) return("Y") else return("N")
     }
 
@@ -1039,9 +1054,9 @@ tab <- tibble(
     sort(unique(transfer_departures$trip_start_time)),
     length(unique(transfer_arrivals$trip_start_time))
   ),
-  p_catch = round(f(A, B, 1), 2),
-  gtfs_eta = f(A, B, 2),
-  did_catch = f(A, B, 3)
+  p_catch = round(f(A, B, 1, transfer_arrivals, transfer_departures), 2),
+  gtfs_eta = f(A, B, 2, transfer_arrivals, transfer_departures),
+  did_catch = f(A, B, 3, transfer_arrivals, transfer_departures)
 ) %>%
   rename(
     "$\\mathbb{P}_\\text{catch}" = p_catch,
@@ -1050,16 +1065,183 @@ tab <- tibble(
   )
 
 nn <- length(unique(transfer_departures$trip_start_time))
-kable(tab,
-    format = "latex",
-    booktabs = TRUE,
-    caption = "Transfer probabilities",
-    escape = FALSE,
-    linesep = ""
+knitr::kable(tab,
+  format = "latex",
+  booktabs = TRUE,
+  caption = "Transfer probabilities",
+  escape = FALSE,
+  linesep = ""
 ) %>%
   kableExtra::row_spec(nn, extra_latex_after = "\\midrule")
+
 @
 
 
 
 Now just to replicate with lots of different times to see how often our choice is right vs gtfs.
+
+<<eta_journey_transfer_many,echo=FALSE,cache=TRUE,dependson=-1,message=FALSE,fig.width=8,fig.height=3,out.width="\\textwidth",fig.cap="Results of performing the same transfer journey planning prediction with different starting times (from 6am to 8pm). Observations are whether or not the first bus would arrive at the transfer stop before the second bus, jittered to better see each observation. The smoothed curve represents the mean, and indicates that on average our method is good at determining if the bus can be caught or not. Additionally, predictive probabilities of 0 and 1 have been removed since, after checking, none or these were invalid and only served to distort the figure.",fig.align="center">>=
+
+
+# 5-minute intervals from 6am--6pm:
+tstart <- seq(
+  as.POSIXct("2019-08-29 6:00:00"),
+  as.POSIXct("2019-08-29 20:00:00"),
+  by = 5 * 60
+)
+
+all_results_file <- "data/all_results_transfer.rda"
+if (file.exists(all_results_file)) {
+  load(all_results_file)
+} else {
+  all_results <- pbapply::pblapply(seq_along(tstart),
+    function(i) {
+      TSTART <- tstart[i]
+      con <- dbConnect(SQLite(), "data/eta_quantiles.sqlite")
+      trip_etas <- con %>% tbl("etas") %>%
+        filter(
+          timestamp <= !!as.integer(TSTART) &
+          trip_id %in% !!trip_info$trip_id
+        ) %>%
+        select(trip_id, stop_sequence, timestamp, eta, quantile,
+          gtfs_eta, actual_arrival) %>%
+        collect() %>%
+        left_join(
+          trip_stops %>% select(trip_id, stop_id, stop_sequence),
+          by = c("trip_id", "stop_sequence")
+        ) %>%
+        filter(stop_id %in% stop_info$stop_id)
+      dbDisconnect(con)
+
+      all_stop_arrivals <- trip_etas %>%
+        left_join(trip_info, by = "trip_id") %>%
+        left_join(route_info, by = "route_id") %>%
+        mutate(
+          timestamp = as.POSIXct(timestamp, origin = "1970-01-01")
+        ) %>%
+        group_by(trip_id) %>%
+        group_modify(~{
+          .x <- .x %>%
+            filter(timestamp == max(.x$timestamp))
+          if (any(.x$timestamp + .x$eta * 60 > TSTART)) return(.x)
+          .x %>% filter(FALSE)
+        }) %>%
+        ungroup() %>%
+        arrange(trip_id, eta) %>%
+        left_join(stops %>% select(stop_id, which), by = "stop_id") %>%
+        mutate(
+          which = factor(which, levels = c("Start", "Transfer", "End"))
+        )
+
+      # now filter out irrelevant trips...
+      trips_at_start <- all_stop_arrivals %>%
+        filter(which == "Start" & transfer == "A") %>%
+        pull(trip_id) %>% unique
+      trips_at_transfer <- all_stop_arrivals %>%
+        filter(
+          which == "Transfer" &
+          transfer == "B"
+        ) %>%
+        pull(trip_id) %>% unique
+
+      stop_arrivals <- all_stop_arrivals %>%
+        filter(trip_id %in% c(trips_at_start, trips_at_transfer)) %>%
+        group_by(transfer) %>%
+        group_modify(~{
+          .x %>% mutate(
+            trip_start_time = paste0(
+              .y$transfer,
+              as.integer(as.factor(trip_start_time))
+            )
+          )
+        }) %>%
+        ungroup()
+
+      ## calculate probability bus A arrives BEFORE bus B at transfer:
+      transfer_arrivals <- stop_arrivals %>%
+        filter(which == "Transfer" & transfer == "A") %>%
+        select(trip_id, trip_start_time, timestamp, eta, quantile,
+          gtfs_eta, actual_arrival)
+      transfer_departures <- stop_arrivals %>%
+        filter(which == "Transfer" & transfer == "B") %>%
+        select(trip_id, trip_start_time, timestamp, eta, quantile,
+          gtfs_eta, actual_arrival)
+
+      tab <- tibble(
+        A = rep(
+          sort(unique(transfer_arrivals$trip_start_time)),
+          each = length(unique(transfer_departures$trip_start_time))
+        ),
+        B = rep(
+          sort(unique(transfer_departures$trip_start_time)),
+          length(unique(transfer_arrivals$trip_start_time))
+        )
+      ) %>% mutate(
+        p_catch = round(f(A, B, 1, transfer_arrivals, transfer_departures), 2),
+        gtfs_eta = f(A, B, 2, transfer_arrivals, transfer_departures),
+        did_catch = f(A, B, 3, transfer_arrivals, transfer_departures)
+      )
+
+      list(
+        leave_at = TSTART,
+        tab = tab
+      )
+
+    }
+  )
+  save(all_results, file = all_results_file)
+}
+
+mdata <- map(all_results, "tab") %>%
+  bind_rows
+
+mdata %>%
+  filter(p_catch > 0 & p_catch < 1) %>%
+  mutate(did_catch = ifelse(did_catch == "Y", 1, 0)) %>%
+  ggplot(aes(p_catch + rnorm(length(p_catch), 0, 0.01), did_catch)) +
+    ggbeeswarm::geom_beeswarm(
+      # aes(colour = did_catch),
+      groupOnX = FALSE,
+      priority = "random"
+    ) +
+    #geom_abline() +
+    geom_smooth(colour = "orangered") +
+    theme_classic() +
+    scale_x_continuous("Predictive probabilty of making transfer") +
+    scale_y_continuous("Observed transfer outcome",
+      breaks = 0:1,
+      labels = c("No", "Yes")
+    )
+
+gtfs_tab <- table(
+  gtfs = ifelse(mdata$gtfs_eta == "Y", "Yes", "No"),
+  outcome = ifelse(mdata$did_catch == "Y", "Yes", "No")
+)
+gtfs_pc <- round(sweep(gtfs_tab, 1, rowSums(gtfs_tab), "/"), 2)
+
+knitr::kable(gtfs_pc,
+  format = "latex",
+  booktabs = TRUE,
+  caption = "GTFS prediction outcomes.",
+  escape = FALSE,
+  linesep = ""
+)
+
+
+
+pf_tab <- table(
+  pred = ifelse(mdata$p_catch > 0.5, "Yes", "No"),
+  outcome = ifelse(mdata$did_catch == "Y", "Yes", "No")
+)
+pf_pc <- round(sweep(pf_tab, 1, rowSums(pf_tab), "/"), 2)
+knitr::kable(pf_pc,
+  format = "latex",
+  booktabs = TRUE,
+  caption = "PF prediction outcomes using rule: P > 0.5",
+  escape = FALSE,
+  linesep = ""
+)
+
+
+
+@
