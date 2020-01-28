@@ -1,16 +1,11 @@
-\section{Interval estimate}
+\subsection{Interval estimate}
 \label{sec:etas-interval}
 
-Trying to decide on one single value to use as a summary of a distribution which often has a large component of uncertainty is difficult, and the choice of value depends on the cost of a bad prediction. An alternative to providing a point estimate, however, is to provide a \emph{prediction interval}. This leads to two questions: first, what values to choose, and second, how to describe the interval to non-statisticians.
 
-
-The choice of quantile should minimise the following:
-\begin{itemize}
-\item the probability of the bus arriving outside the intervals,
-\item the width of the intervals, and
-\item the probability of the bus arriving \emph{before} the interval.
-\end{itemize}
-The cost of the last of these again depends on the situation and needs of the commuter, and we will explore this a little later. Essentially, we want to choose the smallest interval that covers most of the probability, with a tendency to underestimate rather than overestimate (missing the bus is usually, but not always, worse than waiting a few minutes longer). For now, we will just look at possible values.
+Deciding on a ``best'' single-value estimate of arrival time is exceedingly difficult given the amount of uncertainty involved. An alternative approach would be to provide \emph{two} estimates---a lower and upper bound---that is to say, a \emph{prediction interval}. To do so, we need to consult the following criteria:
+the probability of the bus arriving outside the interval versus the width of the interval; and
+the probability of the bus arriving before the lower bound versus the expected waiting time (given arrival at the lower bound).
+The first point corresponds to how useful---from a commuter's point of view---the prediction is: a narrow interval is favourable, but we must balance that with covering a reasonable range of plausible values. The second point again relates to \emph{cost}, which we can most easily express as expected waiting time; there are, of course, other costs (such as being late for work), which we examine more closely in \cref{sec:etas-journey-planning}.
 
 
 <<eta_ci_load,echo=FALSE,cache=TRUE>>=
@@ -64,7 +59,7 @@ save(int99, int95, int90, int80, file = qfile)
 @
 
 
-To begin, we can examine \emph{symmetric} intervals\footnote{Of course, they won't be perfectly symmetric due to integer rounding.}. To the data from \cref{sec:etas-point} we computed 99\%, 95\%, 90\%, and 80\% intervals and evaluated both the coverage probability as well as the probability that the bus arrived \emph{before} the lower bound. These results are displayed in \cref{fig:eta_cis}.
+
 
 <<eta_cis,echo=FALSE,cache=TRUE,dependson="eta_ci_load",fig.width=10,fig.height=3,out.width="\\textwidth",fig.align="center",fig.cap="ETA CIs">>=
 # coverage prob
@@ -88,30 +83,27 @@ len <- c(len99, len95, len90, len80)
 
 d <- tibble(
   p = c(99, 95, 90, 80),
+  alpha = 1 - (p / 100),
   cov = cov, pbefore = pbefore, len = len
 )
 
-p1 <- ggplot(d, aes(cov, p)) +
-  geom_point() + geom_segment(aes(xend = 0, yend = p)) +
+p1 <- ggplot(d, aes(cov, alpha)) +
+  geom_point() + geom_segment(aes(xend = 0, yend = alpha)) +
   scale_x_continuous("Coverage probability")
-p2 <- ggplot(d, aes(pbefore, p)) +
-  geom_point() + geom_segment(aes(xend = 0, yend = p)) +
+p2 <- ggplot(d, aes(pbefore, alpha)) +
+  geom_point() + geom_segment(aes(xend = 0, yend = alpha)) +
   scale_x_continuous("P(bus arrives before lower)")
-p3 <- ggplot(d, aes(len, p)) +
-  geom_point() + geom_segment(aes(xend = 0, yend = p)) +
+p3 <- ggplot(d, aes(len, alpha)) +
+  geom_point() + geom_segment(aes(xend = 0, yend = alpha)) +
   scale_x_continuous("Average width (minutes)")
 
 p1 + p2 + p3 &
-  scale_y_continuous("CI coverage (%)") &
+  scale_y_continuous("Interval") &
   theme_classic()
 
 @
 
 
-The graphs of coverage probability and average width show an increase with $\alpha$, as one would expect. Similarly, the probability that the bus arrives before the lower bound (which could have the outcome of a passenger missing their bus, for example) decreases with $\alpha$. The relationships are all more-or-less linear, with perhaps the exception of width, though we would expect each the width to increase more as the coverage increases, since the density is lower in the tails. So, everything is behaving normally: there does not seem to be any clear choice of values to use.
+The most straightforward intervals to compute are \emph{symmetric}\footnote{They are not perfectly symmetric, however, due to integer rounding}. That is, for a \mbox{$100(1-\alpha)$\%} interval we use $A_{\alpha/2}$ and $A_{1-\alpha/2} + 1$ (the plus one on the upper bound is so the upper bound is effectively rounded up). We computed intervals for $\alpha \in \{0.1, 0.05, 0.1, 0.2\}$, and for each evaluated the observed coverage, the probability that the bus arrived before the lower bound, and the average width (in minutes). The graphs in \cref{fig:eta_cis} show that for smaller values of $\alpha$ (larger coverage) the coverage probability and average width increase, which is to be expected. Similarly, the probability that the bus arrives before the lower bound (resulting in missing the bus) increases with $\alpha$.
 
-
-Alternatively, we could use \emph{nonsymmetric intervals}, such that the lower and upper bounds are chosen separately. For example, we could use a lower bound of $\alpha_\text{lower} = 0.05$, representing an expected 5\% chance of the bus arriving earlier.
-
-
-We also can consider how things change \emph{over time}, and \emph{by stop sequence} (or alternatively by the percentage of the route completed).
+An alternative to using symmetric intervals is to use asymmetric ones: in this scenario, the lower and upper bounds could be estimated using different criteria. For example, the lower bound might be chosen to minimise the chance of missing the bus, while the upper bound is chosen to balance excessive width while still covering as greater plausible range as possible. Again, we might also wish to vary the criteria depending on the proximity of the bus, the stop sequence, or headway. \textcolor{red}{[to do, I suppose]}
