@@ -1,7 +1,9 @@
 \section{Journey planning}
 \label{sec:etas-journey-planning}
 
-So far, we have explored probabilities and expectations associated with the arrival time of a given bus at a stop. However, there are several other applications where arrival time prediction can be used to make decisions. The first is to predict the arrival time of a given bus at a later stop and, more importantly, the probability that it arrives before a given time. For example, a passenger might want to know the probability a bus will get them to work on time. Secondly is to examing transfers: particularly in Auckland, many routes do not run to schedule, making it difficult for passengers who need to transfer from one route to another.
+So far we have been concerned with the arrival time of a bus at a single stop with no consideration of the passenger's commute as a whole. The simplest journey consists of a single route choice, so the only decision is which trip to catch; a slightly more complex journey may offer two alternative routes (\cref{sec:journey_simple}) which the passenger need choose one. Finally, there may be no single route which goes from the passenger's start location to their desired destination, in which case a transfer between two (or more) different routes is necessary (\cref{sec:journey_transfer}).
+
+The remainder of this chapter explores the use of arrival time \glspl{cdf} to estimate probabilities and expectations associated with various journey options. These can then be used by passengers to make decisions based on their journey-specific constraints: for example, are they going to work, meeting a friend for coffee, or having a job interview? Additionally, we will compare (where possible) our results with those made using the currently deployed GTFS system.
 
 
 <<eta_journey_arrival_prep,echo=FALSE,cache=TRUE,message=FALSE,fig.height=5,out.width="\\textwidth",fig.cap="Route options",fig.align="center">>=
@@ -137,12 +139,19 @@ ggmap(map) +
 
 @
 
-\subsection{Simple journey}
+\subsection{Choosing between two alternative routes}
 \label{sec:journey_simple}
 
 
 
-The first example we look at is a simple journey planning exercise: given the choice of two different options, which is the best to take? In \cref{fig:eta_journey_arrival_prep} we demonstrate such a situation for someone at the point indicated "Start", who has two possible options to get to the point indicated "End"\footnote{This is indeed the University of Auckland's statistics department, which seemed an appropriate choice}. Each of the options involve a short walk, so this needs to be accounted for when making a decision.
+In this scenario, a passenger lives within walking distance of two major roads, along which various routes travel into the central city, as displayed in \cref{fig:eta_journey_arrival_prep}. The passenger must decide which route option to take before leaving home for the city. Let's say they have an appointment in town at 9~am, so at 8:10~am, they look at the real-time app on their phone and must decide whether to walk to route option A or B. Factors that will influence their decision may include:
+\begin{itemize}
+\item How long will I have to wait until the next bus?
+\item What is the probability I will arrive in time for the next bus? And how long until the next one?
+\item What is the probability that I will arrive at my destination on-time? And how early will I be?
+\item How long will I be on the bus?
+\end{itemize}
+We can answer these questions using the \glspl{cdf} of arrival time at the start and end stops and taking into account walking times.
 
 
 <<eta_journey_arrival,echo=FALSE,cache=TRUE,dependson="eta_journey_arrival_prep",message=FALSE,fig.width=8,fig.height=5,out.width="\\textwidth",fig.cap="ETA predictions for two route options. The coloured curves represent the CDF of arrival time for individual trips made at 7am. The vertical black lines indicate the estimated walking time (according to Google Maps) from the Start location to each stop.",fig.align="center">>=
@@ -244,31 +253,10 @@ ggplot(trip_eta_results, aes(timestamp + eta * 60, quantile,
   scale_y_continuous("P(A < a)") +
   labs(colour = "Route")
 
-## mission 1: A or B to catch first bus?
-#trip_results_arrival <-
-
-#trip_results_after_7 %>%
-#  filter(is_origin == 1) %>%
-#  select(-from_seq, -to_seq, -is_origin, -is_destination) %>%
-#  left_join(stops %>% filter(which == "Start") %>% select(option, walk)) %>%
-#  arrange(timestamp, eta) %>%
-#  group_by(trip_id) %>%
-#  group_modify(~{
-#    .x %>% mutate(
-#      make_it = walk < eta
-#    ) %>%
- #   group_by(timestamp) %>%
- #   summarize(
-#      p_make_it = mean(make_it),
-#      would_make_it = mean(walk < time_until_arrival / 60)
-#    )
-#  }) %>% arrange(timestamp)
-
-
 @
 
 
-\Cref{fig:eta_journey_arrival} shows the arrival time predictions by way of their \glspl{cdf} for upcoming trips at each stop, as at 7am. We also indicate the walking time to each of these stops, which indicates that, although option B has a bus arriving sooner, unless the passenger runs they will likely miss it. Ignoring this early trip, both options have a bus arriving shortly after the passenger does (and by coincidence the probability that they miss this next viable bus is less than 10\%).
+\Cref{fig:eta_journey_arrival} displays the \glspl{cdf} of all active trips\footnote{Our application currently only estimates arrival times for active trips.} along the two route options at 8:10~am when the passenger is about to leave home (solid line), and includes dashed lines representing the walking time to each of the alternative stops. At the lower end of each \gls{cdf} is a label indicating the trip's start time, which is the simplest method of identifying trips, and the curves are coloured by the route number. For option A, the passenger is likely to miss the 7:48 and 7:50 trips but has a 62\% chance of catching the 7:58. Additionally, two more active trips are arriving later, which the passenger could catch if they miss the 7:58. As for option B, the 7:45 trip is about to arrive at the stop, so can be ignored; if the passenger chooses this option, they have a 23\% and 99\% chance of catching the 7:56 and 8:05 trips, respectively. Since no further trips have begun, we cannot (yet) forecast how long until the next trip if they miss the 8:05 trip.
 
 
 
@@ -340,7 +328,7 @@ ggplot(trip_eta_results2, aes(timestamp + eta * 60, quantile,
 
 @
 
-The next consideration is that the bus arrives \emph{on time} at the destination. In \cref{fig:eta_journey_arriveby}, we display the \glspl{cdf} of arrival time at the destination stop for each trip, including a dotted line indicating the necessary arrival time to account for walking from the stop to the destination.
+Based on the arrival results alone, it would likely make sense to walk to option A (a shorter walk) which has a decent chance of a short wait time; however, we also need to account for the passenger's appointment at 9~am. \Cref{fig:eta_journey_arriveby} provides \glspl{cdf} of the arrival time of the trips at the final stop, as well as vertical lines representing the appointment time (solid) and walking time (dotted). This time, we want the curve to be on the left-hand side of the dotted line, which is the case for most of the trips. For option A, the 7:58 has an (almost) 100\% chance of arriving on time, while the 8:00 and 8:08 have 98\% and 96\% chances, respectively. Option B tells a similar story, with (almost) 100\% for the 7:55 and 99\% for the 8:05 trips.
 
 
 <<eta_journey_results,echo=FALSE,cache=TRUE,dependson="eta_journey_arriveby",message=FALSE,fig.width=8,fig.height=5,out.width="\\textwidth",fig.cap="Results of the journey planning application, including actual arrival times.">>=
@@ -458,6 +446,8 @@ trip_eta_results_comb <- bind_rows(trip_eta_results, trip_eta_results2) %>%
     mutate(
       did_catch = actual_start >= TSTART + 60 * walk_to,
       did_arrive = actual_end <= TEND - 60 * walk_from,
+      gtfs_catch = gtfs_start >= TSTART + 60 * walk_to,
+      gtfs_arrive = gtfs_end <= TEND - 60 * walk_from,
       gtfs_start = format(gtfs_start, "%H:%M"),
       gtfs_end = format(gtfs_end, "%H:%M"),
       actual_start = format(actual_start, "%H:%M"),
@@ -467,8 +457,10 @@ trip_eta_results_comb <- bind_rows(trip_eta_results, trip_eta_results2) %>%
 
 tab <- trip_eta_results_comb %>%
   select(option, route_short_name, trip_start_time, p_catch, journey_length,
-    p_arrive, did_catch, did_arrive) %>%
+    p_arrive, gtfs_catch, gtfs_arrive, did_catch, did_arrive) %>%
   mutate(
+    gtfs_catch = ifelse(gtfs_catch, "Y", "N"),
+    gtfs_arrive = ifelse(gtfs_arrive, "Y", "N"),
     did_catch = ifelse(did_catch, "Y", "N"),
     did_arrive = ifelse(did_arrive, "Y", "N")
   ) %>%
@@ -479,6 +471,8 @@ tab <- trip_eta_results_comb %>%
     "$P_\\text{catch}$" = p_catch,
     "$E_\\text{travel}$" = journey_length,
     "$P_\\text{arrive}$" = p_arrive,
+    "GTFS1" = gtfs_catch,
+    "GTFS2" = gtfs_arrive,
     "Caught" = did_catch,
     "Arrived on time" = did_arrive
   )
@@ -497,22 +491,11 @@ knitr::kable(
 @
 
 
-\begin{itemize}
+The values, along with the binary GTFS predictions\footnote{``yes, you will make it'' or ``no, you will not''} and the observed result\footnote{This is historical data, after all} are displayed in \cref{tab:eta_journey_results}. For our predictions, the capture probabilities are all valid, while the arrival probabilities are overly optimistic: the 8:08 on option A and 8:05 on option B have probabilities over 95\%, but the bus does not arrive in time. The GTFS-predictor correctly identified the tardiness of the 8:08 trip, but was not so lucky with the 8:05, which could indicate that this bus was somewhat later than usual.
 
-\item
-first problem: ensuring we don't miss the bus
-
-\item
-second problem: ensuring we get to destination (work) on time---depends on cost of being late (coffee with a friend vs work vs job interview)
-
-\item
-third problem: both of the above, while minimising waiting time?
-
-\item
-finally, don't current get ETAs for trips that haven't started yet ... this is something we should probably implement sooner rather than later :)
+It is worth noting at this point that, as mentioned in the previous chapter, the current state of our application leads to \emph{underestimates} of arrival time, so it would be wise to be cautious with decisions made based on the above probabilities. Future work improving the underlying speed model and restricting speeds more strongly could improve performance.
 
 
-\end{itemize}
 
 
 <<eta_journey_results_avg,echo=FALSE,cache=TRUE,dependson=-1,message=FALSE,fig.width=8,fig.height=3,out.width="\\textwidth",fig.cap="Results of performing the same journey planning prediction with different starting times (from 6am to 6pm), using the same start and end locations. Observations are whether or not the passenger would have arrived at the stop before the bus, jittered to better see each observation. The smoothed curve represents the mean, and indicates that on average our method is good at determining if the bus can be caught or not. Additionally, predictive probabilities of 0 and 1 have been removed.",fig.align="center">>=
@@ -683,40 +666,45 @@ mdata <- map(all_results, "summary") %>%
   mutate(
     did_catch = as.integer(did_catch),
     did_arrive = as.integer(did_arrive),
-    gtfs_catch = as.integer(gtfs_catch),
-    gtfs_arrive = as.integer(gtfs_arrive)
+    gtfs_catch = ifelse(gtfs_catch == 1, "Yes", "No"),
+    gtfs_arrive = ifelse(gtfs_arrive == 1, "Yes", "No")
   )
 
 mdata %>%
   filter(p_catch > 0 & p_catch < 1) %>%
   ggplot(aes(p_catch + rnorm(length(p_catch), 0, 0.01), did_catch)) +
-    ggbeeswarm::geom_beeswarm(groupOnX = FALSE, priority = "random") +
-    #geom_abline() +
-    geom_smooth(colour = "orangered") +
+    ggbeeswarm::geom_beeswarm(
+      aes(colour = gtfs_catch),
+      groupOnX = FALSE,
+      priority = "random"
+    ) +
+    geom_smooth(colour = "gray") +
     theme_classic() +
     scale_x_continuous("Predictive probabilty of catching the bus") +
     scale_y_continuous("Observed capture response",
       breaks = 0:1,
       labels = c("No", "Yes")
-    )
+    ) +
+    labs(colour = "GTFS prediction")
 
 
 gtfs_catch_tab <- table(
-  gtfs = ifelse(mdata$gtfs_catch, "Yes", "No"),
+  gtfs = mdata$gtfs_catch,
   outcome = ifelse(mdata$did_catch, "Yes", "No")
 )
 gtfs_catch_pc <-
   round(sweep(gtfs_catch_tab, 1, rowSums(gtfs_catch_tab), "/"), 2)
 
 gtfs_arrive_tab <- table(
-  gtfs = ifelse(mdata$gtfs_arrive, "Yes", "No"),
+  gtfs = mdata$gtfs_arrive,
   outcome = ifelse(mdata$did_arrive, "Yes", "No")
 )
 gtfs_arrive_pc <-
   round(sweep(gtfs_arrive_tab, 1, rowSums(gtfs_arrive_tab), "/"), 2)
 
 options(knitr.kable.NA = "")
-knitr::kable(cbind(gtfs_catch_pc, NA, gtfs_arrive_pc),
+knitr::kable(
+  cbind(gtfs_catch_pc, NA, gtfs_arrive_pc),
   format = "latex",
   booktabs = TRUE,
   caption = "GTFS prediction outcomes for arriving at stop before bus.",
@@ -741,16 +729,15 @@ knitr::kable(cbind(gtfs_catch_pc, NA, gtfs_arrive_pc),
 
 @
 
-And then do it for a whole lot of different routes and stops and times ... ? To compare how well our predictions work versus GTFS.
+Of course, the results in \cref{fig:eta_journey_arrival,fig:eta_journey_arriveby} and \cref{tab:eta_journey_results} are based on \emph{one single forecast} made at 8:10~am. To evaluate the performance of our prediction method, we repeated the process described above in 5~minute intervals between 6~am and 6~pm. For the appointment time, we used 15~minute intervals allowing for 30--45 minutes for the journey. That is, leaving between 7:15 and 7:30 had a targetted arrival time of 8~am; 7:30--7:45 targetted 8:15; and so on. In each case, we computed the probabilities for each of catching the bus and arriving on time. In \cref{fig:eta_journey_results_avg}, we have graphed the distribution of predicted probabilities for each of the two outcomes, for both catching the bus and arriving on time (A and B, respectively).
+
+Further, \cref{tab:eta_journey_results_avg} presents a two-way contingency table for the binary GTFS predictions, with the outcome in rows. In 89\% of cases, the GTFS method correctly predicted that the passenger would catch the bus, and in 97\% of cases did it correctly identify that a passenger would miss the given trip. Conversely for the arrivals, in 99\% of cases the GTFS method correctly predicted that the bus would arrive on time; however, in only 57\% of cases did it correctly identify that the bus would \emph{not} arrive on time.
 
 
-And do a comparison of what the currently available information would allow (uses SCHEDULED travel time)
-
-
-\subsection{Multi-stage journey}
+\subsection{Planning a multi-stage journey}
 \label{sec:journey_transfer}
 
-A more complex scenario is one where the passenger must transfer from one route onto another. This is a common situation for people commuting for further afield, where there are often serveral \emph{feeder routes} which connect at a hub which usually has more frequent trips to another hub. One such example is at the Westgate station, where passengers can catch one of several feeder routes and transfer to the main route 110 into the city.
+A more complex scenario is one where the passenger must transfer from one route onto another. Transfer journeys are common for travellers commuting from further afield, where there are often several \emph{feeder routes} which connect at a hub which usually has more frequent trips to another hub. It may also happen that your local route does not go to your destination, as is demonstrated in \cref{fig:eta_journey_arrival_prep}. In this scenario, the passenger must first catch a bus along route group A\footnote{We use route groups since there are several different routes which make the same journey, as can be seen with route group B in the south-west of \cref{fig:eta_journey_arrival_prep}.} to the stop marked ``Transfer'', at which point they disembark and wait for the next bus along route group B to get to their final destination (marked ``End'').
 
 
 
@@ -976,16 +963,15 @@ ggplot(stop_arrivals, aes(timestamp + eta * 60, quantile)) +
 @
 
 
-
-Blah blah blah.
-
+Similarly to the previous example, we take one single forecast of all trip arrivals at 1~pm to make decisions. For simplicity, we leave out walking time, but as in the previous section this could easily be included, if desired. \Cref{fig:eta_journey_transfer_graph} shows, for all active trips at 1~pm, their arrival time \glspl{cdf} at the start and transfer stops (for the first leg) and the transfer and end stops (for the second). We could of course add additional constraints, such as arrival by a specific time, but in this instance we are solely intereste in whether or not each trip in group A will arrive \emph{before} the trips in group B.
 
 
 To calculate the probability that a given trip along route A will arrive at the transfer stop before a given trip along route B, we use the following inequality:
 \begin{equation}
 \label{eq:eta_total_prob}
 \begin{split}
-\Pr{A < B} &= \sum_{x=1}^{\infty} \Pr{A < B\,|\,B = x} \\
+\Pcatch =
+\Pr{A < B} &= \sum_{x=1}^{\infty} \Pr{A < B\,|\,B = x}\Pr{B=x} \\
   &= \sum_{x=1}^\infty
     \Pr{A < x} \Pr{B=x} \\
   &= \sum_{x=1}^\infty
@@ -994,7 +980,7 @@ To calculate the probability that a given trip along route A will arrive at the 
     \right]
 \end{split}
 \end{equation}
-which we can easily compute given the \glspl{cdf} of the arrival time of each trip obtained from \cref{eq:pf_cdf_arrivaltime}. Of course, this assumes independence, which probably isn't true but we don't have any information on it.
+which we can easily compute given the \glspl{cdf} of the arrival time of each trip obtained from \cref{eq:pf_cdf_arrivaltime}. In table \cref{tab:eta_journey_transfer_res} we display the results, along with the binary predictions using GTFS and the observed outcomes. Our results appear reasonable at predicting transfer probabilities; in contrast, the GTFS makes one poor choice between A1 and B3, which it predicts \emph{will} connect, but infact they do not (our prediction was for a 32\% chance). This is where a prediction probability shows its power, in that a passenger could, where applicable, base their decision on how important it is they make the transfer. While this is a fairly non-exciting example (it's a short wait for the next bus), there are other situations where the headway between trips is 30--60~minutes, in which case missing a transfer by a few minutes would be frustrating. However, until our application has been updated to make predictions for upcoming (and not just active) trips, we could not obtain any examples of this.
 
 
 <<eta_journey_transfer_res,echo=FALSE,cache=TRUE,dependson=-1>>=
@@ -1077,8 +1063,8 @@ knitr::kable(tab,
 @
 
 
+As before, we proceed to repeat the procedure for multiple times (this time between 6~am and 8~pm), and compute the probabilities of available transfers and whether or not they connected. \Cref{fig:eta_journey_transfer_many} shows the predicted transfer probabilities grouped by outcome, and coloured by the GTFS prediction. This is complimented with contingency \cref{tab:eta_journey_transfer_many,tab:eta_journey_transfer_many2} for the GTFS method and our own, respectively. For the GTFS method, in 16\% of cases a predicted successfull connection failed, versus only 8\% using our method and a rule of $\Ptransfer > 0.5$. The false negative rate was similar for both methods, although slightly higher for our own (7\% versus 3\% for GTFS).
 
-Now just to replicate with lots of different times to see how often our choice is right vs gtfs.
 
 <<eta_journey_transfer_many,echo=FALSE,cache=TRUE,dependson=-1,message=FALSE,fig.width=8,fig.height=3,out.width="\\textwidth",fig.cap="Results of performing the same transfer journey planning prediction with different starting times (from 6am to 8pm). Observations are whether or not the first bus would arrive at the transfer stop before the second bus, jittered to better see each observation. The smoothed curve represents the mean, and indicates that on average our method is good at determining if the bus can be caught or not. Additionally, predictive probabilities of 0 and 1 have been removed since, after checking, none or these were invalid and only served to distort the figure.",fig.align="center">>=
 
@@ -1200,7 +1186,7 @@ mdata %>%
   mutate(did_catch = ifelse(did_catch == "Y", 1, 0)) %>%
   ggplot(aes(p_catch + rnorm(length(p_catch), 0, 0.01), did_catch)) +
     ggbeeswarm::geom_beeswarm(
-      # aes(colour = did_catch),
+      aes(colour = gtfs_eta),
       groupOnX = FALSE,
       priority = "random"
     ) +
@@ -1228,6 +1214,9 @@ knitr::kable(gtfs_pc,
 )
 
 
+@
+
+<<eta_journey_transfer_many2,echo=FALSE,cache=TRUE,dependson=-1,message=FALSE>>=
 
 pf_tab <- table(
   pred = ifelse(mdata$p_catch > 0.5, "Yes", "No"),
@@ -1245,3 +1234,7 @@ knitr::kable(pf_pc,
 
 
 @
+
+
+
+In this section we have seen how having access to the full distribution of arrival times allows us to compute the probabilities of events, rather than make singular binary predictions of their outcome. This can enable more sophisticated decision making by travellers depending on their own needs. Of course, all of the examples shown were manually estimated, so some work is needed before it can be automatic, but the availability of the \glspl{cdf} for each trip and stop makes this easy. It has the additional advantage that, were any improvements to the vehicle or network models made, these would automatically be integrated into the arrival prediction component and immediately be used to adjust the probabilities. From here, it is up to travellers themselves, or other intermediate agencies (which could be a transport planning app, for example) to use the available information to make decisions.
