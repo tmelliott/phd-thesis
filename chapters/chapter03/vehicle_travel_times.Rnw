@@ -1,6 +1,24 @@
 \section{Estimating travel times}
 \label{sec:vehicle_travel_times}
 
+
+
+To compute the vehicle's travel time along a road segment, the start and end times of travel along the segment, $\Vsegstart_\ell$ and $\Vsegend_\ell$, respectively, are interpolated. The end time of travel along segment $\ell - 1$ is the same as the start time of travel along segment $\ell$, so given segment $\ell$ begins at $\Tsegd_\ell$~meters along the route shape, then whenever $\Tsegd_\ell \in (\Vdist_{k-1},  \leq \Vdist_k]$, the relevant segment start and end times are computed as
+\begin{equation}
+\label{eq:vehicle_model_a1_tt_interp}
+\Vsegend_{\ell-1} = \Vsegstart_\ell =
+\Vtime_{k-1} + \frac{\Tsegd_\ell - \Vdist_{k-1}}{\Vspeed_k}.
+\end{equation}
+
+
+Travel times are straightforward to compute in this model after interpolating both start and end times of travel along a segment $\ell$,
+\begin{equation}
+\label{eq:vehicle_model_a1_tt}
+\Vtt_\ell = \Vsegend_\ell - \Vsegstart_\ell.
+\end{equation}
+
+\hrule
+
 The estimation of travel times is the primary parameter of interest
 in the \rt{} vehicle model described in \cref{sec:vehicle_model}.
 Therefore, it was used as the value with which the various models described

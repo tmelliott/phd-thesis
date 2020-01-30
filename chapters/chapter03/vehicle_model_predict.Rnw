@@ -11,77 +11,235 @@ p(\Vstate_k | \Vstate_{k-1}) \approx
 \end{equation}
 where $\Vtdiff_k = \Vtime_k - \Vtime_{k-1}$.
 
-The transition function $\Vtrans$ is where we define the vehicle behaviours mentioned earlier (and others). In Kalman filter applications, one is limited to linear transformations of the state which can be expressed in a \emph{transition matrix}. However, we see in \cref{eq:vehicle_pf_predict} that, in the particle filter implementation, the transition function is applied to each particle independently, allowing for a lot more flexibility in $\Vtrans$. We now describe the various model components of $\Vtrans$, which we implemented as an algorithm in the \verb+transitr+ package (see \cref{sec:particle-filter} for details). The core components are vehicle motion (speed and acceleration along a known path), stopping behaviour at known locations (bus stops and intersections), and an overview of other scenarios we may need to include to avoid degeneration.
+The transition function $\Vtrans$ is where we define the vehicle behaviours mentioned earlier (and others). In Kalman filter applications, one is limited to linear transformations of the state which can be expressed in a \emph{transition matrix}. However, we see in \cref{eq:vehicle_pf_predict} that, in the particle filter implementation, the transition function is applied to each particle independently, allowing for a lot more flexibility in $\Vtrans$. We now describe the various model components of $\Vtrans$, which we implemented as an algorithm in the \verb+transitr+ package (see \cref{sec:particle-filter} for details). The core components are vehicle motion (speed and acceleration along a known path), stopping behaviour at known locations (bus stops and intersections), and a suite of other scenarios we may need to include to avoid degeneration.
 
 
-\subsubsection{General vehicle behaviour (Model A)}
+\subsubsection{Component A: vehicle motion}
 \label{sec:vehicle_model_behaviour}
 
-Since the \pf{} is applying the transition function to points, rather than distributions (as is the case with the \kf{}), each particle can be transitioned independently according to physics, in this case, a simple motion model, which allows us to predict the distance travelled of an object after travelling for $\Vtdiff_k$~seconds at a speed of $\Vspeed_k$,
+The first behaviour to consider is that of any vehicle travelling along a known path: the \emph{speed} at which a vehicle is travelling will affect where it ends up. Since speed, $\Vspeed$, is the derivative of distance travelled over time, that is if $x = d(t)$, then $\Vspeed = d'(t)$, which was shown visually in \cref{fig:vehicle_state}. It follows that we can predict a vehicle's future state, given its current state (distance travelled and speed) and system noise,
 \begin{equation}
 \label{eq:vehicle_model_newton}
-\Vdist_k = \Vdist_{k-1} + \Vtdiff_k\Vspeed_k.
+\Vstate_{k|k-1} = f_{A1}\left(\Vstate_{k-1|k-1}\right) =
+\begin{bmatrix}
+\Vdist_k \\ \Vspeed_k
+\end{bmatrix} =
+\begin{bmatrix}
+\Vdist_{k-1} + \Vtdiff_k\Vspeed_k \\
+\Vspeed_{k-1} + v_k
+\end{bmatrix},\quad
+v_k \sim \TNormal{0}{\Vnoise}{-\Vspeed_{k-1}}{30 - \Vspeed_{k-1}}.
 \end{equation}
-Previous work, such as that of \cite{Cathey_2003,cn}, used this same basic model.
+In this case, the noise term is truncated to ensure the new speed is both positive and under 30~m/s, which is 108~km/h (the maximum road speed in Auckland is 100~km/h)
+The resulting transition function, $\Vtrans_{A1}$, can quite simply be implemented by simulating, for each particle, a new speed before calculating the final state using \cref{eq:vehicle_model_newton}. A similar model was used by \cite{Cathey_2003,cn}.
+
+% The variance of predicted distance travelled is
+% \begin{equation}
+% \label{eq:model_a1_var}
+% \begin{split}
+% \Var{\Vdist_k}
+% &= \Var{\Vdist_{k-1} + \Vtdiff_k (\Vspeed_{k-1} + v_k)} \\
+% &= \Var{\Vdist_{k-1}} + \Vtdiff_k^2\Var{\Vspeed_{k-1}} +
+%     \Vtdiff_k^2\Vnoise
+% \end{split}
+% \end{equation}
+
+\Cref{fig:transition_a1_demo} demonstrates transition model $\Vtrans_{A1}$ using a sample of $N=10$~particles which, at time $t_{k-1}$, take one of three unique states (due to resampling in the previous iteration). The points have been coloured by this initial state to demonstrate the effect of adding noise \emph{before} transitioning, and how the system noise controls how the state spreads. The interpretation of the noise parameter is \emph{the average change in speed, per second, between vehicle observations}. \textcolor{blue}{[[re-write para]]}
+
+<<transition_a1_demo,echo=FALSE,fig.width=6,fig.height=4,out.width=".8\\textwidth",fig.cap="Simulated particle trajectories using transition model A1. Points have been coloured by their parent (after resampling) to demonstrate the affect of system noise.",fig.align="center">>=
+
+suppressPackageStartupMessages(library(tidyverse))
+set.seed(2483576)
+X <- rbind(
+    c(500, 8, 1),
+    c(510, 9, -0.5),
+    c(490, 7, 2)
+)
+
+d <- tibble(
+    id = 1:10,
+    parent = c(1L, 1L, 1L, 2L, 2L, 2L, 3L, 3L, 3L, 3L),
+    time = rep(30L, 10),
+    distance = X[parent, 1],
+    speed = X[parent, 2]
+)
+
+sysnoise <- 5
+d2 <- d %>%
+    mutate(
+        time = time + 30L,
+        speed = truncnorm::rtruncnorm(n(), 0, 30, speed, sysnoise),
+        distance = distance + 30L * speed
+    )
+
+d <- bind_rows(d, d2) %>%
+    mutate(parent = as.character(parent))
+
+ggplot(d, aes(time, distance, group = id, colour = parent)) +
+    geom_point() +
+    geom_path() +
+    scale_x_continuous("Time (seconds)",
+        breaks = c(30, 60),
+        labels = c(expression(t[k-1]), expression(t[k]))
+    ) +
+    scale_y_continuous("Distance travelled (meters)"
+    ) +
+    theme_classic() +
+    theme(legend.position = "none")
+
+@
+
+The main issue with this model is that it assumes constant speed between observations, which---given Auckland traffic---is unlikely to be the case. In \cref{fig:vehicle_state}, we showed speed varying over time, even between observations. To model this, we \emph{iteratively} update the vehicle's state\footnote{This is one advantage of the particle filter---we can easily perform iterative updates!} by reusing \cref{eq:vehicle_model_newton} $\Vtdiff_k$ times, setting $\Vtdiff_k=1$ in each iteration. \Cref{fig:transition_a2_demo} shows the effect this has on the particle's trajectories. Note, however, that in this model the system noise parameter is not the same, and has a slightly different interpretation: it is now \emph{the average change in speed per second} (no longer between observations).
+
+% Under normal circumstances (and without the truncation) the variance of the predicted state is, for $z_m\sim\Normal{0}{\Vnoise}$,
+% \begin{equation}
+% \label{eq:model_a2_var}
+% \begin{split}
+% \Var{\Vdist_k}
+% &= \Var{\Vdist_{k-1} + \sum_{n=0}^{\Vtdiff_k-1}(\Vspeed_{k-1} +
+%     \textstyle\sum_{m=n}^{\Vtdiff_k} z_n)} \\
+% &= \Var{\Vdist_{k-1} + \Vtdiff_k \Vspeed_{k-1} +
+%     \textstyle\sum_{n=0}^{\Vtdiff_k-1} (\Vtdiff_k - n) z_n} \\
+% &= \Var{\Vdist_{k-1}} + \Vtdiff_k^2\Var{\Vspeed_{k-1}} +
+%     \Var{\textstyle\sum_{n=0}^{\Vtdiff_k-1} (\Vtdiff_k - n) z_n} \\
+% &= \Var{\Vdist_{k-1}} + \Vtdiff_k^2\Var{\Vspeed_{k-1}} +
+%     \textstyle\sum_{n=0}^{\Vtdiff_k-1} \Var{(\Vtdiff_k - n) z_n} \\
+% &= \Var{\Vdist_{k-1}} + \Vtdiff_k^2\Var{\Vspeed_{k-1}} +
+%     \textstyle\sum_{n=0}^{\Vtdiff_k-1} (\Vtdiff_k - n)^2\Vnoise  \\
+% &= \Var{\Vdist_{k-1}} + \Vtdiff_k^2\Var{\Vspeed_{k-1}} +
+%     \Vnoise \textstyle\sum_{n=1}^{\Vtdiff_k} n^2 \\
+% &= \Var{\Vdist_{k-1}} + \Vtdiff_k^2\Var{\Vspeed_{k-1}} +
+%     \Vnoise \frac{\Vtdiff_k(\Vtdiff_k+1)(2\Vtdiff_k+1)}{6}
+% \end{split}
+% \end{equation}
+% which grows at a cubic rate, compared to the quadratic rate of $A1$. We must therefore take care when choosing the system noise when $\Vtdiff_k$ is large. To control the variance so it grows more linearly with $\Vtdiff_k$, we can multiply the system noise by $\frac{6\Vtdiff_k^2}{\Vtdiff_k(\Vtdiff_k+1)(2\Vtdiff_k+1)}}$, so now $A1$ and $A2$ have the same variance; however, we will use a larger value of $\Vnoise$ for $A2$ to allow for greater variance of trajectories.
+
+<<transition_a2_demo,echo=FALSE,fig.width=6,fig.height=4,out.width=".8\\textwidth",fig.cap="Simulated particle trajectories using transition model A2. Points have been coloured by their parent (after resampling) to demonstrate the affect of system noise.",fig.align="center">>=
+
+d <- tibble(
+    id = 1:10,
+    parent = c(1L, 1L, 1L, 2L, 2L, 2L, 3L, 3L, 3L, 3L),
+    time = rep(30L, 10),
+    distance = X[parent, 1],
+    speed = X[parent, 2]
+)
+d2 <- d
+delta <- 30
+sysnoise2 <- sqrt(
+    6 * sysnoise^2 * delta^2 / delta / (delta + 1) / (2 * delta + 1)
+)
+for (i in 1:30) {
+    d2 <- d2 %>%
+        mutate(
+            time = time + 1L,
+            speed = truncnorm::rtruncnorm(n(), 0, 30, speed, 2),
+            distance = distance + speed
+        )
+    d <- bind_rows(d, d2)
+}
+
+d <- d %>% mutate(parent = as.character(parent))
+ggplot(d, aes(time, distance, group = id, colour = parent)) +
+    geom_point(data = d %>% filter(time %in% c(30, 60))) +
+    geom_path() +
+    scale_x_continuous("Time (seconds)",
+        breaks = c(30, 60),
+        labels = c(expression(t[k-1]), expression(t[k]))
+    ) +
+    scale_y_continuous("Distance travelled (meters)"
+    ) +
+    theme_classic() +
+    theme(legend.position = "none")
+@
 
 
-The second part of the model to consider is the variance of the noise. Vehicles do not travel at a constant speed; instead, they accelerate and decelerate according to the traffic conditions, driver behaviour, and other factors (bus stops and intersections are explicitly examined later). Presented below are three increasingly generalised models, from a constant speed between observations and stops to random speed and random acceleration.
-
-
-In the first model (A1) we assume a constant speed $\Vspeed_k$ in the interval $(\Vtime_{k-1}, \Vtime_k]$,
+Of course, if speed is the first derivative of the vehicle's trajectory function, then \emph{accerlation} is the second, $\Vaccel = d''(t)$. In this case, we add a third component to the vehicle's state, and consider speed similarly to distance; the transition function becomes
 \begin{equation}
-\Vspeed_k \sim \TNormal{\Vspeed_{k-1}}{\Vnoise}{0}{30}
+\label{eq:vehicle_model_newton_accel}
+\Vstate_{k|k-1} = \Vtrans_{A3}\left(\Vstate_{k-1|k-1}\right) =
+\begin{bmatrix}
+\Vdist_k \\ \Vspeed_k \\ \Vaccel_k
+\end{bmatrix} =
+\begin{bmatrix}
+\Vdist_{k-1} + \Vtdiff_k\Vspeed_k \\
+\Vspeed_{k-1} + \Vaccel_k \\
+\Vaccel_{k-1} + v_k
+\end{bmatrix}
 \end{equation}
-where $\TNormal{\mu}{\sigma}{a}{b}$ is the Normal distribution truncated to the interval $(a, b)$. In this case, vehicle speed was truncated to ensure it is both positive and under 30~m/s, which is 108~km/h (the maximum road speed in Auckland is 100~km/h). The truncation point could, of course, be reduced in a majority of roads throughout Auckland, but this information was not straightforward or free to obtain. Having sampled a new speed (to ensure system variability, see \cref{sec:pf}), the vehicle travels forward according to \cref{eq:vehicle_model_newton}.
-
-
-
-To compute the vehicle's travel time along a road segment, the start and end times of travel along the segment, $\Vsegstart_\ell$ and $\Vsegend_\ell$, respectively, are interpolated. The end time of travel along segment $\ell - 1$ is the same as the start time of travel along segment $\ell$, so given segment $\ell$ begins at $\Tsegd_\ell$~meters along the route shape, then whenever $\Tsegd_\ell \in (\Vdist_{k-1},  \leq \Vdist_k]$, the relevant segment start and end times are computed as
+with the system noise now applied to the acceleration term and truncated to ensure the speed remains positive and less than 30~m/s,
 \begin{equation}
-\label{eq:vehicle_model_a1_tt_interp}
-\Vsegend_{\ell-1} = \Vsegstart_\ell =
-\Vtime_{k-1} + \frac{\Tsegd_\ell - \Vdist_{k-1}}{\Vspeed_k}.
+\label{eq:vehicle_model_accel_dist}
+v_k \sim \TNormal{0}{\Vnoise}{-\Vspeed_{k-1} - \Vaccel_{k-1}}{30 - \Vspeed_{k-1} - \Vaccel_{k-1}}
 \end{equation}
+Again, we have displayed the resulting trajectories in \cref{fig:transition_a3_demo}. The main issue is that it is difficult to parameterize and constrain the acceleration to ensure speed remains in the desired region, \emph{and} that the function can still generate plausible trajectories.
 
 
-Travel times are straightforward to compute in this model after interpolating both start and end times of travel along a segment $\ell$,
-\begin{equation}
-\label{eq:vehicle_model_a1_tt}
-\Vtt_\ell = \Vsegend_\ell - \Vsegstart_\ell.
-\end{equation}
+<<transition_a3_demo,echo=FALSE,fig.width=6,fig.height=4,out.width=".8\\textwidth",fig.cap="Simulated particle trajectories using transition model A3. Points have been coloured by their parent (after resampling) to demonstrate the affect of system noise.",fig.align="center">>=
 
+d <- tibble(
+    id = 1:10,
+    parent = c(1L, 1L, 1L, 2L, 2L, 2L, 3L, 3L, 3L, 3L),
+    time = rep(30L, 10),
+    distance = X[parent, 1],
+    speed = X[parent, 2],
+    accel = X[parent, 3]
+)
+d2 <- d
+reject_sample <- Vectorize(
+    function(x, sigma_target = c(1, 2), sigma_prop = 0.1,
+             lower = -Inf, upper = Inf) {
+        if (x < lower) x <- lower
+        if (x > upper) x <- upper
+        s <- ifelse(x > 0, sigma_target[1], sigma_target[2])
+        xstar <- truncnorm::rtruncnorm(1, lower, upper, x, sigma_prop)
+        sstar <- ifelse(xstar > 0, sigma_target[1], sigma_target[2])
+        if (xstar < lower || xstar > upper) return(x)
+        d1 <- dnorm(xstar, 0, sstar, log = TRUE) - dnorm(0, 0, sstar, log = TRUE)
+        d2 <- dnorm(x, 0, s, log = TRUE) - dnorm(0, 0, s, log = TRUE)
+        if (d1 > d2) return(xstar)
+        alpha <- min(0, d1 - d2)
+        if (runif(1) < exp(alpha)) return(xstar)
+        x
+    },
+    c("x", "lower", "upper")
+)
+# X <- numeric(100000)
+# for (i in 2:length(X)) X[i] <- reject_sample(X[i-1])
+# plot(X, type = "l")
+# h <- hist(X, freq=FALSE)
+# plot(h, freq = FALSE)
+# curve(max(h$density)*dnorm(x, 0, ifelse(x>0,1,2))/dnorm(0,0,ifelse(x>0,1,2)),
+#     -15, 10, 1001,add=T)
 
+for (i in 1:30) {
+    d2 <- d2 %>%
+        mutate(
+            time = time + 1L,
+            accel = reject_sample(accel,
+                sigma_prop = 0.8,
+                lower = -speed,
+                upper = 30 - speed
+            ),
+            speed = speed + accel,
+            distance = distance + speed
+        )
+    d <- bind_rows(d, d2)
+}
 
-A second model (A2) allows the vehicle speed to follow a random walk between observations rather than remaining constant. That is,
-\begin{equation}
-\Vspeed_s \sim \TNormal{\Vspeed_{s-1}}{\Vnoise}{0}{30},\quad
-\Vtime_s \in (\Vtime_{k-1}, \Vtime_k].
-\end{equation}
-In order to simultaneously compute segment travel times, the distance is iteratively updated once per second by modifying \cref{eq:vehicle_model_newton} (removing the $\Vtdiff_k$ parameter) for $s = \{t_{k-1}, t_{k-1} + 1, \ldots, t_k - 1, t_k \}$
-\begin{equation}
-\Vdist_s = \Vdist_{s-1} + \Vspeed_s.
-\end{equation}
-Once the particle enters segment $\ell$ ($\Vdist_s \geq \Tsegd_\ell$), the travel time $\Vtt_\ell$ is incremented by one second each iteration until the particle leaves the segment ($\Vdist_s \geq \Tsegd_\ell + \Tseglen_\ell$).
+d <- d %>% mutate(parent = as.character(parent))
+ggplot(d, aes(time, distance, group = id, colour = parent)) +
+    geom_point(data = d %>% filter(time %in% c(30, 60))) +
+    geom_path() +
+    scale_x_continuous("Time (seconds)",
+        breaks = c(30, 60),
+        labels = c(expression(t[k-1]), expression(t[k]))
+    ) +
+    scale_y_continuous("Distance travelled (meters)"
+    ) +
+    theme_classic() +
+    theme(legend.position = "none")
 
-
-
-In the third model (A3), the process is generalised even further by adding another parameter to the vehicle state, the acceleration $\Vaccel_k$ at time $\Vtime_k$. This process allows more realistic modelling of vehicle behaviour, and it was this model we used to generate the simulated data below. Given an acceleration and again following the motion laws, the vehicle speed is updated by
-\begin{equation}
-\label{eq:vehicle_model_accel}
-\Vspeed_s = \Vspeed_{s-1} + \Vaccel_{s}
-\end{equation}
-
-The acceleration noise distribution needed to be truncated in such a way as to ensure the vehicle's speed remained positive and less than 30~m/s, which from \cref{eq:vehicle_model_accel} yields the inequality
-\begin{equation}
-- \Vspeed_{s-1} \leq \Vaccel_s \leq 30 - \Vspeed_{s-1}
-\end{equation}
-resulting in the acceleration distribution
-\begin{equation}
-\Vaccel_s \sim \TNormal{\Vaccel_{s-1}}{\Vnoise}{-\Vspeed_{s-1}}{30 - \Vspeed_{s-1}}
-\end{equation}
-
-Computing the travel time of the vehicle along road segments
-was done in the same way as for model A2.
+@
 
 
 \subsubsection{Nodes: bus stops and intersections}
