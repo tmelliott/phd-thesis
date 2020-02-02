@@ -242,30 +242,84 @@ ggplot(d, aes(time, distance, group = id, colour = parent)) +
 @
 
 
-\subsubsection{Nodes: bus stops and intersections}
+\subsubsection{Component B: stopping at nodes}
 \label{sec:vehicle_model_nodes}
 
-\textcolor{red}{Re-write this section as a ``node''-based operation, with cases for stops or intersections.}
+In \cref{sec:route-segments}, we created a road network consisting of nodes---either bus stops or intersections---and the roads connecting them. As a result of this \emph{segementisation}, each route can be expressed as a \emph{sequence of nodes} and connecting \emph{road segments}, as demonstrated in \cref{fig:route-nodes}. Component A of the transition model dealt with vehicle behaviour along the road segments; we now handle the behaviour at these node points.
 
-The main feature of transit vehicle behaviour that distinguishes it from other vehicle tracking applications is the presence of known stopping locations, or \emph{bus stops}, which are therefore an integral component of our model. However, modelling stopping behaviour in \rt{} is a difficult problem, particularly when the observations are sparse, or frequently observed (only) at bus stops (\cref{sec:realtime-data}).
+<<route-nodes,echo=FALSE,fig.width=6,fig.height=1,out.width=".8\\textwidth",fig.align="center",fig.cap="A simplified route network, showing stops (circles) and intersections (triangles).">>=
+suppressPackageStartupMessages(library(tidyverse))
+
+tibble(
+    node = 0:5,
+    type = as.factor(c(1L, 2L, 2L, 1L, 2L, 1L))
+) %>%
+    ggplot(aes(x = node, y = 0, pch = type)) +
+        geom_path() +
+        geom_point(size = 2) +
+        theme_void() +
+        theme(legend.position = "none")
 
 
+@
 
-The main difficulty here is related to how the data are observed, which was discussed in \cref{sec:vp_data}. It is quite common only to observe \GPS{} positions at bus stops, a location at which there is a positive probability of being. Thus, it makes sense that the maximum likelihood estimate of the trajectory between two bus stops puts the maximum possible time \emph{at the stop}, resulting in maximum speed between stops. Early iterations of our model succumbed to this problem until we implemented a likelihood function on the trip updates (see \cref{sec:lhood_trip}).
-
-
-
-The typical behaviour at bus stops is that a bus stops if passengers are signalling to get on or off the bus. Probabilistically, we say that a bus servicing route $r$ stops at bus stop $m \in \{2, \ldots, \Nstop_r - 1\}$\footnote{the bus always stops at the first and last stops} with some unknown probability $\Prstop_m$. In situations where the bus does not stop, the behaviour follows model A; otherwise, it follows the following behaviour:
+There are two types of nodes in our framework: \emph{bus stops} where passengers can board and disembark, and \emph{intersections} where buses (and other road users) wait depending on congestion levels and traffic lights (we do not distinguish between these currently). In each case, the bus' behaviour is
 \begin{enumerate}
-\item deceleration on approach to stop, doors open,
-\item passengers alight and board, and
-\item doors close, acceleration into the traffic flow.
+\item if the bus stops:
+    \begin{enumerate}
+    \item deceleration to zero,
+    \item wait,
+    \item acceleration to traffic speed;
+    \end{enumerate}
+\item otherwise, continue as though there is no node.
 \end{enumerate}
-Following the work by \cite{Hans_2015}, steps 1 and 3 above are combined into a single constant parameter $\mindwell$, which represents the \emph{minimum dwell time} at a stop.
+Only step 1b depends on the type of node.
 
 
 
-Step 2 is modelled as the service time of the stop; that is the time to allow passengers to alight and board. As we have no \rt{} data on passenger counts available in Auckland, we rely on the flexibility of the \pf{} to estimate dwell time in \rt{}. Using a truncated normal distribution with mean $\mindwell + \dwell_m$ and variance $\dwellvar_m$, with a point mass of $1-\Prstop_m$ on zero, as shown in \cref{fig:eta_dwell_times}.
+\begin{subsubsubsection}
+
+A bus' wait time at a bus stop is referred to as \emph{dwell time} and consists of three phases (as described by \cite{Hans_2015}):
+\begin{enumerate}[i.]
+\item doors open
+\item passengers board and alight
+\item doors close, and vehicle waits for a gap in the traffic\footnote{In New Zealand, buses do not get right-of-way, so it is common for them to be stuck for a while in a bus bay}.
+\end{enumerate}
+Phases i and ii are combined with 1a and 1c from above (deceleration and acceleration, respectively) into a single parameter, $\mindwell$, which is assumed constant across all buses, stops, and routes.
+
+
+The service (phase ii) is the time taken for passengers to get on and off the bus, which varies significantly between stop, route, and time of day. There are many ways to model service time, such as an exponential \citep{Hans_2015} or [another reference?]. Here, we present using a truncated normal distribution using the mean and variance of dwell times, truncated at zero. The service time at the $m\th$ stop along a route ($m=1,...,M-1$, as dwell time doesn't apply for the last stop) is denoted $\pdwell_m$, which we model by its mean and variance, $\dwell_m$ and $\dwellvar_m^2$, respectively, estimated from historical data:
+\begin{equation}
+\label{eq:stop_dwell_time}
+\pserve_m \sim \TNormal{\dwell_m}{\dwellvar_m}{0}{\infty}
+\end{equation}
+
+For each bus stop, we also have a \emph{stopping probability} $\Prstop_m\in(0,1)$. For the first and last stops, $m\in\{1,M\}$, the is unity; for the remainder, we have no data with which we can reliably estimate $\Prstop_m$, so, for now, we assume all stops have the same values specified by a global $\Prstop$ parameter (see \cref{sec:pf_params} for details on this). The outcome of whether or not a bus stops at a bus stop, $p_m$, is thus a Bernoulli trial,
+\begin{equation}
+\label{eq:stop_pstop}
+\Istop_m \sim \Bernoulli{\Prstop_m}
+\end{equation}
+The total dwell time of a bus at stop $m$ can be expressed as
+\begin{equation}
+\label{eq:stop_dwell_time}
+\pdwell_m = \Istop_m (\mindwell + \pserve_m)
+\end{equation}
+which, under the particle filtering framework, is straightforward to implement. \Cref{fig:eta_dwell_times} demonstrates the dwell time distribution at a stop.
+
+One other scenario for bus stops is a \emph{layover}, which is when a bus arrives early at a major stop\footnote{This is more common on longer routes in an attempt to keep them to schedule} and waits until the scheduled departure time. In the GTFS stop times table, layovers are denoted by an arrival time early\footnote{This is usually a one-second difference} than the corresponding departure time, as shown in \cref{tab:layover_times}. Again, under the particle filtering framework, this is simple enough to implement: if the particle arrives early, wait until the scheduled departure time before leaving (i.e., adjusting the dwell time). However, it is not always the case that buses will wait for the layover, so we add a probability of adherence, similar to the stopping probability in equation (Bernoulli).
+
+
+% The typical behaviour at bus stops is that a bus stops if passengers are signalling to get on or off the bus. Probabilistically, we say that a bus servicing route $r$ stops at bus stop $m \in \{2, \ldots, \Nstop_r - 1\}$\footnote{the bus always stops at the first and last stops} with some unknown probability $\Prstop_m$. In situations where the bus does not stop, the behaviour follows model A; otherwise, it follows the following behaviour:
+% \begin{enumerate}
+% \item deceleration on approach to stop, doors open,
+% \item passengers alight and board, and
+% \item doors close, acceleration into the traffic flow.
+% \end{enumerate}
+% Following the work by \cite{Hans_2015}, steps 1 and 3 above are combined into a single constant parameter $\mindwell$, which represents the \emph{minimum dwell time} at a stop.
+
+
+
+% Step 2 is modelled as the service time of the stop; that is the time to allow passengers to alight and board. As we have no \rt{} data on passenger counts available in Auckland, we rely on the flexibility of the \pf{} to estimate dwell time in \rt{}. Using a truncated normal distribution with mean $\mindwell + \dwell_m$ and variance $\dwellvar_m$, with a point mass of $1-\Prstop_m$ on zero, as shown in \cref{fig:eta_dwell_times}.
 
 
 
@@ -294,49 +348,49 @@ tibble(x = xx, y = yy) %>%
     theme(panel.grid = element_blank())
 @
 
-So, for a given vehicle approaching stop $m$, the dwell time associated with that stop can be expressed as a function of
-\begin{equation}
-\label{eq:stop_dwell_model}
-\Istop_m \sim \Bern{\Prstop_m}\quad\text{and}\quad
-\pserve_m \sim \TNormal{\dwell_m}{\dwellvar_m}{0}{\infty}
-\end{equation}
-giving the dwell time $\pdwell_m$ as
-\begin{equation}
-\label{eq:stop_dwell_time}
-\pdwell_m = \Istop_m (\mindwell + \pserve_m)
-\end{equation}
+% So, for a given vehicle approaching stop $m$, the dwell time associated with that stop can be expressed as a function of
+% \begin{equation}
+% \label{eq:stop_dwell_model}
+% \Istop_m \sim \Bern{\Prstop_m}\quad\text{and}\quad
+% \pserve_m \sim \TNormal{\dwell_m}{\dwellvar_m}{0}{\infty}
+% \end{equation}
+% giving the dwell time $\pdwell_m$ as
+% \begin{equation}
+% \label{eq:stop_dwell_time}
+% \pdwell_m = \Istop_m (\mindwell + \pserve_m)
+% \end{equation}
 
 
 
 
-\subsubsection{Intersections}
-\label{sec:vehicle_model_intersections}
+% \subsubsection{Intersections}
+% \label{sec:vehicle_model_intersections}
 
-Unlike route paths and bus stops which are known, intersections are, for the most part, unknown, as there is no readily available, up-to-date information about the locations of intersections. We can, however, develop our model to allow for intersections, which can then be created by
-\begin{itemize}
-\item importing from an external source,
-\item detecting intersections using shapefiles (\cref{sec:route-segments}), or
-\item using historical GPS data to find locations of high bus density.
-\end{itemize}
-Each of these methods has their benefits and downfalls, but this is not the topic of this thesis.
-
-
-To model intersections, we use an approach similar to the one used for bus stops, but removing the minimum dwell time and using an exponential distribution for the wait times,
-\begin{equation}
-\Iint_\ell \sim \Bern{\rho_\ell}\quad\text{and}\quad
-\pcwait_\ell \sim \Exp{\intwait_\ell^{-1}}
-\end{equation}
-giving the wait time $\pwait_\ell$ as
-\begin{equation}
-\label{eq:intersection_wait_time}
-\pwait_\ell = \Iint_\ell \pcwait_\ell.
-\end{equation}
+% Unlike route paths and bus stops which are known, intersections are, for the most part, unknown, as there is no readily available, up-to-date information about the locations of intersections. We can, however, develop our model to allow for intersections, which can then be created by
+% \begin{itemize}
+% \item importing from an external source,
+% \item detecting intersections using shapefiles (\cref{sec:route-segments}), or
+% \item using historical GPS data to find locations of high bus density.
+% \end{itemize}
+% Each of these methods has their benefits and downfalls, but this is not the topic of this thesis.
 
 
-Another complication with intersections is that it is possible for a vehicle to be stuck in a queue and need to wait for multiple light phases before getting through the intersection. While it should be sufficient to include this in the segment's travel time, due to the issues discussed in \cref{sec:vp_data}, it is possible for a vehicle to be queuing up and report its location as \emph{at the intersection}, rather than in the queue.
+% To model intersections, we use an approach similar to the one used for bus stops, but removing the minimum dwell time and using an exponential distribution for the wait times,
+% \begin{equation}
+% \Iint_\ell \sim \Bern{\rho_\ell}\quad\text{and}\quad
+% \pcwait_\ell \sim \Exp{\intwait_\ell^{-1}}
+% \end{equation}
+% giving the wait time $\pwait_\ell$ as
+% \begin{equation}
+% \label{eq:intersection_wait_time}
+% \pwait_\ell = \Iint_\ell \pcwait_\ell.
+% \end{equation}
 
 
-\textcolor{red}{
-    The main point is to keep track of the bus by covering all possible
-    trajectories.
-}
+% Another complication with intersections is that it is possible for a vehicle to be stuck in a queue and need to wait for multiple light phases before getting through the intersection. While it should be sufficient to include this in the segment's travel time, due to the issues discussed in \cref{sec:vp_data}, it is possible for a vehicle to be queuing up and report its location as \emph{at the intersection}, rather than in the queue.
+
+
+% \textcolor{red}{
+%     The main point is to keep track of the bus by covering all possible
+%     trajectories.
+% }

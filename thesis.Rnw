@@ -46,6 +46,7 @@ headsepline, % Uncomment to get a line under the header
 % \usepackage{mathpazo} % Use the Palatino font by default
 
 \usepackage{amssymb}
+\usepackage{enumerate}
 
 \cslet{blx@noerroretextools}\empty
 \usepackage[backend=bibtex,style=authoryear,natbib=true]{biblatex} % Use the bibtex backend with the authoryear citation style (which resembles APA)
