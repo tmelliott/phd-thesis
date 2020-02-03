@@ -1,55 +1,34 @@
-\section{Estimating travel times}
-\label{sec:vehicle_travel_times}
+\section{Estimating road speeds}
+\label{sec:vehicle_speeds}
+
+Now that we have estimated the necessary vehicle states and their respective trajectories, we are able to infer a vehicle's \emph{average speed} along the $\ell^\text{th}$ road segment, $\Vtt_{\ell}$. These estimates are used later to update the \emph{road network state} (\cref{cha:network_model}) and ultimately estimate arrival times (\cref{cha:prediction}).
 
 
-
-To compute the vehicle's travel time along a road segment, the start and end times of travel along the segment, $\Vsegstart_\ell$ and $\Vsegend_\ell$, respectively, are interpolated. The end time of travel along segment $\ell - 1$ is the same as the start time of travel along segment $\ell$, so given segment $\ell$ begins at $\Tsegd_\ell$~meters along the route shape, then whenever $\Tsegd_\ell \in (\Vdist_{k-1},  \leq \Vdist_k]$, the relevant segment start and end times are computed as
+Estimation of average road speed is perfomed by first computing the \emph{travel time} along each road segment as the bus traverses the network. To do so, we record the time when the vehicle starts and ends each segment, $\Vsegstart_\ell$ and $\Vsegend_\ell$, respectively, and simply take the difference to obtain the travel time in seconds. By using a particle filter, we simply record these values for each particle as it is transitioned to each new state. Finally, transforming to average speed uses the length of the segment, $\Tseglen_\ell$, in meters, and the standard speed formula (speed = distance / time):
 \begin{equation}
-\label{eq:vehicle_model_a1_tt_interp}
-\Vsegend_{\ell-1} = \Vsegstart_\ell =
-\Vtime_{k-1} + \frac{\Tsegd_\ell - \Vdist_{k-1}}{\Vspeed_k}.
+\label{eq:vehicle_avg_speed}
+\Vtt_\ell = \frac{\Tseglen_\ell}{\Vsegend_\ell - \Vsegstart_\ell}.
 \end{equation}
 
 
-Travel times are straightforward to compute in this model after interpolating both start and end times of travel along a segment $\ell$,
+Since estimating \cref{eq:vehicle_avg_speed} is straighforward for each individual particle, the posterior distribution of the vehicle's average travel time along segment $\ell$, given all observations up to and including time $\Vtime_k$, is again approximated using the Dirac measure,
 \begin{equation}
-\label{eq:vehicle_model_a1_tt}
-\Vtt_\ell = \Vsegend_\ell - \Vsegstart_\ell.
-\end{equation}
-
-\hrule
-
-The estimation of travel times is the primary parameter of interest
-in the \rt{} vehicle model described in \cref{sec:vehicle_model}.
-Therefore, it was used as the value with which the various models described
-were compared in order to determine the best to use in our application.
-Throughout the section,
-we described how travel times were computed for a single bus---or particle---%
-along road segments in \rt{}.
-The travel time distribution for a bus along road segment $\ell$
-is given by the \pf{} as
-\begin{equation}
-\label{eq:pf_travel_time_dist}
+\label{eq:pf_speed_dist}
 p(\Vtt_\ell | \Vobs_{1:k}) \approx
-\sum_{i=1}^\Np \Pwt_k \dirac(\Vtt_\ell - \Vtt\vi_\ell)
+\sum_{i=1}^\Np \Pwt_k \dirac(\Vtt_\ell - \Vtt\vi_\ell).
 \end{equation}
+In situations where only some of the particles have completed travel along a segment, we wait until the next iteration to re-check that all particles have completed it and, since start and end times are stored for each individual particle, we can still estimate average speed.
 
 
-There are some trivial issues with implementation in \rt{},
-most notably that in some situations not all particles will have completed a segment,
-for example when there is an observation at the intersection.
-This was easily overcome by storing travel times for each particle,
-and only processing once all particles had completed each segment.
 
+In order to explore the accuracy of the models presented in \cref{sec:vehicle_model}, a simple vehicle simulation was performed with known road speeds. Three simulations are examined, starting without nodes, and then incrementally adding bus stops and then intersections. For each, we used three different sampling methods:
+\begin{itemize}
+\item uniform sampling with 10~second intervals;
+\item uniform sampling with 30~second intervals; and
+\item non-uniform sampling at nodes.
+\end{itemize}
+As mentioned in \cref{sec:vp_data}, the last of these is, in fact, a common feature of the Auckland Transport data; we discuss the complications further in \cref{sec:pf_implementation}. In each simulation, we implemented the three variations of the transition function: $\Vtrans_{A1}$, $\Vtrans_{A2}$, and $\Vtrans_{A3}$.
 
-In order to explore the accuracy of the models presented in \cref{sec:vehicle_model},
-a simple vehicle simulation was performed with known travel times.
-In each of the models A--C, the variable acceleration model (A3, B3, and C3)
-was used to generate a simulated vehicle trajectory.
-Then, three observation sampling methods were used:
-uniform sampling with 10~second intervals, 30~second intervals,
-and non-uniform waypoint sampling at bus stops and intersections,
-which replicates the majority of data from \AT{}.
 
 
 The posterior mean travel time was used
@@ -62,6 +41,7 @@ the weighted mean of the sample,
 \E{\Vtt_\ell | \Vobs_{1:k}} =
 \sum_{i=1}^\Np \Pwt_k \Vtt\vi_\ell
 \end{equation}
+
 
 
 \subsubsection{Simulation A: general vehicle model}
@@ -86,23 +66,10 @@ simnames <- c("Uniform (10s)", "Uniform (30s)", "Waypoints")
 @
 
 
-The simulated data, shown in \cref{fig:sim1_graph1},
-uses model A3 to simulate a vehicle trajectory,
-and uses several time point sampling methods:
-uniform sampling with high (\cref{fig:sim1_graph2})
-and low (\cref{fig:sim1_graph3}) frequency,
-and non-uniform sampling (\cref{fig:sim1_graph4}),
-which is more in line with how the Auckland Transport data is collected.
+The simulated data, shown in \cref{fig:sim1_graph1}, uses the transition model descibred by $\Vtrans_{A1}$ to simulate a vehicle trajectory, and uses several time point sampling methods: uniform sampling with high (\cref{fig:sim1_graph2}) and low (\cref{fig:sim1_graph3}) frequency, and non-uniform sampling (\cref{fig:sim1_graph4}), which is more in line with how the Auckland Transport data is collected.
 
 
-The goal of the simulation is to estimate the travel time
-along a \Sexpr{diff(segs[[1]])}~m ``road segment'' with constant traffic flow,
-and a \Sexpr{diff(segs[[2]])}~m segment with congestion,
-denoted by the shaded regions in the figures below.
-The simulation was performed in R \citep{rcore}
-using $\Np = 2000$ particles per vehicle,
-and so the implementation is slightly different from the C++ one
-defined in \cref{sec:pf_implementation}.
+The goal of the simulation is to estimate the average vehicle speeds along several road segments. The simulation was performed in R \citep{rcore} using $\Np = 2000$ particles per vehicle, and so the implementation is slightly different from the C++ one defined in \cref{sec:pf_implementation}.
 
 <<sim1_graph,echo=FALSE,fig.height=2,fig.width=4,out.width=".49\\linewidth",fig.cap=fcap1,fig.subcap=fscap1,fig.ncol=2>>=
 p1 <- ggplot(s1$path, aes(time, distance)) +
@@ -121,23 +88,19 @@ p1 + geom_point(aes(t, x), data = s1$observations$waypoints)
 
 <<sim1_pf,echo=FALSE,message=FALSE,warning=FALSE,fig.height=5,fig.width=8,out.width="\\linewidth",fig.cap="Simulation results for the three models (rows) applied to the data from three sampling methods (columns), using $\\Np=2000$ particles. Model A1 tended to underestimate the travel time, whilst models A2 and A3 gave quite similar results. As expected, the uniform high-frequency sampling gives the best estimate of travel time, while the other two result in significant uncertainty in travel times.">>=
 S0 <- get_sim_1()
-# for (i in 1:5) {
-#     print(
-#         S0 %>% filter(segment == sprintf("Segment %d", i)) %>%
-#             ggplot(aes(travel_time, fill = model)) +
-#             geom_histogram(bins = 30) +
-#             facet_grid(model~sim) +
-#             theme_minimal() + theme(panel.grid = element_blank()) +
-#             geom_vline(xintercept = tt[i], col = "gray", lty = 2) +
-#             scale_y_continuous(breaks = NULL) +
-#             xlab("Travel time (s)") + ylab("Frequency")
-#     )
-# }
 S0 %>%
-    mutate(
-        truth = tt[as.numeric(gsub("Segment ", "", segment))]
+    left_join(
+        s1$segments %>%
+            mutate(
+                segment = paste("Segment", id),
+                true_speed = length / tt
+            ) %>%
+            select(segment, length, speed)
     ) %>%
-    ggplot(aes(model, travel_time - truth, fill = model)) +
+    mutate(
+        truth = true_speed
+    ) %>%
+    ggplot(aes(model, length / (travel_time - truth), fill = model)) +
     geom_violin() +
     # geom_histogram(bins = 30) +
     facet_grid(segment ~ sim,  scales = "free_y") +

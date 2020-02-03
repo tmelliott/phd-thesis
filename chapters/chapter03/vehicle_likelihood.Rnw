@@ -439,8 +439,37 @@ p(\Vobs_k | \Vstate\vi_k) =
 \end{equation}
 which allows the particle sample to be reweighted according to the temporal difference in arrival and departure times. This is demonstrated in \cref{fig:tu_update}.
 
-<<tu_update,echo=FALSE,fig.width=8,fig.height=4,out.width="0.8\\textwidth",fig.align="center",fig.cap="Particle likelihoods based on stop arrival time.">>=
+<<tu_update,echo=FALSE,fig.width=8,fig.height=4,out.width="0.8\\textwidth",fig.align="center",fig.cap="Particle's travelling past an intermediate stop with an arrival time observation (red point). Particle trajectories are coloured by whether or not they stopped. The likelihood is used to reweight the particles, indicated by line opacity.">>=
+suppressPackageStartupMessages(library(tidyverse))
+set.seed(444)
 
-plot(1:10)
+Sd <- 600
+A <- 45L
+
+d <- tibble(
+    t = rep(30L, 10L),
+    d = runif(10L, 500, 550),
+    v = rnorm(10L, 8, 3),
+    Ta = t + round((Sd - d) / v),
+    w = rbinom(10L, 1L, 0.501) * (6 + truncnorm::rtruncnorm(10L, 0, Inf, 5, 3)),
+    Td = Ta + w,
+    stopped = ifelse(w > 0, "stopped", "did not stop"),
+    t2 = t + 30L,
+    d2 = Sd + (t2 - Td) * v,
+    lh = dnorm(Ta, A, 2),
+    wt = lh / sum(lh)
+)
+
+ggplot(d, aes(alpha = wt, colour = stopped)) +
+    geom_hline(yintercept = Sd, lty = 2) +
+    geom_segment(aes(x = t, y = d, xend = Ta, yend = Sd)) +
+    geom_segment(aes(x = Ta, y = Sd, xend = Td, yend = Sd)) +
+    geom_segment(aes(x = Td, y = Sd, xend = t2, yend = d2)) +
+    geom_point(aes(x = A, y = Sd), colour = "red") +
+    theme_classic() +
+    guides(alpha = FALSE) +
+    labs(colour = " ") +
+    scale_x_continuous("Time (seconds)") +
+    scale_y_continuous("Distance travelled (m)")
 
 @

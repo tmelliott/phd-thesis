@@ -80,7 +80,7 @@ p + geom_ribbon(aes(ymin = x - err, ymax = x + err),
 \subsection{Update step}
 \label{sec:kf_update}
 
-Updating the \kf{} involves taking the predicted state and updating it using \emph{observations} of vehicle speeds along road segments. These we obtain from the \pf{} in \cref{sec:vehicle_travel_times}. However, it is possible to have multiple observations per road segment in one update period, as it is common for buses to travel one behind the other, particularly where there are bus lanes. Therefore, for each individual road segment, we have a vector of observations, one for each vehicle $v \in V_{\ell c}$ passing through that segment in the time interval $(t_{c-1}, t_c]$,
+Updating the \kf{} involves taking the predicted state and updating it using \emph{observations} of vehicle speeds along road segments. These we obtain from the \pf{} in \cref{sec:vehicle_speeds}. However, it is possible to have multiple observations per road segment in one update period, as it is common for buses to travel one behind the other, particularly where there are bus lanes. Therefore, for each individual road segment, we have a vector of observations, one for each vehicle $v \in V_{\ell c}$ passing through that segment in the time interval $(t_{c-1}, t_c]$,
 \begin{equation} \label{eq:nw_seg_obs}
 \NWobss_{\ell c} = \bigcup_{v\in V_{\ell c}} \NWobss_{\ell c}^v.
 \end{equation}

@@ -21,7 +21,7 @@ Another part of initialisation is setting the constraint for the \emph{maximum s
 \subsection{Data collection}
 \label{sec:nw_implementation_data}
 
-As discussed in \cref{sec:vehicle_travel_times}, traffic speed along road segments are estimated each time a vehicle completes travel along a road segment. Within the vehicle update step, there is a \emph{current segment} index, $r$, which is initialised to zero. After each mutation, the program determines the minimum segment which each particle is currently on, call this $r_{\text{min}}$. If this is greater than the previous value of $r$, then the speed for all segments from $r$ to $r_{\text{min}}-1$ are computed using \cref{eq:pf_travel_time_dist}.
+As discussed in \cref{sec:vehicle_speeds}, traffic speed along road segments are estimated each time a vehicle completes travel along a road segment. Within the vehicle update step, there is a \emph{current segment} index, $r$, which is initialised to zero. After each mutation, the program determines the minimum segment which each particle is currently on, call this $r_{\text{min}}$. If this is greater than the previous value of $r$, then the speed for all segments from $r$ to $r_{\text{min}}-1$ are computed using \cref{eq:pf_speed_dist}.
 
 
 After estimating the mean and uncertainty of vehicle speeds along a segment, the data is \emph{pushed} onto the segment object using a \verb+push_data()+ method, which is thread-safe, allowing multiple vehicles to simultaneously complete a segment and add observations to it when the program is running on multiple cores.
