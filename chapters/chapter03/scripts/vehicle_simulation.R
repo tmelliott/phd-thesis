@@ -95,8 +95,10 @@ simulate_vehicle <- function(length = 2000,
         segments = z %>% filter(type == "segment") %>%
             mutate(
                 id = as.character(1:n()),
+                segment = paste("Segment", id),
                 length = diff(c(distance, Dmax)),
-                tt = diff(c(t, Tmax)) - d # minus dwell times at any stops in this segment
+                tt = diff(c(t, Tmax)) - d, # minus dwell times at any stops in this segment
+                avg_speed = length / tt
             ),
         observations = structure(
             lapply(c("high", "low", "waypoints"),
@@ -105,12 +107,13 @@ simulate_vehicle <- function(length = 2000,
                         t = switch(obs,
                             "high" = c(seq(0, Tmax, by = 10), Tmax) %>% unique,
                             "low" = c(seq(0, Tmax, by = 30), Tmax) %>% unique,
-                            "waypoints" = z %>% pluck("t") %>% unique
+                            "waypoints" = c(z %>% pluck("t") %>% unique, Tmax)
                         )
 
                     ) %>% mutate(
                         x = distance[t+1] # 1-index, but time starts at 0
-                    )
+                    ) %>%
+                    bind_rows(tibble(t = Tmax + 30, x = Dmax))
                 }
             ),
             .Names = c("high", "low", "waypoints")

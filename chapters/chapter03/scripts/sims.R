@@ -184,6 +184,164 @@ doSim <- function(Nparticle, simnames, seed, fn) {
 }
 
 
+doSim2 <- function(Nparticle, simnames, seed, fn) {
+    file <- sprintf('sims/sim2_%s.rda', fn)
+    if (file.exists(file)) {
+        load(file)
+        if (!is.null(z)) return(z)
+    }
+    s1 <- simulate_vehicle(seed = seed, pi = 0.5)
+    segs <- lapply(1:nrow(s1$segments),
+        function(i) s1$segments$distance[i] + c(0, s1$segments$length[i])
+    )
+    tt <- s1$segments$tt
+
+    S1 <- lapply(seq_along(s1$observations), function(i) {
+        sr <- NULL
+        badcount <- 0
+        while (is.null(sr) || inherits(sr, "try-error")) try({
+            badcount <- badcount + 1
+            if (badcount > 10) return(NULL)
+            sr <- pf1(s1$observations[[i]],
+                n = Nparticle,
+                noise = switch(i,
+                    0.2 + badcount / 100,
+                    0.1 + badcount / 100,
+                    1.0 + badcount / 20
+                ),
+                seg = segs,
+                pi = pi
+            ) %>%
+                mutate(
+                    s1 = ifelse(s1 > 0, s1, NA),
+                    s2 = ifelse(s2 > 0, s2, NA),
+                    s3 = ifelse(s3 > 0, s3, NA),
+                    s4 = ifelse(s4 > 0, s4, NA),
+                    s5 = ifelse(s5 > 0, s5, NA),
+                ) %>%
+                select(s1, s2, s3, s4, s5) %>%
+                gather(key = "segment", value = "travel_time") %>%
+                filter(!is.na(travel_time)) %>%
+                mutate(sim = simnames[i])
+        }, silent = TRUE)
+        sr
+    }) %>%
+        bind_rows() %>%
+        mutate(
+            segment = fct_recode(segment,
+                "Segment 1" = "s1",
+                "Segment 2" = "s2",
+                "Segment 3" = "s3",
+                "Segment 4" = "s4",
+                "Segment 5" = "s5"
+            ),
+            sim = fct_relevel(sim, simnames[1], simnames[2], simnames[3]),
+            model = "A1"
+        )
+
+    S2 <- lapply(seq_along(s1$observations), function(i) {
+        sr <- NULL
+        badcount <- 0
+        while (is.null(sr) || inherits(sr, "try-error")) try({
+            badcount <- badcount + 1
+            if (badcount > 10) return(NULL)
+            sr <- pf2(s1$observations[[i]],
+                n = Nparticle,
+                noise = switch(i,
+                    0.5 + badcount / 100,
+                    0.5 + badcount / 100,
+                    1.0 + badcount / 20
+                ),
+                seg = segs,
+                pi = pi
+            ) %>%
+                mutate(
+                    s1 = ifelse(s1 > 0, s1, NA),
+                    s2 = ifelse(s2 > 0, s2, NA),
+                    s3 = ifelse(s3 > 0, s3, NA),
+                    s4 = ifelse(s4 > 0, s4, NA),
+                    s5 = ifelse(s5 > 0, s5, NA),
+                ) %>%
+                select(s1, s2, s3, s4, s5) %>%
+                gather(key = "segment", value = "travel_time") %>%
+                filter(!is.na(travel_time)) %>%
+                mutate(sim = simnames[i])
+        }, silent = TRUE)
+        sr
+    }) %>%
+        bind_rows() %>%
+        mutate(
+            segment = fct_recode(segment,
+                "Segment 1" = "s1",
+                "Segment 2" = "s2",
+                "Segment 3" = "s3",
+                "Segment 4" = "s4",
+                "Segment 5" = "s5"
+            ),
+            sim = fct_relevel(sim, simnames[1], simnames[2], simnames[3]),
+            model = "A2"
+        )
+
+    S3 <- lapply(seq_along(s1$observations), function(i) {
+        sr <- NULL
+        badcount <- 0
+        while (is.null(sr) || inherits(sr, "try-error")) try({
+            badcount <- badcount + 1
+            if (badcount > 10) return(NULL)
+            sr <- pf3(s1$observations[[i]],
+                n = Nparticle,
+                noise = switch(i,
+                    0.1 + badcount / 100,
+                    0.5 + badcount / 50,
+                    0.5 + badcount / 50
+                ),
+                seg = segs,
+                pi = pi
+            ) %>%
+                mutate(
+                    s1 = ifelse(s1 > 0, s1, NA),
+                    s2 = ifelse(s2 > 0, s2, NA),
+                    s3 = ifelse(s3 > 0, s3, NA),
+                    s4 = ifelse(s4 > 0, s4, NA),
+                    s5 = ifelse(s5 > 0, s5, NA),
+                ) %>%
+                select(s1, s2, s3, s4, s5) %>%
+                gather(key = "segment", value = "travel_time") %>%
+                filter(!is.na(travel_time)) %>%
+                mutate(sim = simnames[i])
+        }, silent = TRUE)
+        sr
+    }) %>%
+        bind_rows() %>%
+        mutate(
+            segment = fct_recode(segment,
+                "Segment 1" = "s1",
+                "Segment 2" = "s2",
+                "Segment 3" = "s3",
+                "Segment 4" = "s4",
+                "Segment 5" = "s5"
+            ),
+            sim = fct_relevel(sim, simnames[1], simnames[2], simnames[3]),
+            model = "A3"
+        )
+
+    z <- bind_rows(S1, S2, S3) %>%
+        mutate(
+            truth = tt[as.numeric(gsub("Segment ", "", segment,))]
+        ) %>%
+        group_by(sim, model, segment) %>%
+        summarize(
+            estimate = mean(travel_time, na.rm = TRUE),
+            variance = var(travel_time, na.rm = TRUE),
+            rmse = mean((travel_time - truth)^2, na.rm = TRUE),
+            median = median(travel_time, na.rm = TRUE),
+            truth = first(truth)
+        )
+    save(z, file = file)
+    z
+}
+
+
 pf1 <- function(d, n = 5000, seg, noise = 1, gps = 3, stops = range(start, end),
                 pi = 0.5, gamma = 6, tau = c(15, 5)) {
     nseg <- 0

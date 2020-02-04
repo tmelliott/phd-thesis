@@ -1,7 +1,37 @@
 \chapter{Computing with particles}
 \label{app:computing-with-particles}
 
-The particle filter is a computationally demanding process, so here we give some details about the more intensive components of the application.
+The particle filter allows us to approximate any distribution by using a sample of \emph{particles}, $x\vi$, with weights $w\vi$. There are many advantages of the particle filter, but one is that producing summary statistics is very simple. The only real disadvantage is that it is a computationally demanding process. In this appendix, we briefly descibe the theory behind using the particle filter to estimate a distribution, as well as give details on its computational demands.
+
+
+\section{The Dirac measure}
+\label{app:dirac-delta-measure}
+
+In \cref{cha:gtfs,cha:vehicle_model} we described the particle filter implementation, and noted that we can use the Dirac measure, $\dirac$, to approximate the distribution. We will not got into the theoretical aspects of the function, except to state the following property \citep{}:
+\begin{equation}
+\label{eq:dirac_property}
+\int_X f(x) \dirac_y(x)\dx = f(y).
+\end{equation}
+
+Let $x$ be an unknown quantity for which we have a sample of $N$ particles $\{x\vi\}_{i=1}^N$ with associated weights $\{w\vi\}_{i=1}^N$. The Dirac delta measure is used to approximate that distribution of $x$ \citep{}:
+\begin{equation}
+\label{eq:dirac_dist}
+p(x) \approx \sum_{i=1}^N w\vi \dirac_{x\vi}(x)
+\end{equation}
+
+
+Using \cref{eq:dirac_property,eq:dirac_dist} we can now compute, for example, the mean, $f(x) = x$,
+\begin{equation}
+\label{eq:dirac_mean}
+\begin{split}
+\bar x &= \int_X x p(x) \dx \\
+&= \int_X x \sum_{i=1}^N w\vi \dirac_{x\vi}(x) \dx \\
+&= \sum_{i=1}^N w\vi \int_X x \dirac_{x\vi}(x) \dx \\
+&= \sum_{i=1}^N w\vi x\vi.
+\end{split}
+\end{equation}
+
+
 
 
 \section{Resampling}
