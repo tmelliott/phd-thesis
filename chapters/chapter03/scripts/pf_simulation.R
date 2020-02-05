@@ -22,8 +22,8 @@ run_simulation <- function(seed = 1, include = "none",
         include = include,
         seed = seed,
         accel_prop = accel_prop,
-        pi = pr_stop,
-        rho = pr_int
+        pi = 1,
+        rho = 1
     )
 
     if (interactive()) {

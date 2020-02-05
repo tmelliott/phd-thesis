@@ -175,17 +175,16 @@ To further examine the compariative performance of the models, we repeated the s
 
 
 <<sim2_gen,echo=FALSE,message=FALSE>>=
-s2 <- simulate_vehicle(pi = 1, seed = 1000)
+source("scripts/pf_simulation.R")
+sim2 <- run_simulation(include = "stops", pr_stop = 0.5,
+    prefix = "simB_results")
+s2 <- sim2$sim
+
 segs <- lapply(1:nrow(s2$segments),
     function(i) s2$segments$distance[i] + c(0, s2$segments$length[i])
 )
-tt <- s2$segments %>% rowwise() %>%
-    mutate(
-        tt = tt -
-            sum(s2$stops$d[between(s2$stops$distance,
-                distance, distance + length
-            )])
-    ) %>% pluck("tt")
+tt <- s2$segments$tt
+
 fcap2 <- 'Simulated vehicle trajectory, with five road segments and three intermediate stops.'
 fscap2 <- c(
     "The simulated data.",
