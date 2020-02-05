@@ -5,11 +5,18 @@
 suppressPackageStartupMessages(library(tidyverse))
 source("scripts/vehicle_simulation.R")
 
-seed <- 1; include = "none"; pr_stop = 0; pr_int = 0; noise = 0.5; accel_prop = 0.5; n_particle = 2000
 run_simulation <- function(seed = 1, include = "none",
                            pr_stop = 0.0, pr_int = 0.0,
-                           noise = 0.5, accel_prop = 0.5,
-                           n_particle = 2000) {
+                           noise = c(0.5, 2.0, 0.01),
+                           accel_prop = 0.5,
+                           n_particle = 2000,
+                           prefix = "simA_results") {
+    rda_file <- sprintf("sims/%s_%03d.rda", prefix, seed)
+    if (file.exists(rda_file)) {
+        load(rda_file)
+        return(results)
+    }
+
     # Step 1: simulate data
     sim <- simulate_vehicle(
         include = include,
@@ -33,22 +40,38 @@ run_simulation <- function(seed = 1, include = "none",
             lapply(1:3,
                 function(obs) {
                     dat <- sim$observations[[obs]]
-                    particle_filter(dat$t, dat$x, n_particle, model,
-                        sim$stops, sim$segments,
-                        noise, 3.0, pr_stop, pr_int
-                    )
+                    isBAD <- TRUE
+                    while (isBAD) {
+                        pf <- try({
+                            particle_filter(dat$t, dat$x, n_particle, model,
+                                sim$stops, sim$segments,
+                                noise[model], 3.0, pr_stop, pr_int
+                            )
+                        }, silent = TRUE)
+                        isBAD <- inherits(pf, "try-error")
+                    }
+                    tibble(
+                        speed_estimate = pf$mean,
+                        speed_sd = pf$sd,
+                        segment = paste("Segment", seq_len(nrow(sim$segments)))
+                    ) %>%
+                        mutate(model = model, obs = obs)
                 }
-            )
-
+            ) %>% bind_rows()
         }
-    )
+    ) %>% bind_rows() %>%
+        left_join(
+            sim$segments %>% select(segment, length, avg_speed),
+            by = "segment"
+        ) %>%
+        select(model, obs, segment, length, avg_speed, speed_estimate, speed_sd)
 
+    results <- list(fits = fits, sim = sim)
+    save(results, file = rda_file)
 
-    # Step 4: summarize results
-
+    results
 }
 
-# t=dat$t; x=dat$x; n=1000; model=1; stops=sim$stops; segments=sim$segments; noise=2.0; gps=3.0; pr_stop=0.0; pr_int=0.0; gamma=6;tau=c(15,5)
 particle_filter <- function(t, x, n = 5000, model = 1,
                             stops, segments,
                             noise = 2.0, gps = 3.0,
@@ -161,14 +184,14 @@ particle_filter <- function(t, x, n = 5000, model = 1,
             time <- time + 1L
         }
 
-        if (interactive()) {
-            p0 <- ggplot(sim$path, aes(time, distance)) +
-                geom_path() +
-                geom_hline(aes(yintercept = distance),
-                    data = stops, lty = 2, colour = "red") +
-                geom_hline(aes(yintercept = distance),
-                    data = segments, lty = 3, colour = "blue")
-        }
+        # if (interactive()) {
+        #     p0 <- ggplot(sim$path, aes(time, distance)) +
+        #         geom_path() +
+        #         geom_hline(aes(yintercept = distance),
+        #             data = stops, lty = 2, colour = "red") +
+        #         geom_hline(aes(yintercept = distance),
+        #             data = segments, lty = 3, colour = "blue")
+        # }
 
         # reweight
         state <- state %>%
@@ -177,14 +200,14 @@ particle_filter <- function(t, x, n = 5000, model = 1,
                 weight = likelihood / sum(likelihood)
             )
 
-        if (interactive()) {
-            print(
-                p0 + geom_point(
-                    aes(time, distance, alpha = weight),
-                    data = state
-                )
-            )
-        }
+        # if (interactive()) {
+        #     print(
+        #         p0 + geom_point(
+        #             aes(time, distance, alpha = weight),
+        #             data = state
+        #         )
+        #     )
+        # }
 
 
         # resample
@@ -232,8 +255,12 @@ particle_filter <- function(t, x, n = 5000, model = 1,
         }
     }
 
+    TT <- Tend - Tstart
+    speed <- sweep(TT, 2, segments$length,
+        function(a, b) b / a)
+
     list(
-        mean = colMeans(Tend - Tstart),
-        sd = apply(Tend - Tstart, 2, sd)
+        mean = colMeans(speed),
+        sd = apply(speed, 2, sd)
     )
 }

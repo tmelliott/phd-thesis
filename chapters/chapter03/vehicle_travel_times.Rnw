@@ -49,8 +49,10 @@ the weighted mean of the sample,
 
 
 <<sim1_gen,echo=FALSE,message=FALSE,cache=FALSE>>=
-source("scripts/sims.R")
-s1 <- simulate_vehicle()
+source("scripts/pf_simulation.R")
+sim1 <- run_simulation()
+s1 <- sim1$sim
+
 segs <- lapply(1:nrow(s1$segments),
     function(i) s1$segments$distance[i] + c(0, s1$segments$length[i])
 )
@@ -87,45 +89,22 @@ p1 + geom_point(aes(t, x), data = s1$observations$waypoints)
 @
 
 <<sim1_pf,echo=FALSE,message=FALSE,warning=FALSE,fig.height=3,fig.width=8,out.width="\\linewidth",fig.cap="Simulation results for the three models (rows) applied to the data from three sampling methods (columns), using $\\Np=2000$ particles. The standard deviation of the particle travel times is represented as error bars, though in many cases the error is too small to display.">>=
-S0 <- get_sim_1()
+S0 <- sim1$fits
 S0 %>%
-    left_join(
-        s1$segments %>%
-            mutate(
-                segment = paste("Segment", id),
-                true_speed = length / tt
-            ) %>%
-            select(segment, length, true_speed)
-    ) %>%
-    mutate(
-        truth = true_speed,
-        speed = length / travel_time
-    ) %>%
-    group_by(model, segment, sim) %>%
-    summarize(
-        mean_speed = mean(speed),
-        median_speed = median(speed),
-        truth = first(truth),
-        var_speed = var(speed),
-        se_speed = sqrt(var_speed / length(travel_time)),
-        speed_lower = quantile(speed, 0.25),
-        speed_upper = quantile(speed, 0.75),
-        length = first(length)
-    ) %>%
-    ungroup() %>%
     mutate(
         xpos = as.numeric(as.factor(model)) +
-            as.numeric(as.factor(segment)) / 15
+            as.numeric(as.factor(segment)) / 15,
+        obs = factor(obs, labels = c("Uniform (10s)", "Uniform (30s)", "Nodes"))
     ) %>%
-    ggplot(aes(xpos, mean_speed - truth, colour = segment)) +
+    ggplot(aes(xpos, speed_estimate - avg_speed, colour = segment)) +
     geom_pointrange(
         aes(
-            ymin = mean_speed - truth - sqrt(var_speed),
-            ymax = mean_speed - truth + sqrt(var_speed)
+            ymin = speed_estimate - avg_speed - speed_sd,
+            ymax = speed_estimate - avg_speed + speed_sd
         ),
         shape = 19, size = 0.5
     ) +
-    facet_grid( ~ sim,  scales = "free_y") +
+    facet_grid( ~ obs,  scales = "free_y") +
     theme_classic() +
     theme(strip.background = element_blank()) +
     geom_hline(yintercept = 0, col = "gray", lty = 2) +
@@ -141,39 +120,36 @@ S0 %>%
 
 <<sim1_pf_full,echo=FALSE,message=FALSE,warning=FALSE,fig.width=8,fig.height=8,fig.cap="Speed estimation results for 100 simulations. In each the vehicle trajectory is simulated using a different seed, and the speed estimate is taken as the mean of the particle speeds along each segment.">>=
 # do the whole thing over and over again
-n <- 240
-Nparticle <- 2000
-simnames <- c("Uniform (10s)", "Uniform (30s)", "Waypoints")
-
 s00 <- pbapply::pblapply(1:100,
     function(seed) {
-        if (!dir.exists("sims")) dir.create("sims")
-        # message(sprintf("\n* Now running simulation %d ...", seed))
-        x <- NULL
-        set.seed(seed)
-        while(is.null(x))
-            x <- doSim(Nparticle, simnames, seed = sample(1e9, 1), fn = seed)
-        x
+        run_simulation(seed = seed)
     }
 ) %>%
+    map("fits") %>%
     bind_rows() %>%
-    ungroup() %>%
-    left_join(
-        s1$segments %>%
-            mutate(
-                segment = paste("Segment", id)
-            ) %>%
-            select(segment, length)
-    ) %>%
     mutate(
-        truth = length / truth,
-        estimate = length / estimate
+        model = factor(paste0("A", model)),
+        obs = factor(obs, labels = c("Uniform (10s)", "Uniform (30s)", "Nodes"))
     )
 
-s00 %>% ggplot(aes(truth, truth - estimate, fill = segment, colour = segment)) +
+s00 %>%
+    ggplot(
+        aes(
+            avg_speed,
+            speed_estimate - avg_speed,
+            fill = segment,
+            colour = segment
+        )
+    ) +
     geom_hline(yintercept = 0, colour = "gray") +
-    geom_point() +
-    facet_grid(sim ~ model) +
+    geom_pointrange(
+        aes(
+            ymin = speed_estimate - avg_speed - speed_sd,
+            ymax = speed_estimate - avg_speed + speed_sd
+        ),
+        shape = 19, size = 0.5
+    ) +
+    facet_grid(obs ~ model) +
     theme_classic() +
     theme(strip.background = element_blank()) +
     xlab("Actual speed (m/s)") +
