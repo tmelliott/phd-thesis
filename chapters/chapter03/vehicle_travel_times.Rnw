@@ -120,10 +120,15 @@ S0 %>%
 
 <<sim1_pf_full,echo=FALSE,message=FALSE,warning=FALSE,fig.width=8,fig.height=8,fig.cap="Speed estimation results for 100 simulations. In each the vehicle trajectory is simulated using a different seed, and the speed estimate is taken as the mean of the particle speeds along each segment.">>=
 # do the whole thing over and over again
-s00 <- pbapply::pblapply(1:100,
+library(parallel)
+cl <- makeCluster(4L)
+r <- clusterEvalQ(cl, source("scripts/pf_simulation.R"))
+
+s00 <- pbapply::pblapply(sample(1:100),
     function(seed) {
         run_simulation(seed = seed)
-    }
+    },
+    cl = cl
 ) %>%
     map("fits") %>%
     bind_rows() %>%
@@ -131,6 +136,8 @@ s00 <- pbapply::pblapply(1:100,
         model = factor(paste0("A", model)),
         obs = factor(obs, labels = c("Uniform (10s)", "Uniform (30s)", "Nodes"))
     )
+
+stopCluster(cl)
 
 s00 %>%
     ggplot(
