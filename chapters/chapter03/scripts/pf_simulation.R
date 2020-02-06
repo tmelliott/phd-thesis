@@ -7,7 +7,7 @@ source("scripts/vehicle_simulation.R")
 
 run_simulation <- function(seed = 1, include = "none",
                            pr_stop = 0.0, pr_int = 0.0,
-                           noise = c(0.5, 2.0, 0.01),
+                           noise = c(0.5, 2.0, 0.2),
                            accel_prop = 0.5,
                            n_particle = 2000,
                            prefix = "simA_results") {
@@ -22,8 +22,8 @@ run_simulation <- function(seed = 1, include = "none",
         include = include,
         seed = seed,
         accel_prop = accel_prop,
-        pi = 1,
-        rho = 1
+        pi = as.integer(include %in% c("stops", "both")),
+        rho = as.integer(include %in% c("segments", "both")),
     )
 
     if (interactive()) {
@@ -76,7 +76,8 @@ particle_filter <- function(t, x, n = 5000, model = 1,
                             stops, segments,
                             noise = 2.0, gps = 3.0,
                             pr_stop = 0.0, pr_int = 0.0,
-                            gamma = 6.0, tau = c(15, 5)) {
+                            gamma = 6.0, tau = c(15, 5),
+                            draw = FALSE) {
 
     # storage
     Tstart <- matrix(0L, nrow = n, ncol = nrow(segments))
@@ -108,9 +109,18 @@ particle_filter <- function(t, x, n = 5000, model = 1,
         if (model == 1) {
             state <- state %>%
                 mutate(
-                    speed = truncnorm::rtruncnorm(n, 0, 30, speed, delta * 0.5)
+                    speed = truncnorm::rtruncnorm(n, 0, 30, speed,
+                        delta * noise)
                 )
         }
+
+        state <- state %>%
+            mutate(
+                dwell = ifelse(dwell == 0,
+                    0,
+                    truncnorm::rtruncnorm(n, 0, Inf, tau[1], tau[2])
+                )
+            )
 
         # mutate
         while (time < t[k]) {
@@ -118,7 +128,7 @@ particle_filter <- function(t, x, n = 5000, model = 1,
                 state <- state %>%
                     mutate(
                         speed = ifelse(dwell == 0,
-                            truncnorm::rtruncnorm(n, 0, 30, speed, 0.5),
+                            truncnorm::rtruncnorm(n, 0, 30, speed, noise),
                             speed
                         )
                     )
@@ -132,7 +142,7 @@ particle_filter <- function(t, x, n = 5000, model = 1,
                                 -speed,
                                 30 - speed,
                                 acceleration,
-                                0.05
+                                noise
                             ),
                             acceleration
                         ),
@@ -184,39 +194,41 @@ particle_filter <- function(t, x, n = 5000, model = 1,
             time <- time + 1L
         }
 
-        # if (interactive()) {
-        #     p0 <- ggplot(sim$path, aes(time, distance)) +
-        #         geom_path() +
-        #         geom_hline(aes(yintercept = distance),
-        #             data = stops, lty = 2, colour = "red") +
-        #         geom_hline(aes(yintercept = distance),
-        #             data = segments, lty = 3, colour = "blue")
-        # }
+        if (draw) {
+            p0 <- ggplot(sim$path, aes(time, distance)) +
+                geom_path() +
+                geom_hline(aes(yintercept = distance),
+                    data = stops, lty = 2, colour = "red") +
+                geom_hline(aes(yintercept = distance),
+                    data = segments, lty = 3, colour = "blue")
+        }
 
         # reweight
         state <- state %>%
             mutate(
-                likelihood = weight * dnorm(x[k], distance, gps),
-                weight = likelihood / sum(likelihood)
+                likelihood = dnorm(x[k], distance, gps),
+                weight = weight * likelihood / sum(weight * likelihood)
             )
 
-        # if (interactive()) {
-        #     print(
-        #         p0 + geom_point(
-        #             aes(time, distance, alpha = weight),
-        #             data = state
-        #         )
-        #     )
-        # }
+        Neff <- 1 / sum(state$weight^2)
+        if (draw) {
+            print(
+                p0 + geom_point(
+                    aes(time, distance, alpha = weight, colour = weight),
+                    data = state
+                ) +
+                ggtitle(sprintf("Neff = %s", Neff))
+            )
+            grid::grid.locator()
+        }
 
 
         # resample
-        Neff <- 1 / sum(state$weight^2)
-        if (Neff < n / 2) {
+        #if (Neff < n / 2) {
             state <- state %>%
                 sample_n(n, replace = TRUE, weight = weight) %>%
                 mutate(weight = 1 / n)
-        }
+        #}
 
         # compute travel times
         if (min(state$segment_index) > current_segment) {

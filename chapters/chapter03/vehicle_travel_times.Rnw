@@ -73,7 +73,7 @@ The simulated data, shown in \cref{fig:sim1_graph1}, uses the transition model d
 
 The goal of the simulation is to estimate the average vehicle speeds along several road segments, as well as the associated uncertainty. The simulation was performed in R \citep{rcore} using $\Np = 2000$ particles per vehicle, and so the implementation is slightly different from the C++ one defined in \cref{sec:pf_implementation}.
 
-<<sim1_graph,echo=FALSE,fig.height=2,fig.width=4,out.width=".49\\linewidth",fig.cap=fcap1,fig.subcap=fscap1,fig.ncol=2>>=
+<<sim1_graph,echo=FALSE,fig.height=2,fig.width=4,out.width=".49\\linewidth",fig.cap=fcap1,fig.subcap=fscap1,fig.ncol=2,warning=FALSE,message=FALSE>>=
 p1 <- ggplot(s1$path, aes(time, distance)) +
     geom_hline(yintercept = s1$segments$distance[-1],
         lty = 2, colour = "gray") +
@@ -156,7 +156,7 @@ s00 %>%
         ),
         shape = 19, size = 0.5
     ) +
-    facet_grid(obs ~ model) +
+    facet_grid(obs ~ model, scales = "free_y") +
     theme_classic() +
     theme(strip.background = element_blank()) +
     xlab("Actual speed (m/s)") +
@@ -196,7 +196,7 @@ fscap2 <- c(
 
 
 
-<<sim2_graph,echo=FALSE,fig.height=2,fig.width=4,out.width=".49\\linewidth",fig.cap=fcap2,fig.subcap=fscap2,fig.ncol=2>>=
+<<sim2_graph,echo=FALSE,fig.height=2,fig.width=4,out.width=".49\\linewidth",fig.cap=fcap2,fig.subcap=fscap2,fig.ncol=2,warning=FALSE,message=FALSE>>=
 p2 <- ggplot(s2$path, aes(time, distance)) +
     geom_hline(yintercept = s2$segments$distance[-1],
         lty = 2, colour = "gray") +
@@ -217,46 +217,22 @@ And now we simulate some data with stopping at bus stops. \Cref{fig:sim2_graph} 
 
 
 <<sim2_pf,echo=FALSE,message=FALSE,warning=FALSE,fig.height=3,fig.width=8,out.width="\\linewidth",fig.cap="Simulation results for the three models (rows) applied to the data from three sampling methods (columns), using $\\Np=2000$ particles. [details].">>=
-S0 <- get_sim_2()
-
+S0 <- sim2$fits
 S0 %>%
-    left_join(
-        s2$segments %>%
-            mutate(
-                segment = paste("Segment", id),
-                true_speed = length / tt
-            ) %>%
-            select(segment, length, true_speed)
-    ) %>%
-    mutate(
-        truth = true_speed,
-        speed = length / travel_time
-    ) %>%
-    group_by(model, segment, sim) %>%
-    summarize(
-        mean_speed = mean(speed),
-        median_speed = median(speed),
-        truth = first(truth),
-        var_speed = var(speed),
-        se_speed = sqrt(var_speed / length(travel_time)),
-        speed_lower = quantile(speed, 0.25),
-        speed_upper = quantile(speed, 0.75),
-        length = first(length)
-    ) %>%
-    ungroup() %>%
     mutate(
         xpos = as.numeric(as.factor(model)) +
-            as.numeric(as.factor(segment)) / 15
+            as.numeric(as.factor(segment)) / 15,
+        obs = factor(obs, labels = c("Uniform (10s)", "Uniform (30s)", "Nodes"))
     ) %>%
-    ggplot(aes(xpos, mean_speed - truth, colour = segment)) +
+    ggplot(aes(xpos, speed_estimate - avg_speed, colour = segment)) +
     geom_pointrange(
         aes(
-            ymin = mean_speed - truth - sqrt(var_speed),
-            ymax = mean_speed - truth + sqrt(var_speed)
+            ymin = speed_estimate - avg_speed - speed_sd,
+            ymax = speed_estimate - avg_speed + speed_sd
         ),
         shape = 19, size = 0.5
     ) +
-    facet_grid( ~ sim,  scales = "free_y") +
+    facet_grid( ~ obs,  scales = "free_y") +
     theme_classic() +
     theme(strip.background = element_blank()) +
     geom_hline(yintercept = 0, col = "gray", lty = 2) +
@@ -273,40 +249,44 @@ S0 %>%
 
 
 <<sim2_pf_full,echo=FALSE,message=FALSE,warning=FALSE,fig.width=8,fig.height=8,fig.cap="Speed estimation results for 100 simulations. In each the vehicle trajectory is simulated using a different seed, and the speed estimate is taken as the mean of the particle speeds along each segment.">>=
-# do the whole thing over and over again
-n <- 240
-Nparticle <- 2000
-simnames <- c("Uniform (10s)", "Uniform (30s)", "Waypoints")
+library(parallel)
+cl <- makeCluster(4L)
+r <- clusterEvalQ(cl, source("scripts/pf_simulation.R"))
 
-s00 <- pbapply::pblapply(1:50,
+s00 <- pbapply::pblapply(sample(1:100),
     function(seed) {
-        if (!dir.exists("sims")) dir.create("sims")
-        # message(sprintf("\n* Now running simulation %d ...", seed))
-        x <- NULL
-        set.seed(seed)
-        while(is.null(x))
-            x <- doSim2(Nparticle, simnames, seed = sample(1e9, 1), fn = seed)
-        x
-    }
+        run_simulation(seed = seed, include = "stops", pr_stop = 0.5,
+            prefix = "simB_results")
+    },
+    cl = cl
 ) %>%
+    map("fits") %>%
     bind_rows() %>%
-    ungroup() %>%
-    left_join(
-        s1$segments %>%
-            mutate(
-                segment = paste("Segment", id)
-            ) %>%
-            select(segment, length)
-    ) %>%
     mutate(
-        truth = length / truth,
-        estimate = length / estimate
+        model = factor(paste0("A", model)),
+        obs = factor(obs, labels = c("Uniform (10s)", "Uniform (30s)", "Nodes"))
     )
 
-s00 %>% ggplot(aes(truth, truth - estimate, fill = segment, colour = segment)) +
+stopCluster(cl)
+
+s00 %>%
+    ggplot(
+        aes(
+            avg_speed,
+            speed_estimate - avg_speed,
+            fill = segment,
+            colour = segment
+        )
+    ) +
     geom_hline(yintercept = 0, colour = "gray") +
-    geom_point() +
-    facet_grid(sim ~ model) +
+    geom_pointrange(
+        aes(
+            ymin = speed_estimate - avg_speed - speed_sd,
+            ymax = speed_estimate - avg_speed + speed_sd
+        ),
+        shape = 19, size = 0.5
+    ) +
+    facet_grid(obs ~ model, scales = "free_y") +
     theme_classic() +
     theme(strip.background = element_blank()) +
     xlab("Actual speed (m/s)") +
@@ -342,3 +322,126 @@ Comparing the models, we see that model A1 is generally the worst, except in seg
         \item not yet applicable to actual model as intersection detection not yet implemented
     \end{itemize}
 }
+
+
+
+<<sim3_gen,echo=FALSE,message=FALSE>>=
+source("scripts/pf_simulation.R")
+sim3 <- run_simulation(include = "both",
+    pr_stop = 0.5, pr_int = 0.5,
+    prefix = "simC_results")
+s3 <- sim3$sim
+
+segs <- lapply(1:nrow(s3$segments),
+    function(i) s3$segments$distance[i] + c(0, s3$segments$length[i])
+)
+tt <- s3$segments$tt
+
+fcap3 <- 'Simulated vehicle trajectory, with five road segments and three intermediate stops.'
+fscap3 <- c(
+    "The simulated data.",
+    "10~s sampling.",
+    "30~s sampling.",
+    "Observations at bus stops and intersections."
+)
+@
+
+
+
+<<sim3_graph,echo=FALSE,fig.height=2,fig.width=4,out.width=".49\\linewidth",fig.cap=fcap2,fig.subcap=fscap2,fig.ncol=2,warning=FALSE,message=FALSE>>=
+p3 <- ggplot(s3$path, aes(time, distance)) +
+    geom_hline(yintercept = s3$segments$distance[-1],
+        lty = 2, colour = "gray") +
+    geom_hline(yintercept = s3$stops$distance[-1],
+        lty = 3, colour = "orangered") +
+    theme_minimal() +
+    theme(panel.grid = element_blank()) +
+    xlab('Time (s)') + ylab('Distance (m)') +
+    ylim(0, max(s3$path$distance)) + xlim(0, max(s3$path$time))
+
+p3 + geom_path()
+p3 + geom_point(aes(t, x), data = s3$observations$high)
+p3 + geom_point(aes(t, x), data = s3$observations$low)
+p3 + geom_point(aes(t, x), data = s3$observations$waypoints)
+@
+
+
+<<sim3_pf,echo=FALSE,message=FALSE,warning=FALSE,fig.height=3,fig.width=8,out.width="\\linewidth",fig.cap="Simulation results for the three models (rows) applied to the data from three sampling methods (columns), using $\\Np=2000$ particles. [details].">>=
+S0 <- sim3$fits
+S0 %>%
+    mutate(
+        xpos = as.numeric(as.factor(model)) +
+            as.numeric(as.factor(segment)) / 15,
+        obs = factor(obs, labels = c("Uniform (10s)", "Uniform (30s)", "Nodes"))
+    ) %>%
+    ggplot(aes(xpos, speed_estimate - avg_speed, colour = segment)) +
+    geom_pointrange(
+        aes(
+            ymin = speed_estimate - avg_speed - speed_sd,
+            ymax = speed_estimate - avg_speed + speed_sd
+        ),
+        shape = 19, size = 0.5
+    ) +
+    facet_grid( ~ obs,  scales = "free_y") +
+    theme_classic() +
+    theme(strip.background = element_blank()) +
+    geom_hline(yintercept = 0, col = "gray", lty = 2) +
+    ylab("Estimate - actual (m/s)") +
+    scale_x_continuous(
+        "Model",
+        limits = c(0.5, 4.0),
+        breaks = 1:3,
+        labels = paste0("A", 1:3)
+    ) +
+    labs(colour = "")
+
+@
+
+
+<<sim3_pf_full,eval=FALSE,echo=FALSE,message=FALSE,warning=FALSE,fig.width=8,fig.height=8,fig.cap="Speed estimation results for 100 simulations. In each the vehicle trajectory is simulated using a different seed, and the speed estimate is taken as the mean of the particle speeds along each segment.">>=
+library(parallel)
+cl <- makeCluster(4L)
+r <- clusterEvalQ(cl, source("scripts/pf_simulation.R"))
+
+s00 <- pbapply::pblapply(sample(1:100),
+    function(seed) {
+        run_simulation(seed = seed, include = "both",
+            pr_stop = 0.5, pr_int = 0.5,
+            prefix = "simC_results")
+    },
+    cl = cl
+) %>%
+    map("fits") %>%
+    bind_rows() %>%
+    mutate(
+        model = factor(paste0("A", model)),
+        obs = factor(obs, labels = c("Uniform (10s)", "Uniform (30s)", "Nodes"))
+    )
+
+stopCluster(cl)
+
+s00 %>%
+    ggplot(
+        aes(
+            avg_speed,
+            speed_estimate - avg_speed,
+            fill = segment,
+            colour = segment
+        )
+    ) +
+    geom_hline(yintercept = 0, colour = "gray") +
+    geom_pointrange(
+        aes(
+            ymin = speed_estimate - avg_speed - speed_sd,
+            ymax = speed_estimate - avg_speed + speed_sd
+        ),
+        shape = 19, size = 0.5
+    ) +
+    facet_grid(obs ~ model, scales = "free_y") +
+    theme_classic() +
+    theme(strip.background = element_blank()) +
+    xlab("Actual speed (m/s)") +
+    ylab("Estimate - Actual (m/s)") +
+    labs(colour = "", fill = "")
+
+@
