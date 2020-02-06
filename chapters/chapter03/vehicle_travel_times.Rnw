@@ -398,12 +398,12 @@ S0 %>%
 @
 
 
-<<sim3_pf_full,eval=FALSE,echo=FALSE,message=FALSE,warning=FALSE,fig.width=8,fig.height=8,fig.cap="Speed estimation results for 100 simulations. In each the vehicle trajectory is simulated using a different seed, and the speed estimate is taken as the mean of the particle speeds along each segment.">>=
+<<sim3_pf_full,eval=TRUE,echo=FALSE,message=FALSE,warning=FALSE,fig.width=8,fig.height=8,fig.cap="Speed estimation results for 100 simulations. In each the vehicle trajectory is simulated using a different seed, and the speed estimate is taken as the mean of the particle speeds along each segment.">>=
 library(parallel)
 cl <- makeCluster(4L)
 r <- clusterEvalQ(cl, source("scripts/pf_simulation.R"))
 
-s00 <- pbapply::pblapply(sample(1:100),
+s00 <- pbapply::pblapply(1:100,
     function(seed) {
         run_simulation(seed = seed, include = "both",
             pr_stop = 0.5, pr_int = 0.5,
