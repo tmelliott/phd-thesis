@@ -1,30 +1,17 @@
-\section{\Rt{} model implementation}
+\section{Implementing the \rt{} \pf{}}
 \label{sec:particle-filter}
 
-In order to make \rt{} estimates of travel times,
-the model described in the previous sections needs to be
-translated into a computer program,
-which we introduced in \cref{sec:rt-implementation}.
-This involves writing the \verb|C++| code for the
-vehicle transition, likelihood, and update functions
-for inclusion in the \verb|transitr| package.
-The relevant steps are
+
+The next major step in this work was to implement the model in real-time using C++. Our implementation involves a single call from the R package \verb+transitr+ which commences an infinite loop within C++ which
 \begin{enumerate}
-\item fetch and process \rt{} observations and attach to a vehicle object;
-\item update the vehicle state by transitioning and reweighting particles;
-    or initialising a new sample of particles if it does not yet exist; and
-\item estimate vehicle travel times along road segments for use in
-    the next part of the model (\cref{cha:network_model}).
+\item fetches the lastest observations,
+\item attaches them to an existing vehicle, or creates a new one,
+\item updates or initialises vehicle states using the particle filter model described in \cref{sec:vehicle_model}, and
+\item estimates average road speeds as vehicles traverse the network as described in \cref{sec:vehicle_speeds},
 \end{enumerate}
-The above are shown in \cref{fig:program_flow}.
+as displayed in \cref{fig:program_flow}. During the process of coding up our implementation (\cref{sec:pf_implementation}), we inevitably ran into issues, some of which are related to computational complexity, while others are due to imperfections with the data (see \cref{sec:pf_issues}). Once the implementation was complete, we needed to estimate the parameters (such as system noise and measurement error) for the model. We describe this process in \cref{sec:pf_params}, along with some performance testing results for real data.
 
 
-As well as implementing the described model,
-there are also several issues with the data---%
-which were described in \cref{sec:realtime-data}---%
-that need to be dealt with as well.
-Finally, we need to assess the model's performance on real world data,
-as well as estimate the parameters used in the model.
 
 
 \input{DIRNAME/pf_computation.tex}
