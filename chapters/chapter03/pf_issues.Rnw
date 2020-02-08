@@ -1,11 +1,18 @@
-\subsection{Issues}
+\subsection{Computational demands of a \rt{} \pf{}}
 \label{sec:pf_issues}
 
-\textbf{To add:}
-The main feature of transit vehicle behaviour that distinguishes it from other vehicle tracking applications is the presence of known stopping locations, or \emph{bus stops}, which are therefore an integral component of our model. However, modelling stopping behaviour in \rt{} is a difficult problem, particularly when the observations are sparse, or frequently observed (only) at bus stops (\cref{sec:realtime-data}).
+At peak hour on a typical weekday morning, there can be in excess of 1000~buses operating in Auckland. This leads to having more than $1000\Np$~particles in memory, each being mutated and reweighted approximately once every 30~seconds or so. However, the most intensive step in the \pf{} is \emph{resampling}, which involves copying the particles (and not just modifying them). Using fewer particles speeds up iteration time, but reducing the frequency of resampling is more appealing (more particles means better coverage of all plausible trajectories). This is why we use the effective sample size, $\Neff$.
 
-\textbf{...and...:}
-The main difficulty here is related to how the data are observed, which was discussed in \cref{sec:vp_data}. It is quite common only to observe \GPS{} positions at bus stops, a location at which there is a positive probability of being. Thus, it makes sense that the maximum likelihood estimate of the trajectory between two bus stops puts the maximum possible time \emph{at the stop}, resulting in maximum speed between stops. Early iterations of our model succumbed to this problem until we implemented a likelihood function on the trip updates (see \cref{sec:lhood_trip}).
+
+Alternatively, we can increase computational power by adding more processors. For example using a virtual machine with $\tilde M = 8$~cores will increase iteration speed by up to 8~times.
+
+
+
+% \textbf{To add:}
+% The main feature of transit vehicle behaviour that distinguishes it from other vehicle tracking applications is the presence of known stopping locations, or \emph{bus stops}, which are therefore an integral component of our model. However, modelling stopping behaviour in \rt{} is a difficult problem, particularly when the observations are sparse, or frequently observed (only) at bus stops (\cref{sec:realtime-data}).
+
+% \textbf{...and...:}
+% The main difficulty here is related to how the data are observed, which was discussed in \cref{sec:vp_data}. It is quite common only to observe \GPS{} positions at bus stops, a location at which there is a positive probability of being. Thus, it makes sense that the maximum likelihood estimate of the trajectory between two bus stops puts the maximum possible time \emph{at the stop}, resulting in maximum speed between stops. Early iterations of our model succumbed to this problem until we implemented a likelihood function on the trip updates (see \cref{sec:lhood_trip}).
 
 
 The main issue with the \pf{} is, of course,
