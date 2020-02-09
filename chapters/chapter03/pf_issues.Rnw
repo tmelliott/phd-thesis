@@ -9,7 +9,7 @@ The two components of the model to assess are the iteration timings and the perf
 \paragraph{Is the particle filter fast enough?}
 At peak hour on a typical weekday morning, there can be in excess of 1000~buses operating in Auckland. This leads to having more than $1000\Np$~particles in memory, each being mutated and reweighted approximately once every 30~seconds or so. By varying $N$, we can control how quickly each set of observations is processed. \Cref{fig:pf_timings} shows the average timings of the vehicle model component of our application.
 
-<<pf_timings,echo=FALSE>>=
+<<pf_timings,echo=FALSE,message=FALSE,cache=TRUE,fig.width=4,fig.height=3,out.width=".5\\textwidth",fig.align="center",fig.cap="Timings.">>=
 suppressPackageStartupMessages(library(tidyverse))
 
 times <- do.call(
@@ -39,12 +39,12 @@ times <- do.call(
 date <- format(times$timestamp[1], "%Y-%m-%d")
 trange <- as.POSIXct(paste(date, c("13:30", "14:00")))
 
-times %>%
+tsmry <- times %>%
     filter(
         what == "updating vehicle states" &
         timestamp >= trange[1] & timestamp <= trange[2]
     ) %>%
-    group_by(sim, what) %>%
+    group_by(sim) %>%
     summarize(
         cpu = mean(cpu),
         wall = mean(wall),
@@ -54,6 +54,17 @@ times %>%
     ) %>%
     ungroup()
 
+tsmry %>%
+    group_by(n_particles) %>%
+    summarize(wall = mean(wall)) %>%
+    ggplot(aes(wall, (n_particles))) +
+        geom_segment(
+            aes(xend = 0, yend = (n_particles))
+        ) +
+        geom_point() +
+        theme_classic() +
+        scale_x_continuous("Average iteration time (s)") +
+        scale_y_continuous("Number of particles")
 
 @
 
