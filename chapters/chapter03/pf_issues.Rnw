@@ -1,7 +1,64 @@
-\subsection{Computational demands of a \rt{} \pf{}}
+\subsection{Real-time performance of the \pf{}}
 \label{sec:pf_issues}
 
-At peak hour on a typical weekday morning, there can be in excess of 1000~buses operating in Auckland. This leads to having more than $1000\Np$~particles in memory, each being mutated and reweighted approximately once every 30~seconds or so. However, the most intensive step in the \pf{} is \emph{resampling}, which involves copying the particles (and not just modifying them). Using fewer particles speeds up iteration time, but reducing the frequency of resampling is more appealing (more particles means better coverage of all plausible trajectories). This is why we use the effective sample size, $\Neff$.
+
+
+The two components of the model to assess are the iteration timings and the performance of the particle filter itself. That is, does the program run fast enough to be feasible in real-time, and is the model (and its \pf{} implementation) capable of modelling a transit vehicle in \rt{}?
+
+
+\paragraph{Is the particle filter fast enough?}
+At peak hour on a typical weekday morning, there can be in excess of 1000~buses operating in Auckland. This leads to having more than $1000\Np$~particles in memory, each being mutated and reweighted approximately once every 30~seconds or so. By varying $N$, we can control how quickly each set of observations is processed. \Cref{fig:pf_timings} shows the average timings of the vehicle model component of our application.
+
+<<pf_timings,echo=FALSE>>=
+suppressPackageStartupMessages(library(tidyverse))
+
+times <- do.call(
+    bind_rows,
+    lapply(
+        list.files("~/Documents/uni/transitr/simulations/oldsim2",
+            pattern = "sim_",
+            full = TRUE
+        ),
+        function(dir) {
+            if (!file.exists(file.path(dir, "timings.csv"))) return(NULL)
+            sim <- basename(dir)
+            siminfo <- strsplit(sim, "_")[[1]][-1]
+            if (grepl("e", siminfo[3])) siminfo[3] <- format(as.numeric(siminfo[3]), scientific = FALSE)
+            siminfo <- as.numeric(gsub("-", ".", siminfo))
+            read_csv(file.path(dir, "timings.csv")) %>%
+                mutate(
+                    sim = sim,
+                    n_particles = siminfo[1],
+                    gps_error = siminfo[2],
+                    system_noise = siminfo[3],
+                    timestamp = as.POSIXct(timestamp, origin = "1970-01-01")
+                )
+        }
+    )
+)
+date <- format(times$timestamp[1], "%Y-%m-%d")
+trange <- as.POSIXct(paste(date, c("13:30", "14:00")))
+
+times %>%
+    filter(
+        what == "updating vehicle states" &
+        timestamp >= trange[1] & timestamp <= trange[2]
+    ) %>%
+    group_by(sim, what) %>%
+    summarize(
+        cpu = mean(cpu),
+        wall = mean(wall),
+        n_particles = first(n_particles),
+        gps_error = first(gps_error),
+        system_noise = first(system_noise)
+    ) %>%
+    ungroup()
+
+
+@
+
+
+However, the most intensive step in the \pf{} is \emph{resampling}, which involves copying the particles (and not just modifying them). Using fewer particles speeds up iteration time, but reducing the frequency of resampling is more appealing (more particles means better coverage of all plausible trajectories). This is why we use the effective sample size, $\Neff$.
 
 
 Alternatively, we can increase computational power by adding more processors. For example using a virtual machine with $\tilde M = 8$~cores will increase iteration speed by up to 8~times.
