@@ -7,9 +7,10 @@ The two components of the model to assess are the iteration timings and the perf
 
 
 \paragraph{Is the particle filter fast enough?}
-At peak hour on a typical weekday morning, there can be in excess of 1000~buses operating in Auckland. This leads to having more than $1000\Np$~particles in memory, each being mutated and reweighted approximately once every 30~seconds or so. By varying $N$, we can control how quickly each set of observations is processed. \Cref{fig:pf_timings} shows the average timings of the vehicle model component of our application.
+At peak hour on a typical weekday morning, there can be in excess of 1000~buses operating in Auckland. This leads to having more than $1000\Np$~particles in memory, each being mutated and reweighted approximately once every 30~seconds or so. By varying $N$, we can control how quickly each set of observations is processed. \Cref{fig:pf_timings} shows the average timings of the vehicle model component of our application, as well as the average time per particle. More particles require more processing power, though there is additional overhead during the \emph{resampling} phase. Limiting the frequency of resampling is therefore necessary to make the program run faster. This is why we use the effective sample size, $\Neff$.
 
-<<pf_timings,echo=FALSE,message=FALSE,cache=TRUE,fig.width=4,fig.height=3,out.width=".5\\textwidth",fig.align="center",fig.cap="Timings.">>=
+
+<<pf_timings,echo=FALSE,message=FALSE,cache=TRUE,fig.width=6,fig.height=3,out.width=".8\\textwidth",fig.align="center",fig.cap="Timings.">>=
 suppressPackageStartupMessages(library(tidyverse))
 
 times <- do.call(
@@ -54,44 +55,133 @@ tsmry <- times %>%
     ) %>%
     ungroup()
 
-tsmry %>%
+p0 <- tsmry %>%
     group_by(n_particles) %>%
     summarize(wall = mean(wall)) %>%
-    ggplot(aes(wall, (n_particles))) +
-        geom_segment(
-            aes(xend = 0, yend = (n_particles))
-        ) +
-        geom_point() +
+    ggplot(aes(y = n_particles)) +
         theme_classic() +
-        scale_x_continuous("Average iteration time (s)") +
         scale_y_continuous("Number of particles")
+
+p1 <- p0 +
+    geom_segment(
+        aes(x = wall, xend = 0, yend = n_particles)
+    ) +
+    geom_point(aes(wall)) +
+    scale_x_continuous("Average iteration time (ms)")
+
+p2 <- p0 +
+    geom_segment(
+        aes(x = wall / n_particles, xend = 0, yend = n_particles)
+    ) +
+    geom_point(aes(wall / n_particles)) +
+    scale_x_continuous("Time per particle (ms)")
+
+library(patchwork)
+p1 + p2
+@
+
+
+\paragraph{How does the model perform?}
+
+
+<<model_performance_prep,echo=FALSE,message=FALSE,cache=TRUE>>=
+
+suppressPackageStartupMessages(library(tidyverse))
+
+get_sim_files <- function(sim) {
+    simfile <- file.path(
+        "simdata",
+        sim,
+        "modeleval.rds"
+    )
+    if (file.exists(simfile)) {
+        return(readRDS(simfile))
+    }
+    zipfile <- "~/Documents/uni/transitr/simulations/oldsim2.zip"
+    x <- try({
+        siminfo <- strsplit(sim, "_")[[1]][-1]
+        if (grepl("e", siminfo[3]))
+            siminfo[3] <- format(as.numeric(siminfo[3]), scientific = FALSE)
+        siminfo <- as.numeric(gsub("-", ".", siminfo))
+
+        zfiles <- unzip(zipfile, list = TRUE)
+        zfiles <- zfiles[
+            grepl(sim, zfiles$Name) &
+            grepl("modeleval/vehicle_[A-Z0-9]+\\.csv", zfiles$Name),
+            ]
+
+        library(parallel)
+        cl <- makeCluster(4L)
+        on.exit(stopCluster(cl))
+        clusterExport(cl, c("zipfile"))
+        clusterEvalQ(cl, library(magrittr))
+        do.call(bind_rows,
+            pbapply::pblapply(sample(zfiles$Name),
+                function(x) {
+                    print(x)
+                    tf <- unzip(zipfile, files = x)
+                    on.exit(unlink(tf))
+                    readr::read_csv(tf,
+                        col_names = c(
+                            "vehicle_id", "trip_id", "ts", "prior_mse",
+                            "posterior_mse", #"sumwt", "varwt",
+                            "post_speed", "prior_speed_var",
+                            "posterior_speed_var", "dist_to_path",
+                            "Neff", "resample", "n_resample", "bad_sample"
+                        ),
+                        col_types = "ccidddddddiii",
+                        progress = FALSE
+                    ) %>%
+                        dplyr::mutate(
+                            ts = as.POSIXct(ts, origin = "1970-01-01")
+                        )
+                },
+                cl = cl
+            )
+        ) %>% mutate(
+            sim = sim,
+            n_particles = siminfo[1],
+            gps_error = siminfo[2],
+            system_noise = siminfo[3]
+        )
+    }, silent = TRUE)
+    if (inherits(x, "try-error")) return(NULL)
+    dir.create(dirname(simfile), recursive = TRUE)
+    saveRDS(x, simfile)
+    x
+}
+
+zipfile <- "~/Documents/uni/transitr/simulations/oldsim2.zip"
+zfiles <- unzip(zipfile, list = TRUE)
+sims <- unique(sapply(str_split(zfiles$Name, "/"), function(p) p[2]))
+sims <- sims[grepl("^sim_", sims)]
+res <- do.call(bind_rows, pbapply::pblapply(sims, get_sim_files))
 
 @
 
 
-However, the most intensive step in the \pf{} is \emph{resampling}, which involves copying the particles (and not just modifying them). Using fewer particles speeds up iteration time, but reducing the frequency of resampling is more appealing (more particles means better coverage of all plausible trajectories). This is why we use the effective sample size, $\Neff$.
+To assess how well our model performs in \rt{}, we repeated the simulation with a range of values of system noise $\Vnoise$, GPS error $\GPSerr$, and number of particles $\Np$. For each simulation, we computed \emph{proportional effective sample size}, \emph{degeneration rate}, and \emph{relative variance}.
+
+The \emph{proportional effective sample size} is simply a measure of the proportion of effective sample size, $\tilde\Neff = \frac{\Neff}{\Np}$. The higher this value, the less often the vehicle's state needs resampling, which decreases the average iteration time. \Cref{fig:model_performance_neff} shows the effect of $\Np$, system noise, and GPS error on $\tilde\Neff$. The most striking relationship is between $\tilde\Neff$ and GPS error: for larger error, more particles retain a high likelihood, and so the total weight is more evenly distributed. Conversely, larger values of system noise result in more variation between particles, which leads to fewer particles ending near the observation position.
+
+<<model_performance_neff,echo=FALSE,message=FALSE,cache=TRUE,dependson="model_performance_prep",fig.width="8",fig.height=3,out.width="\\textwidth",fig.align="center",fig.cap="Proportional effective sample size for varying values of GPS error, system noise, and number of particles.">>=
+
+res %>% filter(dist_to_path < 20 & dist_to_path > 0) %>%
+    ggplot(aes(dist_to_path)) +
+        geom_density() +
+        xlab("Distance to path (m)") + ylab("Density") +
+        theme_classic() +
+        theme(strip.background = element_blank())
+
+@
 
 
-Alternatively, we can increase computational power by adding more processors. For example using a virtual machine with $\tilde M = 8$~cores will increase iteration speed by up to 8~times.
 
 
-
-% \textbf{To add:}
-% The main feature of transit vehicle behaviour that distinguishes it from other vehicle tracking applications is the presence of known stopping locations, or \emph{bus stops}, which are therefore an integral component of our model. However, modelling stopping behaviour in \rt{} is a difficult problem, particularly when the observations are sparse, or frequently observed (only) at bus stops (\cref{sec:realtime-data}).
-
-% \textbf{...and...:}
-% The main difficulty here is related to how the data are observed, which was discussed in \cref{sec:vp_data}. It is quite common only to observe \GPS{} positions at bus stops, a location at which there is a positive probability of being. Thus, it makes sense that the maximum likelihood estimate of the trajectory between two bus stops puts the maximum possible time \emph{at the stop}, resulting in maximum speed between stops. Early iterations of our model succumbed to this problem until we implemented a likelihood function on the trip updates (see \cref{sec:lhood_trip}).
-
-
-The main issue with the \pf{} is, of course,
-the computational demand of processing thousands of particles \emph{per vehicle}.
-The two ways of working around this are:
 \begin{enumerate}
-\item reducing computational demand, for example by reducing the frequency of resampling,
-    and simulating as little as possible;
-\item increasing computational output by parallelising processing (which is easy as we can simply
-    parallise over vehicles which are independent),
-    for which we used a \gls{vm} with 8-cores and 32GB of memory.
+\item \emph{resampling rate}, which is how often the sample size falls below the threshold, which can be computed by $\frac{\Neff}{\Np}$;
+\item \emph{degeneration rate}, the proportion of samples in which the vehicle was \emph{lost} by the particle filter (that is, no particles ended near the reported position); and
+\item the \emph{relative variance} of segment travel times, which is a way to compare the variability of travel times along all segments across simulations (with differing parameter values).
 \end{enumerate}
 
 Beyond these general issues,
