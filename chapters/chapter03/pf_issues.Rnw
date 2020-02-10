@@ -157,6 +157,14 @@ sims <- unique(sapply(str_split(zfiles$Name, "/"), function(p) p[2]))
 sims <- sims[grepl("^sim_", sims)]
 res <- do.call(bind_rows, pbapply::pblapply(sims, get_sim_files))
 
+sim_results <- res %>% filter(dist_to_path < 20) %>%
+    group_by(n_particles, gps_error, system_noise) %>%
+    summarize(
+        Neff = mean(Neff, na.rm = TRUE),
+        p_bad = mean(bad_sample),
+        n = n()
+    )
+
 @
 
 
@@ -164,132 +172,134 @@ To assess how well our model performs in \rt{}, we repeated the simulation with 
 
 The \emph{proportional effective sample size} is simply a measure of the proportion of effective sample size, $\tilde\Neff = \frac{\Neff}{\Np}$. The higher this value, the less often the vehicle's state needs resampling, which decreases the average iteration time. \Cref{fig:model_performance_neff} shows the effect of $\Np$, system noise, and GPS error on $\tilde\Neff$. The most striking relationship is between $\tilde\Neff$ and GPS error: for larger error, more particles retain a high likelihood, and so the total weight is more evenly distributed. Conversely, larger values of system noise result in more variation between particles, which leads to fewer particles ending near the observation position.
 
-<<model_performance_neff,echo=FALSE,message=FALSE,cache=TRUE,dependson="model_performance_prep",fig.width="8",fig.height=3,out.width="\\textwidth",fig.align="center",fig.cap="Proportional effective sample size for varying values of GPS error, system noise, and number of particles.">>=
+<<model_performance_neff,echo=FALSE,message=FALSE,cache=TRUE,dependson="model_performance_prep",fig.width="8",fig.height=2.5,out.width="\\textwidth",fig.align="center",fig.cap="Proportional effective sample size for varying values of GPS error, system noise, and number of particles.">>=
 
-res %>% filter(dist_to_path < 20 & dist_to_path > 0) %>%
-    ggplot(aes(dist_to_path)) +
-        geom_density() +
-        xlab("Distance to path (m)") + ylab("Density") +
-        theme_classic() +
-        theme(strip.background = element_blank())
+ggplot(sim_results,
+    aes(gps_error, Neff / n_particles,
+        group = system_noise,
+        colour = as.factor(system_noise)
+    )
+) +
+    geom_path() +
+    geom_point() +
+    facet_grid(~n_particles,
+        labeller = as_labeller(function(x) paste("N =", x))) +
+    labs(colour = "System noise") +
+    theme_classic() +
+    theme(strip.background = element_blank()) +
+    xlab("GPS error (m)") +
+    ylab("Proportional effective sample size")
+    #ylab(expression(bar(N)[eff]/N))
 
 @
 
 
+The \emph{degeneration rate} is the proportion of samples in which no particles end near the vehicle's reported position. In this case, all of the particle likelihoods tend to zero, so the weights become undefined. This results in needing to reinitialize the particle filter for that vehicle, leading to the loss of any information about vehicle speed along the most recently travelled road segment(s). We see from \cref{fig:model_performance_degen} that increasing GPS error or the number of particles reduces degeneration rate, while increasing system noise only slightly reduces degeneration. Larger GPS error means that particles do not need to end as close to the observed location to have a positive likelihood, while increasing $\Np$ means more chance for a particle to end near the true bus.
 
+<<model_performance_degen,echo=FALSE,message=FALSE,cache=TRUE,dependson="model_performance_prep",fig.width="8",fig.height=2.5,out.width="\\textwidth",fig.align="center",fig.cap="Degeneration rate for varying values of GPS error, system noise, and number of particles.">>=
 
-\begin{enumerate}
-\item \emph{resampling rate}, which is how often the sample size falls below the threshold, which can be computed by $\frac{\Neff}{\Np}$;
-\item \emph{degeneration rate}, the proportion of samples in which the vehicle was \emph{lost} by the particle filter (that is, no particles ended near the reported position); and
-\item the \emph{relative variance} of segment travel times, which is a way to compare the variability of travel times along all segments across simulations (with differing parameter values).
-\end{enumerate}
+ggplot(sim_results,
+    aes(
+        gps_error, p_bad,
+        group = system_noise,
+        colour = as.factor(system_noise)
+    )
+) +
+    geom_path() +
+    geom_point() +
+    facet_grid(~n_particles,
+        labeller = as_labeller(function(x) paste("N =", x))) +
+    labs(colour = "System noise") +
+    theme(legend.position = "none") +
+    theme_classic() +
+    theme(strip.background = element_blank()) +
+    xlab("GPS error (m)") +
+    ylab("Degeneration rate")
 
-Beyond these general issues,
-there were others that were particular to the \pf{},
-or the data itself.
-Regarding the \pf{},
-we have already mentioned \emph{degeneration},
-which is where the particle cloud becomes an inaccurate summarisation of vehicle state,
-or in some cases loses the vehicle altogether (i.e., no particles near the observation).
-This is controlled by
-\begin{itemize}
-\item increasing GPS error;
-\item tuning system noise---too small and the vehicle is lost,
-    too large and there's too much uncertainty; or
-\item increasing the number of particles.
-\end{itemize}
-These are controlled by parameter selection,
-discussed in \cref{sec:pf_params}.
-However, there are other causes of degeneration caused by the data itself.
+@
 
-
-On of the major causes of \emph{vehicle loss}
-is when the vehicle does not move for a long time.
-This can be at a bus stop (although the model allows for this),
-or, more commonly, at an unknown intersection.
-However, it can also occur at choke points,
-such as blocked bus lane in \emph{really really bad traffic},
-so that the bus may be unable to move for several minutes.
-In this situation,
-we may get $\Vobs_k \approx \Vobs_{k-1}$ with large $\Vtdiff_k$,
-so all possible trajectories from the model will place the vehicle
-much farther down the route,
-resulting in tiny likelihoods for all particles and
-degeneration of the \pf{}.
-
-
-Initially, we placed a tiny probability (0.01)
-on the vehicle remaining stopped at its previous location,
-so that a few particles remain stopped.
-However,
-this also led to poor estimation of travel times,
-as inevitably all of the weight lands on a few particles.
-Also, in some cases the bus \emph{will} move a little,
-but far less than expected under the model.
-An alternative would be to allow some of the particles to wait
-for \emph{part of $\Vtdiff_k$}, and then travel,
-but this led to different issues again.
-It turns out that it is \emph{very hard to model a vehicle}
-when the observations are sparse.
-
-
-Before we discuss our solution,
-we will refer back to \cref{sec:vp_data},
-in which we mentioned the issue of \emph{preemtive} observations,
-particularly at intersection waypoints,
-and subsequent observations in the queue,
-resulting in what appear to be a bus traveling backwards.
-This has even more severe implications on the \pf{},
-as our model explicitely states that
-\emph{vehicles cannot travel backwards along the route}.
-It would, therefore, seem that inspecting the data before modelling
-would be advantageous.
-
-
-True, the entire point of Bayes' filtering models is
-to first predict the future state,
-and \emph{then} update it using the observation.
-However, in our case, there is so much variability in
-where the future state might be,
-that we have no choice but to examine the observation first,
-and the decide best on how to model it.
-
-
-So, we set up some checks of the observation to determine
-if there are issues with the data we need to compensate for.
-The simplest check is to compute the distance between consecutive observations
-and check if it is below some threshold (e.g., 10~m)
-$\dist{\Vobs_{k-1}, \Vobs_k} < \distThreshold$,
-in which case we assume the vehicle hasn't moved.
-Of course, this doesn't deal with reversing buses \ldots
-
-
-To do this, we first need to detect if the observation is potentially
-\emph{behind} the previous one.
-That is,
+Finally, we have \emph{relative speed variance} along roads, which we use to compare the precision of the various models. It is based on the ratio of variance for a single simulation compared to over all simulations for each road segment. Let $\vec z_\ell^{e,s}$ be a vector of all vehicle speeds along road segment $\ell$ during the simulation with GPS error and system noise equal to $e$ and $s$, respectively. The ratio of the variance of speed for the single simulation compared to all simulations along one single road segment is given by
 \begin{equation}
-\label{eq:vehicle_rev_check}
-\Vmeas^{-1}(\Vobs_k) < \Vmeas^{-1}(\Vobs_{k-1}).
+\label{eq:rel_speed_var_ratio}
+v_\ell^{e,s} =
+\frac{
+    \mathrm{Var}(\vec z_\ell^{e,s})
+}{
+    \mathrm{Var}(\cup_e\cup_s \vec z_\ell^{e,s})
+}
+\end{equation}.
+That is, for each segment in each simulation, we have a value representing whether this simulation estimates speed more or less accurately. We then compute the average ratio over all $L$ road segments,
+\begin{equation}
+\label{eq:rel_speed_var}
+\bar v^{e,s} = \frac{1}{L} \sum_{l=1}^L v_\ell^{e,s}
 \end{equation}
-If this occurs, we have several options:
-\begin{itemize}
-\item ignore the current observation,
-    which is not favourable as, from observation of the data,
-    it is more common for the first observation to be false
-    (i.e., exactly at an intersection),
-    followed by a more accurate one (in the queue approaching the intersection);
-\item remove the previous observation and a backup of the previous state
-    (i.e., we keep a backup of the vehicle's state before predicting and updating);
-\item backup only each particle's weight,
-    so that we can reset the weights prior to the previous observation,
-    and allow only this new one to affect the reweighting.
-    This means that we do not need to retransition all of the particles
-    and store an entire state.
-\end{itemize}
+A small value of $\bar v^{e,s}$ tells us that, on average, the simulation with GPS error $e$ and system nosie $s$ estimates road speed \emph{with greater precision} than the other simulations. \Cref{fig:model_performance_var} presents these results, where we see the greatest effect on relative variance caused by increasing GPS error. Increasing $\Np$ produces a small decrease, and chances to system noise show no discernable effect.
 
-So now we briefly describe how these are implemented,
-and show comparisons of how they handle!
-Which involves finding a route where this happens every now and then,
-and then run the (real) \pf{} on that data
-to demonstrate the models.
-Gosh, this will be finicky \ldots
+
+<<model_performance_var,echo=FALSE,message=FALSE,cache=TRUE,dependson="model_performance_prep",fig.width="8",fig.height=2.5,out.width="\\textwidth",fig.align="center",fig.cap="Relative speed variance for varying values of GPS error, system noise, and number of particles.">>=
+
+if (file.exists("simdata/nw_summary.rda")) {
+    load("simdata/nw_summary.rda")
+} else {
+    if (!file.exists("simdata/nwtimes.rda")) {
+        stop("Please copy nwtimes.rda from ANZJS paper")
+    }
+    load("simdata/nwtimes.rda")
+    segids <- table(nwtimes$segment_id) %>% sort %>% tail(10) %>% names
+    sdata <- nwtimes %>%
+        group_by(n_particles, gps_error, system_noise) %>%
+        do(
+            (.) %>% filter(timestamp > min((.)$timestamp))
+        ) %>%
+        ungroup %>%
+        group_by(segment_id) %>%
+        do(
+            (.) %>% mutate(
+                tt.sd = sd(mean, na.rm = TRUE)
+            )
+        ) %>%
+        ungroup %>%
+        group_by(n_particles, gps_error, system_noise, segment_id) %>%
+        summarize(
+            varp = sd(mean, na.rm = TRUE) / first(tt.sd)
+        ) %>%
+        ungroup %>%
+        group_by(n_particles, gps_error, system_noise) %>%
+        summarize(
+            varp.mean = mean(varp, na.rm = TRUE),
+            varp.sd = sd(varp, na.rm = TRUE) / sqrt(n())
+        )
+    save(sdata, file = "simdata/nw_summary.rda")
+}
+
+ggplot(sdata,
+    aes(
+        gps_error, varp.mean,
+        group = system_noise,
+        colour = as.factor(system_noise)
+    )
+) +
+    geom_linerange(
+        aes(
+            ymin = varp.mean - 2 * varp.sd,
+            ymax = varp.mean + 2 * varp.sd
+        )
+    ) +
+    geom_point() +
+    geom_path(
+        aes(
+
+        )
+    ) +
+    facet_grid(~n_particles,
+        labeller = as_labeller(function(x) paste("N =", x))) +
+    labs(colour = "System noise") +
+    theme_classic() +
+    theme(strip.background = element_blank()) +
+    xlab("GPS error (m)") +
+    ylab("Relative variance")
+
+@
+
+
+The results displayed in \cref{fig:model_performance_neff,fig:model_performance_degen,fig:model_performance_var} present a \emph{trade-off} between the performance and estimation. Increasing GPS error increases the effective sample size, which reduces the frequency of resampling and thus speeding up each iteration. We also see a reduction in the rate of degeneration, which implies the particle filter is less likely to lose the vehicle and provide the desired speed estimates. However, increasing GPS error also increases the relative uncertainty of speed estimates. Increasing the number of particles generally results in a reduction in both degeneration rate and relative uncertainty, but, from \cref{fig:pf_timings}, this comes at the cost of increased computational demand.

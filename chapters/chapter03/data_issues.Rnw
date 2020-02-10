@@ -1,0 +1,131 @@
+\subsection{Handling invalid data in \rt{}}
+\label{sec:data_issues}
+
+Much of the degeneration or \emph{vehicle loss} can be attributed to irregularities with the incoming \rt{} data. There are two main causes of this, described below, which can be detected and potentially avoided with a similar solution.
+
+
+\paragraph{When the bus appears to go backwards}
+
+One of the prominent assumptions of our model is that the bus cannot go backwards along the route, which is implemented by only allowing for non-negative values of speed. However, there are a couple of scenarios which can lead to the \emph{appearance} of a reversing bus, both of which are related to \emph{GPS waypoints}; that is, the \gls{avl} systems in Auckland Transport's buses are programmed to not only report the position periodically, but also to report their arrival at certain waypoints. These can include bus stops (which result in an arrival or departure time update) as well as some major intersections. The issue is that, rather than reporting the bus' GPS position, they report the GPS coordinates of the waypoint itself. A lot of the time, this is OK as the bus continues straight past the intersection or bus stop before reporting another position. However, if there is congestion leading into the waypoint, the bus may
+\begin{enumerate}[i.]
+\item approach the waypoint, decide it has arrived, and report its position \emph{at the waypoint},
+\item get stopped in a queue for some time,
+\item decide it is time for another position update, based on its GPS position.
+\end{enumerate}
+\Cref{fig:bus_going_backwards} presents an example of this.
+
+<<bus_going_backwards,echo=FALSE,fig.width=6,fig.height=1,out.width=".8\\textwidth",fig.align="center",fig.cap="Three sequential observations of a vehicle approaching an intersection (hollow circle). When the bus nears the intersection, it reports its position exactly at the intersection ($\\Vobs_2$); however, there is a queue at this intersection, so the next observation ($\\Vobs_3$) is behind the previous one, which gives the bus the appearance of going backwards.">>=
+
+suppressPackageStartupMessages(library(tidyverse))
+
+pos <- tibble(
+  x1 = c(0, 500, 400, 600),
+  x2 = rep(0, 4),
+  t = 1:4
+)
+
+ggplot(pos, aes(x1, x2)) +
+  geom_path() +
+  geom_point(
+    data = pos[2,],
+    shape = 21,
+    fill = "white",
+    stroke = 2,
+    size = 3
+  ) +
+  geom_point(
+    aes(
+      x = x1,
+      y = x2 + c(0.5, 0, -0.3)
+    ),
+    data= pos[1:3,],
+    colour = "red"
+  ) +
+  geom_text(
+    aes(
+      x = x1,
+      y = x2 + c(1, 1, 1),
+      label = sprintf("Y[%d]", t)
+    ),
+    data = pos[1:3,],
+    parse = TRUE
+  ) +
+  theme_void() +
+  scale_y_continuous(
+    limits = c(-2, 2)
+  )
+
+@
+
+
+The effect this has on the \pf{} is that, after observing $\Vobs_2$, the vehicle's state (represented by a sample of particles) will all be around the intersection. On receiving the next observation $\Vobs_3$, the particles are transitioned \emph{forward} by $(\Vtime_3 - \Vtime_2)$~seconds, which places them at or beyond the intersection; none of the particles will be near the observation, and will likely all have a likelihood of zero. In this case, the particle filter has degenerated and will need reinitialisation.
+
+
+A similar situation occurs when approaching a bus stop that has an intersection just before it. Here, the bus gets stopped at the intersection, but not before reporting its position at the stop since it was almost there. A subsequent observation then shows the bus at the intersection, which again appears to involve a reversing bus. The main issue we face is that \emph{we do not know the location of intersections}, since there is no easily accessible data for this\footnote{Yes, we presented an intersection model, but this was more of a demonstration of flexibility}.
+
+
+\paragraph{When the bus remains stationary}
+
+
+
+
+Before we discuss our solution,
+we will refer back to \cref{sec:vp_data},
+in which we mentioned the issue of \emph{preemtive} observations,
+particularly at intersection waypoints,
+and subsequent observations in the queue,
+resulting in what appear to be a bus traveling backwards.
+This has even more severe implications on the \pf{},
+as our model explicitely states that
+\emph{vehicles cannot travel backwards along the route}.
+It would, therefore, seem that inspecting the data before modelling
+would be advantageous.
+
+
+True, the entire point of Bayes' filtering models is
+to first predict the future state,
+and \emph{then} update it using the observation.
+However, in our case, there is so much variability in
+where the future state might be,
+that we have no choice but to examine the observation first,
+and the decide best on how to model it.
+
+
+So, we set up some checks of the observation to determine
+if there are issues with the data we need to compensate for.
+The simplest check is to compute the distance between consecutive observations
+and check if it is below some threshold (e.g., 10~m)
+$\dist{\Vobs_{k-1}, \Vobs_k} < \distThreshold$,
+in which case we assume the vehicle hasn't moved.
+Of course, this doesn't deal with reversing buses \ldots
+
+
+To do this, we first need to detect if the observation is potentially
+\emph{behind} the previous one.
+That is,
+\begin{equation}
+\label{eq:vehicle_rev_check}
+\Vmeas^{-1}(\Vobs_k) < \Vmeas^{-1}(\Vobs_{k-1}).
+\end{equation}
+If this occurs, we have several options:
+\begin{itemize}
+\item ignore the current observation,
+    which is not favourable as, from observation of the data,
+    it is more common for the first observation to be false
+    (i.e., exactly at an intersection),
+    followed by a more accurate one (in the queue approaching the intersection);
+\item remove the previous observation and a backup of the previous state
+    (i.e., we keep a backup of the vehicle's state before predicting and updating);
+\item backup only each particle's weight,
+    so that we can reset the weights prior to the previous observation,
+    and allow only this new one to affect the reweighting.
+    This means that we do not need to retransition all of the particles
+    and store an entire state.
+\end{itemize}
+
+So now we briefly describe how these are implemented,
+and show comparisons of how they handle!
+Which involves finding a route where this happens every now and then,
+and then run the (real) \pf{} on that data
+to demonstrate the models.
+Gosh, this will be finicky \ldots

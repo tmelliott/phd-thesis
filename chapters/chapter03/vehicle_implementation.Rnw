@@ -20,4 +20,5 @@ In order to assess the \rf{} performance of the model and our \pf{} implementati
 
 \input{DIRNAME/pf_computation.tex}
 \input{DIRNAME/pf_issues.tex}
+\input{DIRNAME/data_issues.tex}
 \input{DIRNAME/parameter_selection.tex}
