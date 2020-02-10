@@ -64,68 +64,38 @@ The effect this has on the \pf{} is that, after observing $\Vobs_2$, the vehicle
 A similar situation occurs when approaching a bus stop that has an intersection just before it. Here, the bus gets stopped at the intersection, but not before reporting its position at the stop since it was almost there. A subsequent observation then shows the bus at the intersection, which again appears to involve a reversing bus. The main issue we face is that \emph{we do not know the location of intersections}, since there is no easily accessible data for this\footnote{Yes, we presented an intersection model, but this was more of a demonstration of flexibility}.
 
 
-\paragraph{When the bus remains stationary}
-
-
-
-
-Before we discuss our solution,
-we will refer back to \cref{sec:vp_data},
-in which we mentioned the issue of \emph{preemtive} observations,
-particularly at intersection waypoints,
-and subsequent observations in the queue,
-resulting in what appear to be a bus traveling backwards.
-This has even more severe implications on the \pf{},
-as our model explicitely states that
-\emph{vehicles cannot travel backwards along the route}.
-It would, therefore, seem that inspecting the data before modelling
-would be advantageous.
-
-
-True, the entire point of Bayes' filtering models is
-to first predict the future state,
-and \emph{then} update it using the observation.
-However, in our case, there is so much variability in
-where the future state might be,
-that we have no choice but to examine the observation first,
-and the decide best on how to model it.
-
-
-So, we set up some checks of the observation to determine
-if there are issues with the data we need to compensate for.
-The simplest check is to compute the distance between consecutive observations
-and check if it is below some threshold (e.g., 10~m)
-$\dist{\Vobs_{k-1}, \Vobs_k} < \distThreshold$,
-in which case we assume the vehicle hasn't moved.
-Of course, this doesn't deal with reversing buses \ldots
-
-
-To do this, we first need to detect if the observation is potentially
-\emph{behind} the previous one.
-That is,
+To check for this situation in \rt{} requires mapping the observations onto the route shape, that is the \emph{inverse measurement function}, which can allow us to detect if the bus has gone backwards:
 \begin{equation}
 \label{eq:vehicle_rev_check}
 \Vmeas^{-1}(\Vobs_k) < \Vmeas^{-1}(\Vobs_{k-1}).
 \end{equation}
-If this occurs, we have several options:
-\begin{itemize}
-\item ignore the current observation,
-    which is not favourable as, from observation of the data,
-    it is more common for the first observation to be false
-    (i.e., exactly at an intersection),
-    followed by a more accurate one (in the queue approaching the intersection);
-\item remove the previous observation and a backup of the previous state
-    (i.e., we keep a backup of the vehicle's state before predicting and updating);
-\item backup only each particle's weight,
-    so that we can reset the weights prior to the previous observation,
-    and allow only this new one to affect the reweighting.
-    This means that we do not need to retransition all of the particles
-    and store an entire state.
-\end{itemize}
+Of course, the inverse function is not exact, since the true location is unlikely to be positioned exactly on the line (roads have width, and GPS devices have error). To compute $\Vmeas^{-1}$, we find the shortest distance along the route's shape that is closer than a threshold of $3\GPSerr$, which allows for situations where the route passes the observed location point more than once (such as in loops).
 
-So now we briefly describe how these are implemented,
-and show comparisons of how they handle!
-Which involves finding a route where this happens every now and then,
-and then run the (real) \pf{} on that data
-to demonstrate the models.
-Gosh, this will be finicky \ldots
+If the observation is determined to be going backwards, we have to decide between
+\begin{enumerate}[i.]
+\item ignoring the current observation, or
+\item ignoring the previous observation and restoring the vehicle's previous state.
+\end{enumerate}
+If we can determine that the first observation is clearly a pre-emptive observation (that is, at a waypoint) then option (ii) is the logical choice, although this requires storing each vehicle's state \emph{twice}. If we cannot determine which observation is a waypoint, it is typically easier to simply ignore the current observation completely. Note that, were intersection locations knowable, we could include this behaviour in the model; as it stands, we need to employ this workaround.
+
+
+\paragraph{When the bus remains stationary}
+
+Another situation (which can also occur around unknown intersections) is when the bus does not move between successive observations (or it moves very slowly). For example, the bus may need to turn onto a major road, for which there is a queue of traffic. The bus will report its position when it arrives, and may again report its position after moving a few meters. If our model does not allow for the bus to suddenly slow down in these situations
+
+
+We can determine if the bus has remained more-or-less stationary by computing the distance between the successive observations:
+\begin{equation}
+\label{eq:vehicle_dist_check}
+\dist{\Vobs_{k-1}, \Vobs_k} < \distThreshold =
+\Vtdiff_k \min_i\left(\Vspeed_k\vi\right)
+\end{equation}
+The threshold here is the expected distance travelled in $\Vtdiff_k$~seconds by the slowest particle. Rather than slowing the particles (which would run into the opposite problem once the vehicle passes through the intersection), we sample a temporary speed
+\begin{equation}
+\label{eq:vehicle_temp_speed}
+\Vspeed_k\vi \sim
+\Uniform{0}{\frac{\dist{\Vobs_{k-1}, \Vobs_k}}{\Vtdiff_k}}
+\end{equation}
+which is used for one single iteration.
+
+Again, if we knew the locations of intersections, we could integrate this behaviour into the model. Particle's could partake in ``creeping'' up to the intersection, before quickly accelerating back up to speed on the next road segment. Even then, however, the above would still need to be included to handle non-intersection related slowing down, for example when reaching a congested section of a road.
