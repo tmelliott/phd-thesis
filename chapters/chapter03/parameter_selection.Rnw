@@ -13,131 +13,181 @@ such as stopping probability, $\Prstop$,
 and dwell time, $\dwell$.
 
 
-We explore these by modelling a subset of routes throughout Auckland over several days,
-using historical data to allow us to vary parameters and compare their effects.
-Some parameters, notably $\GPSerr$ and $\dwell$
-can be determined from the data:
-the value $\GPSerr$ can be approximated by looking at the variability
-of points around the route,
-since we assume there is no directional bias,
-so the distance from an observation to the route is an approximate estimate
-of measurement error.
+% We explore these by modelling a subset of routes throughout Auckland over several days,
+% using historical data to allow us to vary parameters and compare their effects.
+% Some parameters, notably $\GPSerr$ and $\dwell$
+% can be determined from the data:
+% the value $\GPSerr$ can be approximated by looking at the variability
+% of points around the route,
+% since we assume there is no directional bias,
+% so the distance from an observation to the route is an approximate estimate
+% of measurement error.
 
 
 \subsubsection{GPS error}
 \label{sec:pf_params_gps}
 
-The measurement error for the model is arguably one of the more important parameters,
-as it is indeed the entire purpose of the model to filter noisy observations
-in order to infer things about the state of the vehicle.
-In a full Bayesian model,
-the GPS error could simply be given a prior and estimated using \gls{mcmc}.
-However it turns out trying to for a Bayesian model to the data
-is a very difficult process,
-particularly the question of
-\emph{how to map observations to the route},
-so while it would have been nice to implement such a model
-(and indeed we have plans to, time allowing),
-we use a far more primitive method.
+The GPS or \emph{measurement} error used in the model has a strong effect on performance, as we saw in \cref{sec:pf_issues}. We can get a simple estimate of GPS error by examining the distribution of observations around the route; that is, we computed the shortest distance between the route and each observation, and graphed the results in \cref{fig:pf_param_gps}. We see two modes at about 0.5 and 2.5~meters, which could be due to a multitude of reasons. One likely one, however, is \emph{road width}, since the route shapes typically run in the middle of the road and the buses drive either side of the center line. Single-lane roads will have a smaller average distance between the bus and the center line, while for roads with two or more lanes, this will be larger. Additionally, some roads have a median (either painted or raised) which further increases the distance between the bus and the ``center line''. It is possible that some combination of this could result in the distribution shown in \cref{fig:pf_param_gps}.
 
 
-Buses travel along a route which has a known path.
-Although the line will not always lie exactly on the path of the vehicle,
-it gives us a close enough approximation.
-If we therefore compute the shortest distance
-from each observation to the route,
-we can get a distribution of the GPS error.
-
-First, we need to extract the data \ldots
-Then, the route itself can be extracted from the database \ldots
 
 <<pf_param_gps,cache=TRUE,message=FALSE,echo=FALSE,fig.width=8,fig.height=3,fig.cap="Distribution of distance from observation to nearest point on the route, truncated to 10~m.">>=
 suppressPackageStartupMessages(library(tidyverse))
 
-curd <- setwd("../../data")
-source("load_data.R")
-setwd(curd)
+dfile <- "data/distances.rda"
+if (!file.exists(dfile)) {
+    curd <- setwd("../../data")
+    source("load_data.R")
+    setwd(curd)
 
-source("scripts/load_vps.R")
+    source("scripts/load_vps.R")
 
-library(RSQLite)
-suppressPackageStartupMessages(library(dbplyr))
-con <- dbConnect(SQLite(), db)
-# for each ROUTE, fetch the shape
-rids <- unique(vps$route_id)
-routeshape <- con %>% tbl('trips') %>%
-    select(route_id, shape_id) %>%
-    filter(route_id %in% rids) %>%
-    distinct()
-shapes <- con %>% tbl('shapes') %>%
-    inner_join(routeshape) %>%
-    collect() %>%
-    group_by(route_id)
-tids <- unique(vps$trip_id)
-date <- format(
-    as.POSIXct(median(vps$timestamp), origin = "1970-01-01"),
-    "%Y-%m-%d"
-)
-triptimes <- con %>% tbl('stop_times') %>%
-    filter(trip_id %in% tids & stop_sequence ==1 ) %>%
-    select(trip_id, departure_time) %>%
-    collect()
-dbDisconnect(con)
+    library(RSQLite)
+    suppressPackageStartupMessages(library(dbplyr))
+    con <- dbConnect(SQLite(), db)
+    # for each ROUTE, fetch the shape
+    rids <- unique(vps$route_id)
+    routeshape <- con %>% tbl('trips') %>%
+        select(route_id, shape_id) %>%
+        filter(route_id %in% rids) %>%
+        distinct()
+    shapes <- con %>% tbl('shapes') %>%
+        inner_join(routeshape) %>%
+        collect() %>%
+        group_by(route_id)
+    tids <- unique(vps$trip_id)
+    date <- format(
+        as.POSIXct(median(vps$timestamp), origin = "1970-01-01"),
+        "%Y-%m-%d"
+    )
+    triptimes <- con %>% tbl('stop_times') %>%
+        filter(trip_id %in% tids & stop_sequence ==1 ) %>%
+        select(trip_id, departure_time) %>%
+        collect()
+    dbDisconnect(con)
 
-date <- as.POSIXct(paste(date, "00:00:00"))
-triptimes <- triptimes %>%
-    mutate(t = date + sapply(departure_time, function(x) {
-        sum(c(60*60, 60, 1) * as.numeric(strsplit(x, ":")[[1]]))
-    }))
+    date <- as.POSIXct(paste(date, "00:00:00"))
+    triptimes <- triptimes %>%
+        mutate(t = date + sapply(departure_time, function(x) {
+            sum(c(60*60, 60, 1) * as.numeric(strsplit(x, ":")[[1]]))
+        }))
 
-# trip time - start time
-vps <- vps %>% right_join(triptimes) %>%
-    filter(timestamp >= t & timestamp < t + 60*60*1)
+    # trip time - start time
+    vps <- vps %>% right_join(triptimes) %>%
+        filter(timestamp >= t & timestamp < t + 60*60*1)
 
-# filter out single obs
-vps <- vps %>% group_by(vehicle_id, trip_id) %>%
-    do({
-        zz <- (.)
-        if (nrow(zz) < 5) zz <- zz %>% filter(FALSE)
-        zz
-    })
+    # filter out single obs
+    vps <- vps %>% group_by(vehicle_id, trip_id) %>%
+        do({
+            zz <- (.)
+            if (nrow(zz) < 5) zz <- zz %>% filter(FALSE)
+            zz
+        })
 
-dist_to_line <- function(x, s) {
-    s <- sf::st_linestring(s %>% ungroup %>% select(shape_pt_lon, shape_pt_lat) %>% as.matrix)
-    geosphere::dist2Line(x %>% select('lon', 'lat') %>% as.matrix, s)[, 1]
+    dist_to_line <- function(x, s) {
+        s <- sf::st_linestring(s %>% ungroup %>% select(shape_pt_lon, shape_pt_lat) %>% as.matrix)
+        geosphere::dist2Line(x %>% select('lon', 'lat') %>% as.matrix, s)[, 1]
+    }
+
+    vpsd <- vps[sample(nrow(vps), 20000),] %>% group_by(route_id) %>%
+        do({
+            zz <- (.)
+            sh <- shapes %>% filter(route_id == zz$route_id[1])
+            zz %>% mutate(dist2r = dist_to_line(., sh))
+        })
+
+    save(vpsd, file = dfile)
+} else {
+    load(dfile)
 }
 
-vpsd <- vps[sample(nrow(vps), 20000),] %>% group_by(route_id) %>%
-    do({
-        zz <- (.)
-        sh <- shapes %>% filter(route_id == zz$route_id[1])
-        zz %>% mutate(dist2r = dist_to_line(., sh))
-    })
+vpdat <- vpsd %>%
+    filter(dist2r < 10 & dist2r > -1) %>%
+    mutate(dist2r = pmax(0, dist2r))
 
-ggplot(vpsd %>% filter(dist2r < 10 & dist2r > -1) %>% arrange(dist2r)) +
+ggplot(vpdat %>% arrange(dist2r)) +
     geom_histogram(aes(dist2r, stat(density)), bins = 50) +
-    theme_minimal() + theme(panel.grid = element_blank()) +
-    xlab("Distance (m)") + ylab("Distribution") +
+    theme_minimal() +
+    theme(panel.grid = element_blank()) +
+    xlab("Distance (m)") +
+    ylab("Distribution") +
     scale_x_continuous(breaks = seq(0, 10, by = 2))
     # scale_y_continuous(breaks = NULL)
     # geom_point(aes(lon, lat, colour = dist2r)) +
     # scale_colour_viridis_c("D")
     # geom_point(aes(lon, lat))
+
+p <- ggplot(
+    vpdat %>% filter(dist2r<=4)%>%
+        mutate(
+            dist_cat = cut(dist2r, breaks = c(0, 0.5, 1, 2, 4), include.lowest=T)
+        ),
+    aes(lon, lat, colour = dist2r)
+) +
+    geom_point() +
+    scale_colour_viridis_c() +
+    facet_wrap(~dist_cat)
+
+#fitt <- lm(dist2r ~ route_id - 1, data = vpdat)
+#smryfit <- summary(fitt)
+#plot(sort(coef(smryfit)[,1]))
+
 @
 
-
-The results are shown in \cref{fig:pf_param_gps},
-which shows one peak at about 0.5~m,
-and another at 2.5~m.
-This gives us a vague idea of what the GPS error should be,
-although it is very artificial
-(and demonstrates how bad our assumption is that the observations
-are normally distributed, but eh \ldots)
+The other issue is the heavy tail in the distribution of distance to path, which we trunctated to 10~meters to more easily see the modes. GPS devices usually have good accuracy, but occasionally they may be quite far off of the true location, possibly due to physical interference. \Sexpr{round(mean(vpsd$dist2r > 10 & vpsd$dist2r < 50) * 100)}\% of bus observations were more than 10~meters from the shape, excluding any observations greater than 50~meters since these were most likely attributed to the wrong trip (and therefore not anywhere near the route path). This would explain a large proportion of the degeneration rate (\cref{fig:model_performance_degen}), which we saw previously decreases significantly with increased GPS error.
 
 
-From here, we choose a range of GPS error values:
-2~m, 3~m, and 5~m.
 
+
+
+\subsubsection{System noise}
+\label{sec:pf_params_noise}
+
+The definition of system noise is model-dependent; for transition models $f_{A1}$ and $f_{A2}$ it is \emph{the average change in speed per second}, while for model $f_{A3}$ it is \emph{the average change in acceleration per second}. From the simulations in \cref{sec:pf_issues}, we demonstrated that system noise affected the performance of the particle filter (how often resampling is required) but neither the degeneration rate nor parameter estimation.
+
+Unlike GPS error, it is not possible to estimate system noise directly from the data. Indeed, most of the time a vehicle's speed is constant, but may change suddenly at certain locations (which are unknown), so the system noise must allow for this. We found that a smaller value of system noise under the second transition model $f_{A2}$ gave the best results in terms of sampling possible trajectories, and as such this was the model uses during the simulation.
+
+
+The system noise parameter $\Vnoise$
+controls the variability of the system,
+that is how quickly the particles mutate.
+That is,
+if we duplicate one particle 100 times,
+how quickly do we want them to diverge?
+Too quickly and the distribution becomes too sparse;
+too slow and the true value may not be captured.
+
+It's also important to note that often large values of $\Vtdiff$
+are not necessarily associated with a large change in distance.
+A lot of the time the vehicle wont have moved at all,
+and the way the location system is set up means that
+no new position is reported until the bus moves again.
+
+
+
+We can measure these two situations:
+\begin{itemize}
+\item the proportion of iterations requiring resampling,
+    which will be large if the mutation rate is too high, and
+\item the proportion of iterations requiring reinitialisation,
+    which will be large if the mutation rate is too low.
+\end{itemize}
+
+
+
+And then the same for remaining parameters \ldots
+
+Minimum dwell time $\mindwell$ we just use literature values,
+since there isn't really anything else to go on
+(there's the trip updates dwell times, but they have that weird 9~s issue).
+
+\textcolor{red}{
+    \begin{itemize}
+        \item create a new AT developer account
+        \item collect trip updates every 5 seconds for a few days to try and catch as many arrival/departure times as possible
+        \item then look at that distribution
+    \end{itemize}
+}
 
 
 \subsubsection{Dwell times}
@@ -213,49 +263,5 @@ We obtained some results.
         \item in particle filter they're not really useful because
             even if we know the mean, it's going to be highly variable
         \item somewhat useful for uncertainty calculations of ETAs
-    \end{itemize}
-}
-
-\subsubsection{System noise}
-\label{sec:pf_params_noise}
-
-The system noise parameter $\Vnoise$
-controls the variability of the system,
-that is how quickly the particles mutate.
-That is,
-if we duplicate one particle 100 times,
-how quickly do we want them to diverge?
-Too quickly and the distribution becomes too sparse;
-too slow and the true value may not be captured.
-
-It's also important to note that often large values of $\Vtdiff$
-are not necessarily associated with a large change in distance.
-A lot of the time the vehicle wont have moved at all,
-and the way the location system is set up means that
-no new position is reported until the bus moves again.
-
-
-
-We can measure these two situations:
-\begin{itemize}
-\item the proportion of iterations requiring resampling,
-    which will be large if the mutation rate is too high, and
-\item the proportion of iterations requiring reinitialisation,
-    which will be large if the mutation rate is too low.
-\end{itemize}
-
-
-
-And then the same for remaining parameters \ldots
-
-Minimum dwell time $\mindwell$ we just use literature values,
-since there isn't really anything else to go on
-(there's the trip updates dwell times, but they have that weird 9~s issue).
-
-\textcolor{red}{
-    \begin{itemize}
-        \item create a new AT developer account
-        \item collect trip updates every 5 seconds for a few days to try and catch as many arrival/departure times as possible
-        \item then look at that distribution
     \end{itemize}
 }
