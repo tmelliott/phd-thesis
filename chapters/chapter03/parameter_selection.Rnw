@@ -145,49 +145,8 @@ The other issue is the heavy tail in the distribution of distance to path, which
 
 The definition of system noise is model-dependent; for transition models $f_{A1}$ and $f_{A2}$ it is \emph{the average change in speed per second}, while for model $f_{A3}$ it is \emph{the average change in acceleration per second}. From the simulations in \cref{sec:pf_issues}, we demonstrated that system noise affected the performance of the particle filter (how often resampling is required) but neither the degeneration rate nor parameter estimation.
 
-Unlike GPS error, it is not possible to estimate system noise directly from the data. Indeed, most of the time a vehicle's speed is constant, but may change suddenly at certain locations (which are unknown), so the system noise must allow for this. We found that a smaller value of system noise under the second transition model $f_{A2}$ gave the best results in terms of sampling possible trajectories, and as such this was the model uses during the simulation.
+Unlike GPS error, it is not possible to estimate system noise directly from the data. Indeed, most of the time a vehicle's speed is constant, but may change suddenly at certain locations (which are unknown), so the system noise must allow for this. We found that a smaller value of system noise under the second transition model $f_{A2}$ gave the best results in terms of sampling possible trajectories, and as such this was the model used during the simulation.
 
-
-The system noise parameter $\Vnoise$
-controls the variability of the system,
-that is how quickly the particles mutate.
-That is,
-if we duplicate one particle 100 times,
-how quickly do we want them to diverge?
-Too quickly and the distribution becomes too sparse;
-too slow and the true value may not be captured.
-
-It's also important to note that often large values of $\Vtdiff$
-are not necessarily associated with a large change in distance.
-A lot of the time the vehicle wont have moved at all,
-and the way the location system is set up means that
-no new position is reported until the bus moves again.
-
-
-
-We can measure these two situations:
-\begin{itemize}
-\item the proportion of iterations requiring resampling,
-    which will be large if the mutation rate is too high, and
-\item the proportion of iterations requiring reinitialisation,
-    which will be large if the mutation rate is too low.
-\end{itemize}
-
-
-
-And then the same for remaining parameters \ldots
-
-Minimum dwell time $\mindwell$ we just use literature values,
-since there isn't really anything else to go on
-(there's the trip updates dwell times, but they have that weird 9~s issue).
-
-\textcolor{red}{
-    \begin{itemize}
-        \item create a new AT developer account
-        \item collect trip updates every 5 seconds for a few days to try and catch as many arrival/departure times as possible
-        \item then look at that distribution
-    \end{itemize}
-}
 
 
 \subsubsection{Dwell times}
@@ -203,7 +162,7 @@ giving us a set of dwell times
 \Vdwell_{srm} = \Vdep_{srm} - \Varr_{srm}
 \end{equation}
 
-<<observed_dwell,message=FALSE,warning=FALSE,echo=FALSE,fig.width=8,fig.height=3,fig.cap="Distribution of dwell times observed over the course of five days.">>=
+<<observed_dwell,cache=TRUE,message=FALSE,warning=FALSE,echo=FALSE,fig.width=8,fig.height=3,fig.cap="Distribution of dwell times observed over the course of five days.">>=
 library(tidyverse)
 dwellfile <- "data/dwell.rda"
 if (file.exists(dwellfile)) {
@@ -237,31 +196,4 @@ ggplot(dwell %>% filter(dwell < 2*60)) +
     scale_x_continuous(breaks = seq(0, 120, by = 20))
 @
 
-The raw data from five~days' observations
-are shown in \cref{fig:observed_dwell}.
-Here, we see an interesting pattern with apparent peaks every nine~seconds.
-While we could not determine the precise cause,
-we assume it to be due to a systematic problem in the arrival time
-recording system used to collect the data.
-
-
-Regardless, we can still explore the dwell times for any stop or time effects.
-
-To these data we could fit some model ... and find approximate values
-of dwell time over all/by route/by trip/time of day.
-% \begin{equation}
-% \label{eq:dwell_time_model}
-% \Vdwell_{drm} =
-%     \dwell_m +   % mean dwell time for stop m
-%     \alpha_0 (\Varr_{drm}) +  % time effect
-%     \sum_{j=1}^\Nstop \eta_j I_{j=s}
-% \end{equation}
-% using \emph{A METHOD}.
-We obtained some results.
-\textcolor{red}{
-    \begin{itemize}
-        \item in particle filter they're not really useful because
-            even if we know the mean, it's going to be highly variable
-        \item somewhat useful for uncertainty calculations of ETAs
-    \end{itemize}
-}
+The raw data from five~days' observations are shown in \cref{fig:observed_dwell}. Here, we see an interesting pattern with apparent peaks every nine~seconds. While we could not determine the precise cause, we assume it to be due to a systematic problem in the arrival time recording system used to collect the data. From the historical dwell time data, we were able to estimate the mean and variance of dwell time for each stop $j$, $\dwell_j$ and $\dwellvar_j$, respectively, which could then be used in the dwell time model.
