@@ -301,7 +301,7 @@ For each bus stop, we also have a \emph{stopping probability} $\Prstop_m\in(0,1)
 \end{equation}
 The total dwell time of a bus at stop $m$ can be expressed as
 \begin{equation}
-\label{eq:stop_dwell_time}
+\label{eq:stop_total_dwell_time}
 \pdwell_m = \Istop_m (\mindwell + \pserve_m)
 \end{equation}
 which, under the particle filtering framework, is straightforward to implement. \Cref{fig:eta_dwell_times} demonstrates the dwell time distribution at a stop.

@@ -1,40 +1,15 @@
 \section{Constructing a network from GTFS data}
 \label{sec:route-segments}
 
-As we saw in \cref{sec:literature}, arrival time prediction is greatly improved
-when data from multiple routes is combined to estimate traffic conditions.
-However, many of these applications were specific to a certain set of routes,
-or used external information (such as automatic toll readers and taxis)
-to get \rt{} traffic information.
-We wanted to develop a \emph{simpler}, \emph{more generalised} approach
-that uses solely \GTFS{} data (stops and shapes) to construct a network
-of non-overlapping\footnote{Except of course reverse directions.} road segments.
+In \cref{sec:literature}, we reported how arrival time prediction is greatly improved when data from multiple routes is combined to estimate traffic conditions \citep{cn}. However, many of these applications were specific to a certain set of routes, or used external information (such as automatic toll readers and taxis) to get \rt{} traffic information. We wanted to develop a \emph{simpler}, \emph{more generalised} approach that uses solely \GTFS{} data (stops and shapes) to construct a network of non-overlapping\footnote{Except of course reverse directions.} road segments. The network should consist of \emph{nodes} (which could be intersections or bus stops) connected by \emph{edges}, or road segments.
 
 
-Essentially, we want to be able to detect where two routes overlap,
-even partially, so the travel times from one can be used to inform
-\glspl{eta} for the other.
-The most obvious place to start is looking at common sub sequences of bus stops.
+Essentially, we want to detect where two routes overlap, even partially, so tspeed information from one can be used to improve \glspl{eta} for the other. An obvious place to start is by looking at common subsequences of bus stops. Using stops as nodes is not ideal, however, as there are many situations where there will still be overlapping road segments. For example, an express route might skip a series of stops on a busy road, likely services by non-express versions of the same route, as well as other routes. Additionally, routes do not diverge at bus stops\footnote{Who would put a bus stop on an intersection?}, and instead overlap until an \emph{intersection} at which point they diverge.
 
 
-Using stops as road intersections is not ideal, however, as there are many
-situations where there will still be overlapping road segments.
-For example, an express route might skip a series of stops on a busy road,
-likely services by non-express versions of the same route, as well as other routes.
-Additionally, routes do not diverge at bus stops%
-\footnote{Who would put a bus stop on an intersection?},
-and instead overlap until an \emph{intersection} at which point they diverge.
+% (Note to self: maybe this can be dropped, since it hasn't been done yet ...?)
+% Getting intersection data is not easy, however, and initial attempts at doing so using Open Street Maps \citep{OpenStreetMap_2017} were unsuccessful due to the difficulty in identifying an intersection, and replication of traffic lights (one for each physical light). One possible method to reduce the instances of the second situation is to find road segments that end at the same stop, but have a different origin (or vice versa). Then we travel along the paths until they meet, at which point we place an intersection.
 
-
-Getting intersection data is not easy, however,
-and initial attempts at doing so using Open Street Maps \citep{OpenStreetMap_2017}
-were unsuccessful due to the difficulty in identifying an intersection,
-and replication of traffic lights (one for each physical light).
-One possible method to reduce the instances of the second situation
-is to find road segments that end at the same stop,
-but have a different origin (or vice versa).
-Then we travel along the paths until they meet,
-at which point we place an intersection.
 
 <<gtfs_route_id,echo=FALSE>>=
 source("load_gtfs.R")
@@ -42,67 +17,12 @@ con <- dbConnect(SQLite(), "at_gtfs.sqlite")
 rid <- dbGetQuery(con, "SELECT route_id FROM routes WHERE route_short_name='27W' LIMIT 1")$route_id
 dbDisconnect(con)
 @
-One other issue specific to \AT{}'s \GTFS{} feed is that all of the
-object IDs are \emph{versioned}.
-That is, instead of a fixed route having a route ID of
-\verb+\Sexpr{gsub("-.+", "", rid)}+,
-the date and version number is suffixed to it,
-giving an ID of \verb+\Sexpr{rid}+.
-This goes the same for the IDs of trips, shapes, and stops.
-This makes it difficult to transfer existing segments based on stops
-from previous versions of the \gls{api},
-requiring an additional step to remove the version information from the raw data.
+One other issue specific to \AT{}'s \GTFS{} feed is that all of the object IDs are \emph{versioned}. That is, instead of a fixed route having a route ID of \verb+\Sexpr{gsub("-.+", "", rid)}+, the date and version number are appended to it: \verb+\Sexpr{rid}+. This is the same for the IDs of trips, shapes, and stops. This makes it difficult to transfer existing segments based on stops from previous versions of the \gls{api}, requiring an additional step to remove the version information from the raw data.
 
 
-The algorithm is as follows, and based off of \ldots
-
-
-This, too, has been implemented\footnote{OK, it's still a work-in-progress.}
-in \verb+transitr+:
-<<transitr_construct_network,cache=TRUE>>=
+The algorithm we implemented uses only bus stops, but has the capability to extend to intersections, if available. To avoid the versioning issue described above, each stop is processed as though it is an intersection point, and checked to see if a node in that location already exists. If it does, the route is assigned the existing node; otherwise, a new node is created and assigned instead. As for the road segments, these are defined as unique connections between any two stops; that is, there can only be one segment going from node $A$ to node $B$ (the reverse is considered a different segment). The network can be constructed by the \verb+transitr+ package using the \verb+construct()+ function:
+<<transitr_construct_network,cache=TRUE,size="small">>=
 library(transitr)
 nw <- load_gtfs("at_gtfs.sqlite") %>% construct()
 transitr:::load_road_segments(nw) %>% head
 @
-
-
-
-
-% From the literature we've seen that combining data from
-% multiple sources (i.e., different routes along the same road)
-% has (generally) improved arrival time estimation/reliability.
-% However, in these, the aggregation was seemingly manually done using
-% \emph{a priori} known commonoalities,
-% such as trips converging in the city \citep{Yu_2011}.
-% We would prefer a more generalised approach
-% in which only the raw \gls{gtfs} data is used to construct
-% a \emph{transit network} where every route can be
-% segmented into distinct road segments,
-% each of which corresponds to a unique, physical (section of) road.
-% Ideally, no road segments would overlap.
-
-
-% The most obvious feature to use in segmentation would be road intersections,
-% as well as bus stops.
-% For the former,
-% we simply state that any two routes that do converge
-% will do so at a physical intersection and follow the same path
-% until the diverge at another intersection.
-% Alternatively, one of the routes may begin or terminate
-% between intersections at a bus stop.
-
-
-% In this work,
-% we used segmentation at bus stops due to its simplicity,
-% but have developed with the possibility to add
-% any types of obstacles into the route in future.
-% The algorithm is as follows:
-% \begin{enumerate}
-% \item for each route shape, compute distance into trip of each stop
-% \item at each stop, ``split'' the route and identify the road segment
-%     by the bus stops at each end,
-%     recording the initial distance trip of the segment
-% \item if a segment between the two stops doesn't already exist,
-%     create a new road segment and compute its length
-%     (using distances computed in step 1)
-% \end{enumerate}

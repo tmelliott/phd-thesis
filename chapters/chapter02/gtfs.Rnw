@@ -1,24 +1,10 @@
 \section{GTFS}
 \label{sec:gtfs}
 
-The adoption of GTFS \citep{GoogleDevelopers_2006} to public transport agencies around the world
-has made it possible for apps such as Google Maps
-to access and display public transport data to users,
-regardless of their location.
-The main goal of GTFS is to specify, in detail,
-how transit data should be organised in a fundamental way
-that is consistent across agencies around the world.
+The adoption of GTFS \citep{GoogleDevelopers_2006} to public transport agencies around the world has made it possible for apps such as Google Maps to access and display public transport data to users, regardless of their location. The main goal of GTFS is to specify, in detail, how transit data should be organised so that it is consistent across agencies around the world. Whether you are in Auckland, Paris, or C\'ordoba, Google Maps is able to show you public transport directions because their transit data are defined using the same standard.
 
 
-\GTFS{} consists of two components,
-\emph{static} and \emph{\rt{}}.
-The static component specifies how information portaining to the schedule,
-fare, and route geography are organised,
-while the \emph{\rt{}} component specifies the format for vehicle locations,
-arrival predictions, and service advisories.
-Each of the static and \rt{} components are implemented by a transit provider,
-for example \AT{} have a set up their \GTFS{} service
-which is hosted at \url{https://dev-portal.at.govt.nz}.
+\GTFS{} consists of two components, \emph{static} and \emph{\rt{}}. The static component specifies how information portaining to the schedule, fares, and route geography are organised, while the \emph{\rt{}} component specifies the format for \rt{} data: vehicle locations, stop updates and \glspl{eta}, and service advisories. Each of the static and \rt{} components are implemented by a transit provider; for example \AT{}'s \GTFS{} service is hosted at \url{https://dev-portal.at.govt.nz}.
 
 
 \subsection{Static GTFS}
@@ -46,21 +32,10 @@ shape & the GPS track a vehicle will take for a specific route \\
 \end{table}
 
 
-There are several components of GTFS that are of particular interest to us:
-routes, trips, stops, stop times, and shapes.
-The definitions of these terms are given in \cref{tab:gtfs_terms}.
-Extensive documentation can be found on these and the other components
-on the GTFS website (\url{https://developers.google.com/transit/gtfs/})
-\citep{GoogleDevelopers_2006}.
+There are several components of GTFS that are of particular interest to us: routes, trips, stops, stop times, and shapes. The definitions of these terms are given in \cref{tab:gtfs_terms}. Extensive documentation can be found on these and the other components on the GTFS website (\url{https://developers.google.com/transit/gtfs/}) \citep{GoogleDevelopers_2006}.
 
 
-\Cref{fig:gtfs_nw} demonstrates a single \emph{route},
-along which there are two active \emph{trips} (A and B).
-The route's \emph{shape} is represented by the line connecting
-the six \emph{stops} numbered 1--6.
-The \rt{} arrivals board is shown for stop~5,
-displaying the scheduled \emph{stop time} (arrival time) for each trip at that stop.
-The additional information displayed is described in the next section.
+\Cref{fig:gtfs_nw} demonstrates a single \emph{route}, along which there are two active \emph{trips} (A and B). The route's \emph{shape} is represented by the line connecting the six \emph{stops} numbered 1--6. The \rt{} arrivals board is shown for stop~5, displaying the scheduled \emph{stop time} (arrival time) for each trip at that stop. The additional information displayed is described in the next section.
 
 
 
@@ -194,18 +169,6 @@ p +
     )
 @
 
-
-The distribution of static \GTFS{} data by transport providers is typically done via text files,
-one for each of the components (\verb+routes.csv+, \verb+trips.csv+, etc).
-Often these are then distributed as a single ZIP archive,
-and the data can easily be loaded into a \emph{relational database}.
-In the R package developed as part of this work,
-this is done automatically using the \verb+create_gtfs()+ function:
-<<transitr_load_gtfs,eval=FALSE>>=
-library(transitr)
-nw <- create_gtfs("at_gtfs.zip", db = "at_gtfs.sqlite")
-@
-
 <<transitr_load_gtfs_hidden,echo=FALSE,results="hide">>=
 source("load_gtfs.R")
 library(transitr)
@@ -213,116 +176,69 @@ con <- dbConnect(SQLite(), db)
 vmax <- dbGetQuery(con, "select max(version) as v from routes")$v
 nstoptimes <- dbGetQuery(con, sprintf("SELECT count(*) as n from stop_times where trip_id in (select trip_id from trips where version=%s)", vmax))$n
 dbDisconnect(con)
+
+knit_theme$set("earendel")
+@
+
+Static \GTFS{} data is typically distributed by transport providers as plain text files, one for each of the components (such as \verb+routes.csv+ and \verb+trips.csv+). Often these are available to download as a single ZIP archive, so the data can easily be loaded into a \emph{relational database}. \Cref{app:gtfs} describes the relational structure of the \GTFS{} database. The R package developed as part of this work provides the \verb+create_gtfs()+ function to do this automatically:
+<<transitr_load_gtfs,eval=FALSE>>=
+library(transitr)
+nw <- create_gtfs("at_gtfs.zip", db = "at_gtfs.sqlite")
 @
 
 
-Within these separate files or tables, the data is stored as per \GTFS{}.
-Importantly, shapes are stored as sequences of coordinates in a sequence
-that draw a path on a map,
-while stops are represented as a single coordinate marking the location of the bus stop.
-Stop times are stored in trip-stop pairs\footnote{It is a pivot table, if you know what that is.},
-with one row for every stop of each trip, along with the scheduled arrival and departure times%
-\footnote{There are \Sexpr{format(nstoptimes, big.mark=",")} rows in the stop times table for Auckland Transport!}.
+
+
+Within these separate files or tables, the data is stored as per \GTFS{}. Importantly, shapes are stored as sequences of coordinates that draw a path on a map, while stops are represented as a single coordinate marking the location of the bus stop. Stop times are stored in trip-stop pairs\footnote{It is a pivot table, if you know what that is.}, with one row for every stop of each trip, along with the scheduled arrival and departure times\footnote{There are \Sexpr{format(nstoptimes, big.mark=",")} rows in the stop times table for Auckland Transport!}.
 
 
 
-On its own, the static \GTFS{} information is as useful as a printed timetable,
-allowing simple journey planning to take place.
-It therefore provides the necessary ``fallback'' state in cases where
-no \rt{} information is available for a given trip.
-In later sections, we will be needing \emph{prior} information about
-the travel times between stops,
-so this too could be inferred from the static schedule information.
+On its own, the static \GTFS{} information is as useful as a printed timetable, allowing simple journey planning to take place. It therefore provides the necessary ``fallback'' state in cases where no \rt{} information is available for a given trip. In later sections, scheduled stop times are used to obtain \emph{prior information}, a core component of the Bayesian paradigm.
 
 
 
 \subsection{\Rt{} GTFS}
 \label{sec:gtfs_rt}
 
-The \rt{} component of \GTFS{} is responsible for handling vehicle positions,
-trip updates (arrivals and departures from stops),
-and service alerts (cancellations and stop closures, for example).
-Data is processed by a central server,
-and then stored in an appropriate fashion to enable quick access via \glspl{api}.
-There is therefore the additional need of a server that can handle
-vast numbers of \gls{api} requests,
-which means that only a subset of the transport providers using \GTFS{}
-have also implemented this \rt{} component.
-Below we give a brief summary of these components,
-but further information can be read on the \GTFS{} website%
-\footnote{see \url{https://developers.google.com/transit/gtfs-realtime/}.}.
+The \rt{} component of \GTFS{} is responsible for handling vehicle positions, trip updates (arrivals and departures from stops), and service alerts (cancellations and stop closures, for example). Data is processed by a central server, and then stored in an appropriate fashion to enable quick access via \glspl{api}. There is therefore the additional need of a server that can handle vast numbers of \gls{api} requests, meaning only a subset of the transport providers using \GTFS{} have also implemented the \rt{} component. Below we give a brief summary of these components, but further information can be read on the \GTFS{} website\footnote{see \url{https://developers.google.com/transit/gtfs-realtime/}.}.
 
 
 \subsubsection{Vehicle positions}
 \label{sec:gtfs_rt_vehicle}
 
-The key components of a vehicle position (in the context of \GTFS{})
-are a \emph{vehicle descriptor} which includes information about the physical vehicle,
-a \emph{trip descriptor} which holds information about the trip being serviced,
-a \emph{timestamp} specifying exactly when the observation was made,
-and a \emph{position} containing the actual data,
-such as the \gls{gps} observation.
+The key components of a vehicle position (in the context of \GTFS{}) are a \emph{vehicle descriptor} which includes information about the physical vehicle, a \emph{trip descriptor} which holds information about the trip being serviced, a \emph{timestamp} specifying exactly when the observation was made, and a \emph{position} containing the actual data, such as the \gls{gps} observation.
+
+The specification also allows for additional measurements, such as \emph{speed} or an \emph{odometer} reading. However, these were not available from \AT{} at the time this work was carried out, so we have not included them in our framework. It is well worth noting, however, that they could be integrated with minimal effort if they become available.
 
 
 \subsubsection{Trip updates}
 \label{sec:gtfs_rt_trip}
 
-As vehicles equipped with \gls{avl} technology arrive at and depart from stops,
-information about their time of arrival,
-and most importantly \emph{schedule adherence},
-is stored in trip updates.
-These also contain a \emph{trip descriptor},
-as well as one or more \emph{stop time updates}.
-\AT{} provides a single stop time update for the most recently visited stop;
-however, it is possible to retain all previous stop time updates,
-as well as provide predictions for upcoming stops.
+As vehicles equipped with \gls{avl} technology arrive at and depart from stops, information about their time of arrival, and most importantly \emph{schedule adherence}, is stored in trip updates. These also contain a \emph{trip descriptor}, as well as one or more \emph{stop time updates}. \AT{} provides a single stop time update for the most recently visited stop; however, it is possible to retain all previous stop time updates, as well as provide predictions for upcoming stops.
 
 
-Each stop time update reports either the arrival or departure time and,
-where schedule information is available,
-the schedule adherance by way of an \emph{arrival} or \emph{departure delay} (in seconds).
-Typically this is based off the \gls{gps} position of the vehicle,
-which is monitored by the \gls{avl} system on the vehicle,
-enabling it to determine where on the route it is.
+Each stop time update reports either the arrival or departure time and, where schedule information is available, the schedule adherance by way of an \emph{arrival} or \emph{departure delay} (in seconds). The onboard \gls{avl} device is responsible for detecting these events, and they are not necessarily linked to the \gls{gps} position of the vehicle. In Auckland, each trip update also triggers a vehicle location update, but the coordinates are those of the \emph{stop} and not the vehicle, which can cause problems we address in \cref{sec:realtime-data}.
 
 
 
 \subsubsection{Service alerts}
 \label{sec:gtfs_rt_alerts}
 
-Less important for the current work, but necessary for reliable \gls{rti},
-\emph{service alerts} enable transit operators to modify the static \GTFS{} in \rt{}.
-So, when a trip is cancelled, they can\footnote{Although they often don't.}
-send out a service alert announcing that a specific trip has been cancelled.
-This is often displayed to passengers as a ``C'' on the \rt{} board.
-It is also possible to add trips, for example if there is a special event,
-or to reroute trips via different stops,
-but this is beyond the scope of our work.
+Less important for the current work, but essential for reliable \gls{rti}, \emph{service alerts} enable transit operators to modify the static \GTFS{} in \rt{}. So, when a trip is cancelled, they have the ability to send out a service alert announcing the cancellation\footnote{Although they often don't.}. This is often displayed to passengers as a ``C'' on the \rt{} board. It is also possible to add trips, for example during special events, or to reroute trips around stop closures, but this is beyond the scope of our work.
+
 
 
 \subsection{Accessing \rt{} data (API)}
 \label{sec:gtfs_rt_api}
 
-In order to distribute vehicle locations, trip updates, and service alerts
-to passengers quickly and usefully requires more than just a \rt{} board at bus stops.
-Personal mobile devices have revolutionised the way we live our lives,
-and developers are constantly creating new apps to help us out.
-Included in these are transit apps,
-which are capable of passing on \rt{} \GTFS{} data to passengers.
+In order to distribute vehicle locations, trip updates, and service alerts to passengers quickly and usefully requires more than just a \rt{} board at bus stops. Personal mobile devices have revolutionised the way we live our lives, and developers are constantly creating new apps to assist with everyday activities. Included in these are transit apps, which are capable of passing on \rt{} \GTFS{} data to passengers.
 
-The most common method of distributing \rt{} data is via an \gls{api}.
-These are, in simple terms, a fixed web address that developers can fetch
-and return a data file---either JSON or, in the case of some \GTFS{} systems,
-protobuf \citep{cn}---which can then be parsed and displayed to users.
-Usually developers need an \emph{\gls{api} key} to prevent server overload,
-or to control access to data.
-Our R package includes the ability to connect to a \GTFS{}-based \gls{api} easily,
-by issuing the following command:
-<<transitr_api_connect>>=
+The most common method of distributing \rt{} data is via an \gls{api}. These are, in simple terms, a fixed web address from which developers can request a data file---either JSON or, in the case of some \GTFS{} systems, protobuf \citep{cn}---which can then be parsed and displayed to users. Usually developers need to register for an \emph{\gls{api} key} which helps to control server demand by limiting the number of requests a user can make, or controlled access to specific data. Our R package includes the ability to connect to a \GTFS{}-based \gls{api} easily using the following command:
+<<transitr_api_connect,size="small",eval=FALSE>>=
+url <- "https://api.at.govt.nz/v2/public/realtime/vehiclelocations"
 nw <- load_gtfs("at_gtfs.sqlite") %>%
-    realtime_feed(
-        "https://api.at.govt.nz/v2/public/realtime/vehiclelocations",
-        with_headers(
-            "Ocp-Apim-Subscription-Key" = Sys.getenv('APIKEY')
-        ))
+    realtime_feed(url) %>%
+    with_headers(
+        "Ocp-Apim-Subscription-Key" = Sys.getenv('APIKEY')
+    )
 @

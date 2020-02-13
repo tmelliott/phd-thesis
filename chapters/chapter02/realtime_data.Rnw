@@ -1,309 +1,83 @@
 \section{Charactersitics of \rt{} transit data}
 \label{sec:realtime-data}
 
-There are several ways in which transit vehicles can report their location.
-The most common of these is now the \gls{gps},
-which provides the longitude and latitude of the vehicle.
-In the simplest of deployments,
-each vehicle reports its location (at a fixed time interval)
-to a central server.
-This server then combines the locations of all the buses in the fleet
-and makes them available via an \gls{api}.
+There are a range of \gls{avl} technologies which allow transit vehicles to report their location in \rt{}. The most common of these is now the \gls{gps}, which provides the longitude and latitude of the vehicle. In the simplest of deployments, each vehicle reports its location to a central server at a fixed time interval. The server then collates the reports from all of the buses in the fleet and makes them available via an \gls{api}.
 
 
-The other component of the \rt{} data available to us
-is arrival and departure information at bus stops.
-In this situation,
-when a vehicle arrives at or departs from a stop,
-it reports back to the server with its (approximate) time
-of arrival or departure,
-as well as which stop it has arrived at.
-The server then computes the delay (the time between actual and scheduled arrival),
-compiles the data from multiple vehicles,
-and makes these available through an \gls{api}.
+Another type of \rt{} data available to us is arrival and departure information at bus stops. When a vehicle arrives at or departs from a stop (or thinks it does), it reports to the server which stop it is at, and its time of arrival or departure. The server then computes the delay (the time between actual and scheduled arrival or departure), collates the data from multiple vehicles, and also makes these available through an \gls{api}.
 
 
-For our imaginary passenger,
-this information is displayed in two difference ways.
-The former \gls{gps} position can be displayed on a map accessed through a mobile app,
-allowing them to see where the bus was when it last reported its location.
-The trip update can also be displayed on the app,
-in which the \emph{current delay} is typically added to the scheduled arrival time
-at the passenger's stop;
-of course, this information is often also displayed on a \rt{} board at the stop itself.
+\Rt{} vehicle information can be displayed in one of two ways. \Gls{gps} positions are displayed on a map accessed through a mobile app, allowing commuters to see where their bus was when it last reported its location. For trip updates, the \emph{current delay} is added to the scheduled arrival time and displayed to commuters, usually as a \emph{time until arrival}, in minutes. The \gls{eta} can be displayed either on a mobile app or, more commonly, on a \rt{} arrivals board located at the stop.
 
 
-What we have just described is in fact the entirety of
-\gls{rti} in Auckland and some other global transit locations.
-While at first it seems an adequate solution,
-discussion with just about any regular public transport user will prove otherwise.
-The reasons for this become obvious with a little scrutiny,
-which we will now uncover.
+What we have just described is in fact the entirety of \gls{rti} in Auckland and some other transit locations around the world. While at first it seems an adequate solution, discussion with just about any regular public transport user will prove otherwise. The reasons for this become obvious with a little scrutiny, which we will now uncover.
+(Note to self: most of this was probably described in the Intro).
 
 
 \subsection{Vehicle positions}
 \label{sec:vp_data}
 
-Every measurement of a data point comes with some associated error.
-In the case of \gls{gps} devices,
-this error is usually small with precision depending on the quality of the device.
-However, it is possible for any device to succumb to several factors
-which can place the bus far from its intended path,
-the primary reason being buildings or other obstacles resulting
-in a poor signal.
-Surprisingly, however, this is not the main issue with vehicle position data.
+Every measurement of a data point comes with some associated error. In the case of \gls{gps} devices, this error is usually small with precision depending on the quality of the device. However, it is possible for any device to succumb to several factors which can place the bus far from its intended path, the primary reason being buildings or other obstacles resulting in a poor signal. Surprisingly, however, this is not the main issue with vehicle position data.
 
 
-Object tracking has been well studied,
-and many algorithms exist for tracking an object through space using
-\gls{gps} observations.
-However, these usually take high-frequency observations (seconds or milliseconds)
-which can generate an almost exact \rt{} estimate of the objects actual location.
+Object tracking has been well studied, and many algorithms exist for tracking an object through space using \gls{gps} observations. However, these usually take high-frequency observations (seconds or milliseconds) which can generate an almost exact \rt{} estimate of the objects actual location.
 
 
-Many examples of \rt{} object tracking exist,
-however the most relatable to most readers will be in their pocket.
-When getting directions from your phone,
-the maps application requests the user's phone's location continuously,
-providing the exact location with a second or less of delay.
-However, have you ever been driving along, following directions,
-when you've suddenly missed the turn off?
-Often, the maps application will show you as \emph{on course} for several seconds
-until it realises that you well and truly have gone off track
-and reroutes your route.
-This is an example of a \rt{} position tracking algorithm
-that is attempting to follow the device's location
-whilst simultaneously accounting for inherent noise in the measurements.
-When the driver first goes off track,
-the algorithm assumes this is a measurement error,
-and lets the vehicle continue on course.
-Eventually the error becomes large enough and the model stops assuming
-the driver is following the planned route.
+Many examples of \rt{} object tracking exist, however the most relatable to most readers will be in their pocket. When getting directions from your phone, the maps application requests the user's phone's location continuously, providing the exact location with a second or less of delay. However, have you ever been driving along, following directions, when you've suddenly missed the turn off? Often, the maps application will show you as \emph{on course} for several seconds until it realises that you well and truly have gone off track and reroutes your route. This is an example of a \rt{} position tracking algorithm that is attempting to follow the device's location whilst simultaneously accounting for inherent noise in the measurements. When the driver first goes off track, the algorithm assumes this is a measurement error, and lets the vehicle continue on course. Eventually the error becomes large and consistent enough that the model stops assuming the driver is following the planned route.
 
 
-With \rt{} transit data,
-the frequency of observations is vastly reduced,
-with observations obtained anywhere from 10~seconds to a minute (or more!) between.
-This makes it very difficult to estimate the vehicle's exact location,
-which is why most transit apps only display where the bus was last seen.
-It also means that, on recieving a vehicle position that doesn't seem quite right,
-it can take another 30~seconds before a second observation is obtained to determine
-if things are going well or not.
+With \rt{} transit data, the frequency of observations is vastly reduced, with observations obtained anywhere from 10~seconds to a minute (or more) between. This makes it very difficult to estimate the vehicle's exact location. It also means that, on recieving a vehicle position that doesn't seem quite right, it can take another 30~seconds before a second observation is obtained to determine if it was the result of a bad measurement or a real event.
 
 
-Another major complication with the Auckland Transport vehicle data
-is that vehicles report their location when arriving at or
-departing from a bus stop;
-\emph{however}, instead of reporting their \gls{gps} location
-as measured from the \gls{gps} device,
-they report the location of the bus stop itself,
-which is known exactly.
-So, what happens when the bus approaches a bus stop at speed,
-only to come to a halt at an intersection 100~m before hand?
+Another major complication with the Auckland Transport vehicle data is that vehicles often report their location when arriving at or departing from a bus stop; \emph{however}, instead of reporting their \gls{gps} location as measured from the \gls{gps} device, they report the location of the bus stop itself, which is known exactly. So, what happens when the bus approaches a bus stop at speed, only to come to a halt at an intersection 100~m before hand? The vehicle's \gls{gps} continues predicting the trajectory and places the vehicle at the bus stop before it actually arrives. This triggers a trip update (section~\ref{sec:tu_data}), which itself produces a vehicle position update \emph{exactly at the bus stop}. However, a passenger standing at the stop will see the bus sitting at the lights, while the \rt{} board displays the bus as having arrived. For the passenger waiting at this stop, this is of no concern, as now they can see the bus and have no need for \rt{} data. For the passengers at stops down the line, however, this can have some frustrating implications. This leads into another phenomenon in which the bus may appear to go backwards according to the sequence of \gps{} coordinates, discussed in detail in \cref{sec:data_issues}. The main consequence of this problem is that within the data processing component of our application, we check for vehicle position updates associated with trip updates and remove them (that is, we use the trip update and not the vehicle position).
 
-
-The vehicle's \gls{gps} will continue predicting the trajectory,
-and place the vehicle at the bus stop before it actually arrives.
-This then triggers a trip update (section~\ref{sec:tu_data}),
-which itself produces a vehicle position update
-\emph{exactly at the bus stop}.
-However, our passenger will be standing and looking at the bus sitting at the lights,
-while the \rt{} board displays the bus as having arrived.
-For the passenger waiting at this stop,
-this is of no concern, as now they can see the bus and have no need to \rt{} data.
-For the passengers at stops down the line, however,
-this can have some frustrating implications.
-
-
-Forgetting our passengers for now and looking at the observed data,
-this can result in a strange phenomenon in which buses appear to go backwards.
-Since the trip update positions the vehicle at the bus stop,
-a subsequent observation of the bus made by the \gls{gps} will place
-the bus \emph{behind} its previous location.
-While in most cases the impact of this is minimal,
-during our work we found this to be a major problem
-in that vehicle speeds were haphazard as the modelled bus speeds changed
-dramatically to attempt to fit the observations well:
-increased speed to get the bus to the stop ``early'',
-followed by a drop to zero as the bus appeared to go backwards.
-This doesn't make sense but that's OK.
-So, for this reason, we opted to ignore vehicle position updates associated
-with trip updates at bus stops;
-sadly, however, Auckland Transport implemented a similar behaviour for
-some major intersections,
-of which we do not know the locations (yet) and cannot therefore filter them out.
-Thus it was necessary when developing the model to allow these ``pre-emptive''
-observations to be filtered out in \rt{} (i.e., as the bus is seen to jump backwards).
 
 
 
 \subsection{Trip updates}
 \label{sec:tu_data}
 
-As elluded to earlier, trip updates are prone to their own form of measurement error.
-Without human intervention, it is very difficult for the \gls{gps} tracking system
-on the bus to determine exactly when the bus arrives at or leaves a bus stop.
-In situations such as that described above,
-this can mean the arrival time is reported before the bus actually arrives,
-resulting in a premature arrival time and, more importantly,
-\emph{a severly reduced delay}.
+As elluded to earlier, trip updates are prone to their own form of measurement error. Without human intervention, it is very difficult for the \gls{gps} tracking system on the bus to determine exactly when the bus arrives at or leaves a bus stop. In situations such as that described above, this can mean the arrival time is reported before the bus actually arrives, resulting in a premature arrival time and, more importantly, \emph{a severly reduced delay}.
 
 
-Traffic lights may hold up a bus for a minute (or more),
-so the bus may, for argument sake, appear to arrive exactly on time.
-The result of this is the propogation of the current delay to all future stops,
-which will then display an \gls{eta} that matches the scheduled arrival time.
-However, two minutes later, after the bus has finally arrived at the stop,
-dropped off and picked up passengers,
-it departs, which triggers another trip update.
-The delay is now two minutes, which is propogated to future stops.
-Passengers waiting at these stops will now see the \gls{eta} jump suddenly by two minutes,
-leading inevitably to much frustration for passengers.
+Traffic lights may hold up a bus for a minute (or more), so the bus may, for argument sake, appear to arrive exactly on time. The result of this is the propogation of the current delay to all future stops, which then display an \gls{eta} that matches the scheduled arrival time. However, two minutes later, after the bus has finally arrived at the stop, dropped off and picked up passengers, it departs, triggering another trip update. The delay, now two minutes, is propogated to upcoming stops. Passengers waiting at these stops see the \gls{eta} jump suddenly by two minutes, as demonstrated in \cref{fig:tu_eta_jump}, leading inevitably to much frustration for passengers.
+
+<<tu_eta_jump,echo=FALSE,fig.width=6,fig.height=3,out.width=".8\\textwidth",fig.align="center",fig.cap="\\glspl{eta}, displayed as integer minutes, decrease over time until new data is recieved, marked by an arrow. If the bus has been delayed, the ETA as seen by the passenger may suddenly 'jump'.",message=FALSE,warning=FALSE>>=
+suppressPackageStartupMessages(library(tidyverse))
+
+d <- tibble(
+  eta = c(5, 4, 3, 2, 4, 3, 2),
+  t = seq_along(eta)
+)
+
+ggplot(d, aes(t, eta)) +
+  geom_step()  +
+  annotate("text", 5.1, 5,
+    label = "New trip update recieved",
+    hjust = "left",
+    vjust = "top"
+  ) +
+  geom_segment(
+    aes(x = 5, xend = 5, y = 5, yend = 4.1),
+    arrow = arrow(
+      length = unit(0.1, "inches")
+    ),
+    colour = "orangered"
+  ) +
+  theme_classic() +
+  scale_x_continuous(
+    "Time",
+    breaks = NULL
+  ) +
+  scale_y_continuous(
+    "ETA (minutes)",
+    limits = c(0, 5)
+  )
+
+@
 
 
-The reverse can also occur, for example if for some reason the bus reports
-its arrival or departure late.
-However, what is more common is that the update is skipped altogether,
-and so a bus that was 5~minutes behind schedule has made up several minutes
-and arrives at the bus stop while the \rt{} board still shows it
-as being 2~minutes away.
-While this may seem like a good thing---our passenger doesn't have to wait
-quite so long---the other passenger making their timely way to the bus may have to sprint
-the last leg (or miss the bus altogether).
+The reverse can also occur, for example if for some reason the bus reports its arrival or departure late. However, what is more common is that the update is skipped altogether, and so a bus that was 5~minutes behind schedule has made up several minutes and arrives at the bus stop while the \rt{} board still shows it as being 2~minutes away. While this may seem like a good thing---passengers already at the stop have a shorter wait---other passengers making their timely way to the bus may have to sprint the last leg (or miss the bus altogether).
 
 
-On the data side, the main repercussion of this is that arrival and departure
-times are very noisy and difficult to trust;
-however, they provide a lot of information without which it would be
-almost impossible to infer the trajectory of a bus between stops---which
-is the primary aim of this part of our work.
-
-
-
-
-
-
-
-
-
-
-
-% <<read_historical_data, cache=TRUE, echo=FALSE,eval=FALSE>>=
-% library(tidyverse)
-% library(RProtoBuf)
-% library(RSQLite)
-% library(dbplyr)
-% # protobuf ... uhg
-% #dir <- SET WD ('../../data')
-% #readProtoFiles("gtfs-realtime.proto")
-% #SET WD(dir)
-% gtfs <- file.path("..", "..", "data", "fulldata.db")
-% archive <- file.path("..", "..", "data", "archive.zip")
-% files <- unzip(archive, list = TRUE)
-
-% routes <- "NX1"
-% # fetch route IDs from database ...
-% con <- dbConnect(SQLite(), gtfs)
-% routeids <- con %>% tbl("routes") %>%
-%     filter(route_short_name %in% routes) %>%
-%     collect() %>% pluck("route_id")
-% dbDisconnect(con)
-% vps <- do.call(
-%     bind_rows,
-%     pbapply::pblapply(
-%         files[grepl('vehicle_', files$Name),]$Name,
-%         function(file) {
-%             unzip(archive, files = file)
-%             pb <- read(transit_realtime.FeedMessage, file)
-%             rm(file)
-%             if (length(pb$entity) == 0) return(NULL)
-%             ents <- pb$entity
-%             res <- do.call(bind_rows,
-%                 lapply(ents, function(e) {
-%                     if (! e$vehicle$trip$route_id %in% routeids ) return(NULL)
-%                     tibble(
-%                         vehicle_id = e$vehicle$vehicle$id,
-%                         trip_id = e$vehicle$trip$trip_id,
-%                         route_id = e$vehicle$trip$route_id,
-%                         timestamp = e$vehicle$timestamp,
-%                         position_latitude = e$vehicle$position$latitude,
-%                         position_longitude = e$vehicle$position$longitude
-%                     )
-%                 })
-%             )
-%             if (all(sapply(res, is.null))) return(NULL)
-%             res %>% mutate(timestamp = as.POSIXct(timestamp, origin = "1970-01-01"))
-%         }
-%     )
-% )
-% @
-
-
-% \subsection{Parameter estimation}
-% \label{sec:pf_parameter_estimation}
-
-% Deciding on the value of some important parameters should be done now-ish?
-% These are things that are endemic to bus behaviour
-% \begin{itemize}
-% \item GPS error
-% \item variability of speed, acceleration rate
-% \item arrival/departure time error at bus stops
-% \item stopping probability and dwell time at stops
-% \end{itemize}
-% Ideally these parameters will be estimated from the raw data,
-% rather than tuning the model later.
-% Of course, some cannot be estimated from the data,
-% in which case values proposed in the literature are used to start with,
-% where available.
-
-
-% Easily obtained historical data can be used for most of these.
-% Using vehicle positions,
-% we can calculate the average distance between each observation
-% and the route path,
-% making the assumption that the GPS error is not biased in any particular direction.
-% Of course, this is false,
-% but should be suitable for our purposes.
-
-% <<estimate_gps_error,eval=FALSE>>=
-% library(tidyverse)
-% library(RSQLite)
-% library(dbplyr)
-% con <- dbConnect(SQLite(), gtfs)
-% sh <- con %>% tbl('routes') %>%
-%     filter(route_short_name %in% routes) %>%
-%     head(1) %>%
-%     left_join(con %>% tbl('trips')) %>%
-%     head(1) %>%
-%     left_join(con %>% tbl('shapes')) %>%
-%     arrange(shape_pt_sequence) %>%
-%     collect()
-% vps2 <- vps %>% filter(grepl(gsub("-.*", "", sh$route_id[1]), route_id))
-% ggplot(sh, aes(shape_pt_lon, shape_pt_lat)) +
-%     geom_point(
-%         aes(position_longitude, position_latitude),
-%         shape = 3,
-%         data = vps2
-%     ) +
-%     geom_path(aes(group = shape_id), color = "red") +
-%     coord_fixed(ratio = 1.2)
-
-% ## distance to shape
-% library(sf)
-% shLine <- st_linestring(sh %>% select(shape_pt_lon, shape_pt_lat) %>% as.matrix)
-% z <- geosphere::dist2Line(
-%     vps2 %>% select(position_longitude, position_latitude),
-%     shLine
-% )
-% hist(z[z[, 1] < 40, 1], 50)
-
-% xy <- vps %>%
-%     select(position_longitude, position_latitude) %>%
-%     as.matrix %>%
-%     apply(1, paste)
-% names(table(xy) > 10)
-% @
-
-% BUT that is messed up because of bus stop observations (they are ``exact'').
-
-
+On the data side, the main repercussion of this is that arrival and departure times are very noisy and difficult to trust; however, they provide a lot of information without which it would be almost impossible to infer the trajectory of a bus between stops---which is the primary aim of this part of our work. We discuss this further in \cref{sec:pf-likelihood} when we present the likelihood function.

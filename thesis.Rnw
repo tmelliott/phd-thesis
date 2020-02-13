@@ -280,8 +280,8 @@ The acknowledgments and the people to thank go here, don't forget to include you
 % Uncomment the lines as you write the Appendices
 
 \include{endmatter/appendix01/appendix01}
-%\include{Appendices/AppendixB}
-%\include{Appendices/AppendixC}
+\include{endmatter/appendix02/appendix02}
+
 
 %----------------------------------------------------------------------------------------
 %   BIBLIOGRAPHY
