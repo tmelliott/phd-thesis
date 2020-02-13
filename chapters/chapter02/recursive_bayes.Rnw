@@ -1,176 +1,141 @@
-\section{Modelling \rt{} data: recursive Bayes}
+\section{Recursive Bayesian models}
 \label{sec:recursive-bayes}
 
-
-Now that we have discussed how the data is structured,
-we need to consider how it can be modelled.
-The main point to consider is that the data are being collected in \rt{},
-in order to make predictions of arrial time \emph{in \rt{}}.
-Therefore, the modelling framework is tightly constrained by
-the necessity that it can be run quickly.
-We are working with vehicle location data,
-with the goal of estimating the location and speed of a vehicle,
-collectively referred to as its \emph{state},
-which we will (for now) denote $\bx$.
-This state changes over time, so we denote a particular instance of the state
-at a time $t_k$ using a subscript, $\bx_k$.
+The most challenging problem we face in this application is its \rt{} nature. Vehicle's report their current location, from which we want to estimate road speeds in order to predict arrival times, all within no more than 30~seconds. Fortunately, a certain class of models suit themselves well to \rt{} applications, and are indeed used in many vehicle tracking and robotis applications. These are, of course, \glspl{rbm}, sometimes referred to a \emph{sequential Bayes}.
 
 
-However, we cannot observe the state of the vehicle directly;
-instead we get observations $\bz_k$, from which we wish to infer the underlying state.
-
-
-
-
-
-
-
-\pagebreak
-
-In many data analysis situations,
-data is observed and stored in an $n\times m$ matrix which, for generality,
-will be denoted $\boldsymbol{\mathcal{Y}}$ in this section.
-We could then implement a model and estimate all of the parameters at once,
-for example by using \gls{mcmc},
-to estimate some matrix of parameters $\boldsymbol{\mathcal{X}}$
-that correspond to the values we are interested in (the speed of vehicles),
-using the well known Bayes' formula,
+In a typical analysis, data $\mat{Y}$ would be stored in an $n\times k$ matrix corresponding to $k$ measurements of $n$ variables over time. Then Bayes' rule could be used to estimate the posterior distribution of an $m\times k$ matrix of parameters $\mat{X}$ all at once,
 \begin{equation}
 \label{eq:bayes}
-p(\boldsymbol{\mathcal{X}}|\boldsymbol{\mathcal{Y}}) =
+p(\mat{X}\cond{}\mat{Y}) =
 \frac{
-    p(\boldsymbol{\mathcal{X}})
-    p(\boldsymbol{\mathcal{Y}}|\boldsymbol{\mathcal{X}})
+    p(\mat{X})
+    p(\mat{Y}\cond{}\mat{X})
 }{
-    p(\boldsymbol{\mathcal{Y}})
+    p(\mat{Y})
 }
 \end{equation}
+This is typically estimated using an \gls{mcmc} algorithm, which are generally computationally intensive and take much longer than 30~seconds to converge.
+In a \rt{} application, the columns of $\mat{Y}$ are observed sequentially, so that at time $t_k$ we have observed
+\begin{equation}
+\label{eq:bayes_y_vector}
+\mat{Y}_{1:k} = [\boldsymbol{y}_1,\cdots,\boldsymbol{y}_k],
+\end{equation}
+and wish to estimate
+\begin{equation}
+\label{eq:bayes_x_vector}
+\mat{X}_{0:k} = [\boldsymbol{x}_0,\cdots,\boldsymbol{x}_k],
+\end{equation}
+where $\boldsymbol{x}_0$ is the \emph{initial state} of the object being modelled. Rather than refitting the full model, as we would need to do using \gls{mcmc}, \gls{rbe} allows us to combine the previous \emph{posterior estimate} of the state with the new information.
 
-In \rt{} applications, as are many vehicle tracking problems,
-the data is observed \emph{and modelled} in \rt{}.
-That is, at time $t_k$, we recieve an observation as a column vector
-$\boldsymbol{\mathcal{Y}}_k$ of length $n$,
-and want to estimate the state of the vehicle
-$p(\boldsymbol{\mathcal{X}}_{0:k}|\boldsymbol{\mathcal{Y}}_{1:k})$.
-Of course, we could just fit a full Bayesian model to the new data,
-but this will take time,
-and will involve a lot of refitting data that is not only already estimated,
-but no longer necessary
-(we no longer care about the vehicle state at any time before $t_k$).
-Instead, it is common for \rt{} applications to use a recursive estimation algorithm.
-
-
-
-
-The general principal behind recursive Bayesian estimation,
-or \emph{sequential Bayes},
-is that there exists some underlying Markov process with state $x_k$,
-of which observations $z_k$ are made.
-The assumption that the process is Markov---which means that the current state
-depends only on the previous state, and is indepenent of all others---gives
+In a \gls{rbm}, we make two general assumptions. The first is that $\boldsymbol{x}$ follows a Markov process such that the state at time $t_k$ depends only upon the state at time $t_{k-1}$:
 \begin{equation}
 \label{eq:rbe_markov}
-p(\boldsymbol{\mathcal{X}}_k | \boldsymbol{\mathcal{X}}_{k-1}, \ldots, \boldsymbol{\mathcal{X}}_{0}) =
-p(\boldsymbol{\mathcal{X}}_k | \boldsymbol{\mathcal{X}}_{k-1})
+p(\boldsymbol{x}_k \cond{} \boldsymbol{x}_{k-1}, \ldots, \boldsymbol{x}_{0}) =
+p(\boldsymbol{x}_k \cond{} \boldsymbol{x}_{k-1})
 \end{equation}
-and, since the observation at time $t_k$ is dependentent only on the state at time $t_k$,
-we have that
+from which we can derive the joint distribution of the underlying state parameters
+\begin{equation}
+\label{eq:rbe_joint_x}
+\begin{split}
+p(\mat{X}_{0:k})
+&= p(\bx_0)p(\bx_1\cond{}\bx_0)p(\bx_2\cond{}\bx_1,\bx_0)\cdots
+p(\bx_{k}\cond{}\bx_{k-1},\ldots,\bx_0) \\
+&= p(\bx_0)p(\bx_1\cond{}\bx_0)p(\bx_2\cond{}\bx_1)\cdots p(\bx_k\cond{}\bx_{k-1}) \\
+&= p(\bx_0)\prod_{i=1}^k p(\bx_i\cond{}\bx_{i-1})
+\end{split}
+\end{equation}
+
+The second assumption is that the \emph{observations} $\boldsymbol{y}_k$ of the state depend only on the current state and are independent of one another:
 \begin{equation}
 \label{eq:rbe_obs}
-p(\boldsymbol{\mathcal{Y}}_k | \boldsymbol{\mathcal{X}}_{k}, \ldots, \boldsymbol{\mathcal{X}}_{0}) =
-p(\boldsymbol{\mathcal{Y}}_k | \boldsymbol{\mathcal{X}}_{k}).
+p(\boldsymbol{y}_k \cond{} \boldsymbol{x}_{k}, \ldots, \boldsymbol{x}_{0},
+\boldsymbol{y}_{k-1}, \ldots, \boldsymbol{y}_{1}) =
+p(\boldsymbol{y}_k \cond{} \boldsymbol{x}_{k}).
+\end{equation}
+This allows us to derive the joint likelihood for the data,
+\begin{equation}
+\label{eq:rbe_joint_lh}
+\begin{split}
+p(\mat{Y}_{1:k}\cond{}\mat{X}_{0:k})
+&= p(\boldsymbol{y}_1\cond{}\bx_1,\bx_0)\cdots p(\boldsymbol{y}_k\cond{}\bx_k,\ldots,\bx_0) \\
+&= p(\boldsymbol{y}_1\cond{}\bx_1)\cdots p(\boldsymbol{y}_k\cond{}\bx_k) \\
+&= \prod_{i=1}^k p(\boldsymbol{y}_i\cond{}\bx_i)
+\end{split}
+\end{equation}
+along with the marginal distribution for the data,
+\begin{equation}
+\label{eq:rbe_marginal_y}
+p(\mat{Y}_{1:k}) = p(\boldsymbol{y}_1)\cdots p(\boldsymbol{y}_k)
+= \prod_{i=1}^k p(\boldsymbol{y}_i)
 \end{equation}
 
 
-Now, the numerator from \cref{eq:bayes} can be re-expressed,
-first by showing that
-\begin{align}
-\label{eq:rbe_join_x}
-p(\boldsymbol{\mathcal{X}}_{0:k}) &=
-p(\boldsymbol{\mathcal{X}}_{0},\boldsymbol{\mathcal{X}}_{1},\ldots,\boldsymbol{\mathcal{X}}_{k}) \nonumber\\
-&= p(\boldsymbol{\mathcal{X}}_{0}) p(\boldsymbol{\mathcal{X}}_{1} | \boldsymbol{\mathcal{X}}_{0})
-    p(\boldsymbol{\mathcal{X}}_{2} | \boldsymbol{\mathcal{X}}_{1}, \boldsymbol{\mathcal{X}}_{0}) \cdots
-    p(\boldsymbol{\mathcal{X}}_{k} | \boldsymbol{\mathcal{X}}_{k-1}, \ldots, \boldsymbol{\mathcal{X}}_{0})
-    \nonumber\\
-\intertext{which can be simplified using \cref{eq:rbe_markov} to}
-p(\boldsymbol{\mathcal{X}}_{0:k})
-&= p(\boldsymbol{\mathcal{X}}_{0})
-    p(\boldsymbol{\mathcal{X}}_{1} | \boldsymbol{\mathcal{X}}_{0})
-    p(\boldsymbol{\mathcal{X}}_{2} | \boldsymbol{\mathcal{X}}_{1}) \cdots
-    p(\boldsymbol{\mathcal{X}}_{k} | \boldsymbol{\mathcal{X}}_{k-1}) \nonumber\\
-&= p(\boldsymbol{\mathcal{X}}_{0})
-    \prod_{i=1}^k p(\boldsymbol{\mathcal{X}}_{i} | \boldsymbol{\mathcal{X}}_{i-1})
-\end{align}
-Secondly, using \cref{eq:rbe_obs}, the rest of the numerator becomes
-\begin{align}
-\label{eq:rbe_join_y}
-p(\boldsymbol{\mathcal{Y}}_{1:k} | \boldsymbol{\mathcal{X}}_{0:k}) &=
-p(\boldsymbol{\mathcal{Y}}_{1} | \boldsymbol{\mathcal{X}}_{1}) \cdots
-p(\boldsymbol{\mathcal{Y}}_{k} | \boldsymbol{\mathcal{X}}_{k}) \nonumber \\
-&= \prod_{i=1}^k p(\boldsymbol{\mathcal{Y}}_{i} | \boldsymbol{\mathcal{X}}_{i})
-\end{align}
+
+We can now express the posterior distribution $p(\mat{X}_{0:k}\cond{}\mat{Y}_{1:k})$ using \cref{eq:bayes} along with \cref{eq:rbe_joint_x,eq:rbe_joint_lh,eq:rbe_marginal_y} as
+\begin{equation}
+\label{eq:rbe_posterior}
+\begin{split}
+p(\mat{X}_{0:k}\cond{}\mat{Y}_{1:k})
+&= \frac{p(\mat{X}_{0:k})p(\mat{Y}_{1:k}\cond{}\mat{X}_{0:k})}{p(\mat{Y}_{1:k})} \\
+&= \frac{
+    p(\bx_0)\prod_{i=1}^k p(\bx_i) \cdot
+    \prod_{i=1}^k p(\boldsymbol{y}_i\cond{}\bx_i)
+}{
+    \prod_{i=1}^k p(\boldsymbol{y}_i)
+} \\
+&= p(\bx_0)\prod_{i=1}^k
+\frac{
+    p(\bx_i) p(\boldsymbol{y}_i\cond{}\bx_i)
+}{
+    p(\boldsymbol{y}_i)
+}
+\end{split}
+\end{equation}
+
+Finally, when we to receive new data $\boldsymbol{y}_{k+1}$, the posterior distribution of the underlying state parameters using \cref{eq:rbe_posterior} is
+\begin{equation}
+\label{eq:rbe_posterior2}
+\begin{split}
+p(\mat{X}_{0:k+1}\cond{}\mat{Y}_{1:k+1})
+&= p(\bx_0)\prod_{i=1}^{k+1}
+\frac{
+    p(\bx_i) p(\boldsymbol{y}_i\cond{}\bx_i)
+}{
+    p(\boldsymbol{y}_i)
+} \\
+&= p(\bx_0)\prod_{i=1}^k
+\frac{
+    p(\bx_i) p(\boldsymbol{y}_i\cond{}\bx_i)
+}{
+    p(\boldsymbol{y}_i)
+}
+\cdot
+\frac{
+    p(\bx_{k+1}) p(\boldsymbol{y}_{k+1}\cond{}\bx_{k+1})
+}{
+    p(\boldsymbol{y}_{k+1})
+} \\
+&= p(\mat{X}_{0:k}\cond{}\mat{Y}_{1:k})
+\frac{
+    p(\bx_{k+1}) p(\boldsymbol{y}_{k+1}\cond{}\bx_{k+1})
+}{
+    p(\boldsymbol{y}_{k+1})
+}.
+\end{split}
+\end{equation}
+Here, the posterior distribution from the previous time step is used as a \emph{prior} for the next, and so it \emph{recursively} or \emph{sequentially} updates the state estimate as new data are observed. This is what makes \glspl{rbm} perfect for use in \rt{} applications.
 
 
-% Now, we can express \cref{eq:bayes} by substituting \cref{eq:rbe_join_x,eq:rbe_join_y},
-% \begin{align}
-% \label{eq:rbe_bayes}
-
-% \end{align}
-
-
-
-% with transition function $\mathcal{F}$
-% and system noise $\mathcal{Q}$,
-% \begin{equation}
-% \label{eq:markov_state}
-% \mathcal{X}_k = \mathcal{F}(\mathcal{X}_{k-1}, \mathcal{Q}_k).
-% \end{equation}
-% The important aspect of this is that the current state
-% depends only on the previous state,
-% % \begin{equation}
-% % \label{eq:state_dist}
-% % p(\mathcal{X}_k | \mathcal{X}_0, \ldots, \mathcal{X}_{k-1}) =
-% % p(\mathcal{X}_k | \mathcal{X}_{k-1})
-% % \end{equation}
-% which allows us to model the current state using only the previous one,
-% which speeds up processing time.
-% How this is done depends on the estimator being used.
-
-
-% The second part of recursive Bayes regards how the object is observed.
-% In many cases, it is impossible to measure the desired state directly,
-% so instead a related, \emph{observable} state is measured,
-% $\mathcal{Y}$, which is related to the underlying state through
-% the measurement function $\mathcal{H}$
-% and measurement error $\mathcal{R}$,
-% \begin{equation}
-% \label{eq:state_measure}
-% \mathcal{Y}_k = \mathcal{H}(\mathcal{X}_k, \mathcal{R})
-% \end{equation}
-% It is of interest to estimate the current state
-% based on all of the observations so far,
-% \begin{equation}
-% \label{eq:state_dist_obs}
-% p(\mathcal{X}_k | \mathcal{Y}_{1:k})
-% \end{equation}
-% which can be done recursively each time a new observation is recieved.
-
-% The general formula for recusive Bayes models is
-% to first \emph{predict} the next state,
-% $p(\mathcal{X}_k | \mathcal{X}_{k-1})$,
-% and then to update the prediction using the likelihood
-% $p(\mathcal{Y}_k | \mathcal{X}_k)$
-% to obtain a posterior estimate of the state
-% given all previous observations,
-% $p(\mathcal{X}_k | \mathcal{Y}_{1:k})$.
-
-
-% There are several different estimation techniques,
-% from emperical ones such as the \emph{\kf{}}
-% and it's variants (Extendend \kf{}, etc.),
-% to numerical ones such as the \pf{}.
-% Here we will discuss the \kf{} and the \pf{},
-% which we will be using in later sections.
+There are several types of \glspl{rbe}, but they all consist of two main steps: the \emph{prediction}, and the \emph{update}. In the prediction step, the algorithm uses a \emph{transition function} $f$ (or matrix) to predict the new state based only upon the current state, while the \emph{update} step incorporates the data to adjust the estimate using a \emph{measurement function} $h$, which describes the relationship between $x$ and $y$. These can be expressed by the following model equations:
+\begin{equation}
+\label{eq:rbe_model}
+\begin{split}
+\bx_k &= f(\bx_{k-1}, \boldsymbol{w}_k) \\
+\boldsymbol{y}_k &= h(\bx_k) + \boldsymbol{v}_k.
+\end{split}
+\end{equation}
+The additional parameters $\boldsymbol{w}_k$ and $\boldsymbol{v}_k$ represent \emph{system noise} and \emph{measurement error}, respectively. The choice of $f$, $h$, and the distributions for the error terms depends on the choice of model. We now discuss two types of \gls{rbe} which are used throughout this work: the \kf{} and the \pf{}.
 
 
 \subsection{\kf{}}
