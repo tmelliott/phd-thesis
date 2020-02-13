@@ -141,129 +141,98 @@ The additional parameters $\boldsymbol{w}_k$ and $\boldsymbol{v}_k$ represent \e
 \subsection{\kf{}}
 \label{sec:kf}
 
-Commonly used in vehilce tracking applications,
-the \kf{} is a very fast, simple estimation method
-that assumes Gaussian noise and approximates the state
-by a normal random variable with mean and variance
+Commonly used in vehicle tracking applications, the \kf{} is a very fast, simple estimation method that assumes Gaussian noise and approximates the state by a normal random variable with length $m$ mean vector and $m\times x$ covariance matrix
 \begin{equation}
 \label{eq:kf_estimators}
 \begin{split}
-\mathcal{\hat X}_{k|k} &= \E{\mathcal{X}_k | \mathcal{Y}_{1:k}} \\
-\mathcal{P}_{k|k} &= \Var{\mathcal{X}_k | \mathcal{Y}_{1:k}}
+\hat\bx_{k|k} &= \E{\bx_k | \boldsymbol{y}_{1:k}} \\
+\mat{P}_{k|k} &= \Var{\bx_k | \boldsymbol{y}_{1:k}}
 \end{split}.
 \end{equation}
-The transition and measurement functions
-at time $t_k$ are expressed as matrices
-$\mat{F}_k$ and $\mat{H}_k$, respectively.
-The system noise $\vec{q}_k$ and measurement error $\vec{r}_k$
-at time $t_k$ are both random normal variables
-with mean vector $\vec{0}$ and covariance matrices
-$\mat{Q}_k$ and $\mat{R}_k$, respectively.
-Therefore, the \kf{} prediction step is
+A \kf{} implementation requires a $m\times m$ \emph{transition matrix}, $\mat{F}_k$, which defines the relationship between states at time $t_{k-1}$ and $t_k$, and a $n\times m$ \emph{measurement matrix}, $\mat{H}_k$, defining the relationship between $\boldsymbol{y}$, a length $n$ vector, and $\bx$, a length $m$ vector. The \kf{} version of the model presented in \cref{eq:rbe_model} is
+\begin{equation}
+\label{eq:kf_model}
+\begin{split}
+\bx_k &= F_k\bx_{k-1} + \boldsymbol{w}_k \\
+\boldsymbol{y}_k &= H_k\bx_k + \boldsymbol{v}_k,
+\end{split}
+\end{equation}
+where $\boldsymbol{w}_k$ and $\boldsymbol{v}_k$ are normal random variables with mean zero and covariance matrices $\mat{Q}_k$ and $\mat{R}_k$, respectively. The $m\times m$ covariance matrix $\mat{Q}_k$ represents the system noise at time $t_k$, which is defined as the rate of change of the variance of process noise \citep{Cathey_2003}. Measurement error is expressed by the $n\times n$ covariance matrix $\mat{R}_k$.
+
+The \kf{} is implemented through two sets of equations. First is the prediction step, in which the current state (represented by the mean vector and covariance matrix) is predicted based solely on the previous state:
 \begin{equation}
 \label{eq:ch2:kf_predict}
 \begin{split}
-\mathcal{\hat X}_{k|k-1} = \E{\mathcal{X}_k | \mathcal{X}_{k-1}}
-    &= \mat{F}_k \mathcal{\hat X}_{k-1|k-1} + \vec{q}_k \\
-\mathcal{P}_{k|k-1} = \Var{\mathcal{X}_k | \mathcal{X}_{k-1}}
-    &= \mat{F}_k \mathcal{P}_{k-1|k-1} \mat{F}_k^\top + \mat{Q}_k
+\hat\bx_{k|k-1} = \E{\bx_k | \bx_{k-1}}
+    &= \mat{F}_k \hat\bx_{k-1|k-1} \\
+\mat{P}_{k|k-1} = \Var{\bx_k | \bx_{k-1}}
+    &= \mat{F}_k \mat{P}_{k-1|k-1} \mat{F}_k^\top + \mat{Q}_k
 \end{split}
 \end{equation}
-
-$\mathbf{Q}$ is the \emph{rate of change of the variance of
-process noise} \citep{Cathey_2003}.
-
-The update step is also simple,
-and expressed as a series of equations:
+Next, the update step uses the observation $\boldsymbol{y}_k$ to adjust the predicted state. This is done using the following set of equations, which are effectively taking a ratio of the state and measurement uncertainties:
 \begin{equation}
 \label{eq:ch2:kf_update}
 \begin{split}
-\mathcal{\tilde Z}_k &= \mathcal{Y}_k - \mat{H}_k \mathcal{\hat X}_{k|k-1} \\
-\mat{S}_k &= \mat{R}_k + \mat{H}_k \mathcal{P}_{k|k-1} \mat{H}_k^\top \\
-\mat{K}_k &= \mathcal{P}_{k|k-1} \mat{H}_k^\top \mat{S}_k^{-1} \\
-\mathcal{\hat X}_{k|k} &= \mathcal{\hat X}_{k|k-1} + \mat{K}_k \mathcal{\tilde Z}_k \\
-\mathcal{P}_{k|k} &= (\mat{I} - \mat{K}_k \mat{H}_k) \mathcal{P}_{k|k-1}
-    (\mat{I} - \mat{K}_k \mat{H}_k)^\top + \mat{K}_k \mat{R}_k \mat{K}_k^\top
+\bz_k &= \boldsymbol{y}_k - \mat{H}_k \hat\bx_{k|k-1} \\
+\mat{S}_k &= \mat{R}_k + \mat{H}_k \mat{P}_{k|k-1} \mat{H}_k^\top \\
+\mat{K}_k &= \mat{P}_{k|k-1} \mat{H}_k^\top \mat{S}_k^{-1} \\
+\hat\bx_{k|k} &= \hat\bx_{k|k-1} + \mat{K}_k \bz_k \\
+\mat{P}_{k|k} &= (\mat{I} - \mat{K}_k \mat{H}_k) \mat{P}_{k|k-1}
+    (\mat{I} - \mat{K}_k \mat{H}_k)^\top + \mat{K}_k \mat{R}_k \mat{K}_k^\top.
 \end{split}
 \end{equation}
-The main point to make here is that the measurement matrix,
-blah blah blah thing about the thing goes here.
+
+
+The simplicity of the \kf{} means that, so long as the number of parameters $m$ is small, it can be calculated incredibly quickly with minimal processing demand, making it a strong competitor for \rt{} applications. Conversely, the \kf{} makes several strong assumptions about the shape of the parameter distributions, and is limited to linear relationships between states and measurements since these must be expressed in matrix form.
 
 
 
 \subsection{Particle filter}
 \label{sec:pf}
 
-The other framework we use is the \pf{},
-a more generalised, numerical approach to recursive Bayesian modelling.
-The state is approximated by a sample of $\Np$ particles,
-each of which is an independent point estimate of the state with a weight $\Pwt$
-such that $\Pwt\geq 0$ and $\sum_i \Pwt = 1$.
-The state estimate is expressed using the Dirac delta function $\dirac$ \citep{cn},
-such that
+The other framework we use is the \pf{}, a more generalised, numerical approach to recursive Bayesian modelling. The state is approximated by a sample of $\Np$ particles, each of which is an independent point estimate of the state $\bx\vi_k$ with a weight $w\vi \geq 0$ and $\sum_i w\vi = 1$. The state estimate is expressed using the Dirac delta measure $\dirac$ (see \cref{app:dirac-delta-measure} for details), such that
 \begin{equation}
 \label{eq:pf_state}
-p(\mathcal{X}_{k-1} | \mathcal{Y}_{1:k-1}) \approx
-\sum_{i=1}^\Np \Pwt_{k-1} \dirac(\mathcal{X}_{k-1} - \mathcal{X}\vi_{k-1})
+p(\bx_{k-1} | \boldsymbol{y}_{1:k-1}) \approx
+\sum_{i=1}^\Np w\vi_{k-1} \DiracMeasure{\bx\vi_{k-1}}{\bx_{k-1}}
 \end{equation}
 
-The predict and updates steps,
-also referred to by \emph{mutate} and \emph{select},
-are as follows.
-
-The prediction step applies the transition function $\mathcal{F}_k$
-to each particle independently,
-diversifying of ``mutating'' the sample.
-For each particle, this is
+The first main advantage of the \pf{} is that we are no longer constrained in our choice of transition function, $f$, or in our error distribution. The reason for this is that, instead of working with the mean and variance of the state (as is the case with the \kf{}) we work with \emph{independent point estimates} which each represent a plausible state. Here we use a normal random variable for the system noise, but this could be any appropriate distribution (for example a Cauchy if heavier tails are necessary). The state prediction step is thus carried out on each particle,
 \begin{equation}
 \label{eq:ch2:pf_predict_particle}
-\mathcal{X}\vi_k = \mathcal{F}\left(\mathcal{X}\vi_{k-1}, q\vi_k\right),
+\bx\vi_k = f\left(\bx\vi_{k-1}, \boldsymbol{v}\vi_k\right),
 \quad
-q\vi_k \sim \Normal{0}{\mathcal{Q}_k}
+\boldsymbol{v}\vi_k \sim \Normal{\boldsymbol{0}}{\mat{Q}_k}
 \end{equation}
-where the noise can be incorporated in any logical way.
-
-The state estimate is now
+The prior-predictive distribution of the state, using the Dirac delta measure, is given by
 \begin{equation}
 \label{eq:ch2:pf_predict_state}
-p(\mathcal{X}_k | \mathcal{X}_{k-1}) \approx
-\sum_{i=1}^\Np \Pwt_{k-1} \dirac(\mathcal{X}_k - \mathcal{X}\vi_k)
+p(\bx_k | \bx_{k-1}) \approx
+\sum_{i=1}^\Np w\vi_{k-1} \DircMeasure{\bx\vi_k}{\bx_k}
 \end{equation}
 
 
-The next step is to update the state
-to account for the observation
-by using the likelihood function directly.
-This is simply done by reweighting each particle
-using the likleihood,
-and dividing by the sum to ensure they sum to 1:
+The next step is to update the state to account for the observation by using the likelihood function directly. This is simply done by reweighting each particle using the likleihood function, and normalising the weights to sum to unity:
 \begin{equation}
 \label{eq:pf_reweight}
-\Pwt_k =
+w\vi_k =
 \frac{
-    \Pwt_{k-1} p(\mathcal{Y}_k | \mathcal{X}\vi_k)
+    w\vi_{k-1} p(\boldsymbol{y}_k | \bx\vi_k)
 }{
-    \sum_{j=1}^\Np \Pwt[j]_{k-1} p(\mathcal{Y}_k | \mathcal{X}\vi[j]_k)
+    \sum_{j=1}^\Np w\vi_{k-1} p(\boldsymbol{y}_k | \bx\vi[j]_k)
 }
+\end{equation}
+This yields the final posterior distribution of the state,
+\begin{equation}
+\label{eq:pf_state_post}
+p(\bx_{k} | \boldsymbol{y}_{1:k}) \approx
+\sum_{i=1}^\Np w\vi_{k} \DiracMeasure{\bx\vi_{k}}{\bx_{k}}.
 \end{equation}
 
 
-Over time, the mutation step will diversity the particles
-to the point where very few of the particles contribute all of the weight.
-To prevent the \pf{} from degenerating like this,
-importance resampling (weighted bootstrap)
-is performed to \emph{select} the best approximation of the state.
-Afterwards, the particles are all reweighted with weight $\Pwt_k = \Np^{-1}$.
+Over time, many of the particle weights will go to zero as they disperse due to the system noise. This leaves only a few particles contributing to the state, which, if none end near the actual vehicle location, will result in all vehicles having likelihoods close to zero. To prevent this situation of particle filter \emph{degeneration}, we perform \emph{importance resampling} (a weighted bootstrap) in which particles are sampled, with replacement, according to their weight. Afterwards, particle weights are reset to $N^{-1}$.
 
 
-The advantage of the \pf{} is that it is general,
-at as we will see in \cref{sec:vehicle_model},
-we can easily create a transition function to describe a complex system,
-and the likelihood is intuitive and does not require map matching.
+The advantage of the \pf{} is that it is general, and as we discuss in \cref{sec:vehicle_model}, we can easily create a transition function to describe a complex system, as well as define a likelihood function that accurately defines the relationship between observed and unobserved states.
 
-The disadvantage is, of course,
-that the computational demand is high,
-as each particle is translated independently,
-and then resampling can be slow for large $\Np$,
-having order $\mathcal{O}(\Np\log\Np)$ in the C++ algorithm we use.
-However, the tradeoffs are massive as we will discuss in the next chapter.
+The disadvantage is, of course, that the computational demand is high, as each particle is translated independently, and resampling can be slow for large $\Np$, having order $\mathcal{O}(\Np\log\Np)$ in the C++ algorithm we use. However, as we discuss in the next chapter, the advantages far outweigh the additional computational demands of the \pf{}, which can be minimised if implemented carefully.
