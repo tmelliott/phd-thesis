@@ -3,7 +3,7 @@
 \label{sec:nw_par_est}
 
 
-To use the Kalman in any meaningful way, we first need to estimate the system noise, $\NWnoise_\ell$, and between-vehicle variance, $\NWvar_{\ellc}$. To estimate values for these parameters, we fit the same model from \cref{sec:nw_model} to the same historical data shown in \cref{fig:tt_figure}, but instead of using the \kf{} to estimate the network state, we use \gls{mcmc} sampling methods as implemented by JAGS \citep{JAGS}.
+To use the Kalman in any meaningful way, we first need to estimate the system noise, $\NWnoise_\ell$, and between-vehicle variance, $\NWvar_{\ellc}$. To estimate values for these parameters, we fit the same model from \cref{sec:nw_model} to the historical data shown in \cref{fig:tt_figure} using \gls{mcmc} sampling methods as implemented by JAGS \citep{JAGS}.
 
 
 For the first step in the modelling process, we fit the following hierarchical model:

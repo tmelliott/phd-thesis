@@ -2,26 +2,29 @@
 \label{sec:nw_model}
 
 
-The relationship between the underlying road speed and the value we estimate (back in \cref{cha:vehicle_model}) involves two steps. First, we must describe the relationship between the average traffic speed and the vehicle's true average speed. Second, we define the relationship between \emph{actual} and \emph{observed} (or, more specifically, estimated) average speed. This type of model is referred to as a \emph{heirarchical (Bayesian) model} and is demonstrated graphically in \cref{fig:nw_model_hierarchy}.
+The relationship between the underlying road speed and the value observerd in \cref{cha:vehicle_model} involves two steps. First, we must describe the relationship between the average traffic speed and the vehicle's true average speed. Second, we define the relationship between \emph{actual} and \emph{observed} (or, more specifically, estimated) average speed. This type of model is referred to as a \emph{heirarchical (Bayesian) model} and was demonstrated graphically in \cref{fig:nw_model_hierarchy}.
 
 
 Let us first consider the state of the network at time $t_c$, which we denote
 \begin{equation}\label{eq:nw_state}
-\boldsymbol{\NWstate}_c = \left[\NWstate_{1,c}\ \cdots\ \NWstate_{L,c}\right]^\top,
+\boldsymbol{\NWstate}_c =
+\left[\NWstate_{1,c}\ \cdots\ \NWstate_{L,c}\right]^\top,
 \end{equation}
-a vector containing the current real-time average traffic speed along all $L$ roads in the network. However, modelling the full state would increase computational demand as $L$ gets large, so, for now, we only consider each road segment $\ell$ \emph{independently} (see later in \cref{sec:} for a discussion of the implications of this).
+a vector containing the current real-time average traffic speed along all $L$ roads in the network. However, modelling the full state would increase computational demand as $L$ gets large, so we consider each road segment $\ell$ \emph{independently} (see later in \cref{sec:kf-limits} for a discussion of the implications of this).
 
 
 Vehicles travelling along road segment $\ell$ at time $t_c$ have an underlying average speed of $\NWstate_{\ellc}$~seconds, which changes with an average rate of $\NWnoise_\ell$. Assuming the underlying road state is a Markov process, the model for the evolution of traffic speed along a road with a maximum velocity (speed) of $\MaxSpeed_\ell$~\gls{mps} is
 \begin{equation}\label{eq:nw_state_markov}
-\NWstate_{\ellc} \sim \TNormal{\NWstate_{\ellc-1}}{(\NWtdiff_c \NWnoise_c)^2}{0}{\MaxSpeed_\ell}
+\NWstate_{\ellc} \sim
+\TNormal{\mathcal{F}_c(\NWstate_{\ellc-1})}{(\NWtdiff_c \NWnoise_c)^2}{0}{\MaxSpeed_\ell}
 \end{equation}
-where $\NWtdiff_c = t_c - t_{c-1}$ is the time since the last update. This model allows traffic speed to follow temporal trends (peak hour traffic, for example) as well as react to real-time events, such as accidents or weather events.
+where $\NWtdiff_c = t_c - t_{c-1}$ is the time since the last update. This model allows traffic speed to follow temporal trends through the time-dependent transition matrix $\mathcal{F}_c$ (peak hour traffic, for example) as well as react to real-time events, such as accidents or weather events
 
 
-As already mentioned, there are many factors which can affect the speed of a vehicle along a given road segment. To encapsulate this uncertainty, we introduce a single parameter $\NWvar_{\ellc}$, which describes the width of the distribution at the top of \cref{fig:nw_model_hierarchy}, or the \emph{between-vehicle varibility}. The true average speed of a bus $m$ along road segment $\ell$ at time $t_c$ is denoted $\Vtt_{\ellc}^m$, and is assumed to be an observation from the population distribution with mean $\NWstate_{\ellc}$ and variance $\NWvar_{\ellc}^2$,
+As already mentioned, there are many factors which can affect the speed of a vehicle along a given road segment. To encapsulate this uncertainty, we introduce a single parameter $\NWvar_{\ellc}$, which describes the \emph{between-vehicle varibility}, or the width of the distribution at the top of \cref{fig:nw_model_hierarchy}. The true average speed of a bus $m$ along road segment $\ell$ at time $t_c$ is denoted $\Vtt_{\ellc}^m$, and is assumed to be an observation from the population distribution with mean $\NWstate_{\ellc}$ and variance $\NWvar_{\ellc}^2$,
 \begin{equation}\label{eq:nw_vehicle_tt}
-\Vtt_{\ellc}^m \sim \TNormal{\NWstate_{\ellc}}{\NWvar_{\ellc}^2}{0}{\MaxSpeed_\ell}.
+\Vtt_{\ellc}^m \sim
+\TNormal{\NWstate_{\ellc}}{\NWvar_{\ellc}^2}{0}{\MaxSpeed_\ell}.
 \end{equation}
 
 
@@ -32,7 +35,7 @@ Once a vehicle has traversed a segment, we estimate its average speed as $\Vttob
 
 
 
-To further demonstrate the model, we have included a simulation where all of the parameter values are known (based off of the values estimated in \cref{sec:nw_par_est}). \Cref{fig:nw_sim_data} shows the three stages of the model hierarchy.
+To assess the model, we performed a simulation where all of the parameter values are known (based off of the values estimated in \cref{sec:nw_par_est}). \Cref{fig:nw_sim_data} shows the three stages of the model hierarchy.
 
 
 <<nw_sim_data,echo=FALSE,fig.width=6,fig.height=2,fig.align="center",out.width="0.8\\textwidth",fig.cap="Simulated data showing average vehicle speed along a road. The right hand axis is shown as a guide for readers not familiar with speeds measured in meters per second.",fig.subcap=c('Underlying average vehicle speed', 'Actual bus speeds (averaged over road segment)', 'Observed average bus speeds, with vertial lines representing measurement error.'),fig.ncol=1,fig.sep=rep("\\\\", 4)>>=
@@ -77,7 +80,7 @@ p + geom_path(
 @
 
 
-Observed vehicle speeds for a real segment, displayed in \cref{fig:tt_figure}, shows some similarities to the simulated data, with one notable difference: the peak-hour spike. This spike is due to the location of the road, the Symonds Street overbridge\footnote{Anyone familiar with the area will understand the importance of this road}: there is often a (very long) queue of buses from many routes converging there on the central city. In this section, we use the simulated data to evaluate the model under ``nice'' conditions and then test it on this real data to see how well it copes with these types of phenomenon. The map in \cref{fig:nw_seg_maps} shows the location of this and other road segments.
+Observed vehicle speeds for a real segment, displayed in \cref{fig:tt_figure}, shows some similarities to the simulated data, with one notable difference: the peak-hour spike. This spike is due, in part, to the location of the road, the Symonds Street overbridge\footnote{Anyone familiar with the area will understand the importance of this road}: there is often a (very long) queue of buses from many routes converging there on the central city. In this section, we use the simulated data to evaluate the model under ``nice'' conditions and then test it on this real data to see how well it copes with these types of phenomenon. The map in \cref{fig:nw_seg_maps} shows the location of this and other road segments.
 
 
 <<tt_figure,message=FALSE,warning=FALSE,echo=FALSE,fig.height=2,fig.width=8,fig.align="center",out.width="\\linewidth",fig.cap="Road state observations along a single road segment over time, with marginal historgrams on the right.",fig.subcap=c("Travel time observations in seconds.", "Average speed in meters per second."),fig.ncol=1,fig.sep=rep("\\\\", 3)>>=
