@@ -1,7 +1,7 @@
 \section{Improving forecasts with history}
 \label{sec:nw_hist_model}
 
-The model presented in \cref{sec:nw_model,sec:nw_realtime,sec:nw_par_est} is adequate for estimating the \emph{real-time} state of the network, but when it comes to forecasting vehicle speeds, it becomes unuseful, particularly just before or after a peak period. The next chapter involves predicting arrival times, which involves making short-term forecasts of speed. Using historical data is one way of improving prediction, particularly around peak times.
+The model presented in \cref{sec:nw_model,sec:nw_realtime,sec:nw_par_est} is adequate for estimating the \emph{real-time} state of the network, but when it comes to forecasting vehicle speeds, it becomes unuseful, particularly just before or after a peak period. The next chapter involves predicting arrival times, which involves making short-term forecasts of speed. Using historical data is one way of improving prediction, particularly around peak times. \textcolor{blue}{[[rewrite para..]]}
 
 From \cref{nw_par_est_real} we showed that roads typically have a peak effect either in the morning or in the evening, while some are affected by both morning and afternoon traffic. It seems reasonable therefore to have a model which allows a segment to have zero, one, or two peaks, each with varying magnitude (the size of the decrease in speed) and width (how long the peak period is). The temporal location of these peaks is likely to be related, but variable: some roads will experience peak traffic earlier than others, for example.
 
@@ -29,7 +29,7 @@ data_week0 %>% filter(segment_id %in% sids) %>%
 
 Early work fitting hierarchical Bayesian models to this data were not promising, as it involved too much manual work tuning the parameters and checking the results. Since our goal is to obtain a generalised framework which can be run automatically, we sought an alternative.
 
-From \cref{fig:tt_week0_load} it is clear that along each segment, there is a consistent pattern, with some variability between days as far as the temporal location and magnitude of the ``peak'' on weekdays; weekends are fairly consistent, although this is only two days' worth of data. Our first approach is to develop a nearest-neighbour grid, which takes time and road state (traffic speed) as input, and outputs the mean (and uncertainty) of travel time in 10, 20, or 30~minutes from the current time. The first step is to aggregate observations into 5~minute intervals and take the mean traffic speed in each interval. Then, we take a duplicate of these speeds and shift if backward 10, 20, and 30~minutes, so now each row has the current state, and future predicted states too. For any missing periods, we interpolated by using the mean of the adjacent states.
+From \cref{fig:tt_week0_load} it is clear that along each segment, there is a consistent pattern, with some variability between days as far as the temporal location and magnitude of the ``peak'' on weekdays; weekends are fairly consistent, although this is only two days' worth of data. Here we present a nearest-neighbour grid, which takes time and road state (traffic speed) as input, and outputs the mean (and uncertainty) of travel time in 10, 20, or 30~minutes from the current time. The first step is to aggregate observations into 5~minute intervals and take the mean traffic speed in each interval. Then, we take a duplicate of these speeds and shift if backward 10, 20, and 30~minutes, so now each row has the current state, and future predicted states too. For any missing periods, we interpolated by using the mean of the adjacent states. The resulting ``nearest-neighbour'' grid is shown in \cref{fig:tt_week0_grid}. The lighter areas represent higher speeds.
 
 
 <<tt_week0_grid_fit,cache=TRUE,echo=FALSE>>=
@@ -99,7 +99,7 @@ seg_fits <-
 save(seg_fits, file = "data/seg_fits.rda")
 @
 
-The resulting ``nearest-neighbour'' grid is shown in \cref{fig:tt_week0_grid}. The lighter areas represent higher speeds.
+
 
 
 <<tt_week0_grid,cache=TRUE,echo=FALSE,message=FALSE,warning=FALSE,fig.height=10,fig.width=8,fig.align="center",out.width="\\linewidth",fig.cap="Predicted speeds (lighter is faster) in 30 minutes from the current time, given the current state (y-axis).">>=
@@ -268,197 +268,17 @@ Forecasts 30~minutes into the future are shown in \cref{fig:tt_week1_pred} for b
 
 Most importantly, however, is the linear curve (shown in blue in \cref{fig:tt_week1_pred}) compared to the line of equality, in red. The interpretation is that, the more accurate the predictions on average, the closer the blue trend line will be to the black line of equality. For our forecast model, we see that in 5 out of 6 segments the two lines are very close, compared to the na\"ive estimate in which case the predictions are often too high or too low.
 
-\textcolor{red}{
-Need a better forecasting model (i.e., modelling the state derivative of the state as well, to get the ``rate of change'' of travel time, and then matching nearest historical data based on a combination of current travel time and rate), but that's lower priority \ldots
-}
+
+Future work is needed to improve the forecasting abilities of our framework. However, we have designed the framework in such a way that any such improvements can easily be integrated into both the network modelling stage, and the upcoming arrival time prediction stage (see \cref{sec:nw_implementation_forecast} for details).
 
 <<tt_pred_rmse,echo=FALSE,results="asis",cache=TRUE>>=
 
 kable(
     tibble(
-        method = c("Simple", "Forecast"),
+        Method = c("Simple", "Forecast"),
         RMSE = round(c(RMSE_equal, RMSE_forecast), 2)
     ),
     booktabs = TRUE,
-    caption = "RMSE results"
+    caption = "RMSE results comparing the predictive performance of the two models, in meters per second."
 )
 @
-
-
-
-
-% \pagebreak
-% As in the previous section, we first present the model for a single segment over a week. We are no longer assuming the state is a Markov process; instead, we assume that there is some underlying mean travel time $\mu_\ell$ which the actual travel time fluctuates around. At peak times, there are added morning and evening peak effects, $\rho_{\ell,1}$ and $\rho_{\ell,2}$, respectively. The segment we are examining first exhibits a morning peak, as shown in \cref{fig:tt_week0_load}.
-% Weekends are not shown as they do not exhibit ``peak hour'' effects, so we will simply assume constant speed all day\footnote{Future work will look at detecting obvious trends, for example roads around malls may be busier in the middle of the day}.
-
-% The size and width of the peak varies according to how much congestion there is on a particular day, but we expect this magnitude to be similar for the same road segment. Therefore, we assume another \emph{hierarchical} relationship, such that on day $d$ along road segment $d$ for peak $i = 1,2$, the temporal location is
-% \begin{equation}\label{eq:peak_effect_day_time}
-% \tau_{\ell,d,i}\sim\Normal{\mu_{\tau_{\ell,i}}}{\sigma_{\tau_{\ell,i}}^2},
-% \end{equation}
-% the magnitude is
-% \begin{equation}\label{eq:peak_effect_day_size}
-% \rho_{\ell,d,i}\sim\Normal{\mu_{\rho_{\ell,i}}}{\sigma_{\rho_{\ell,i}}^2},
-% \end{equation}
-% and the width (or length) of the effect is
-% \begin{equation}\label{eq:peak_effect_day_length}
-% \omega_{\ell,d,i}\sim\Normal{\mu_{\omega_{\ell,i}}}{\sigma_{\omega_{\ell,i}}^2}.
-% \end{equation}
-% We could, of course, allow a relationship between the morning and evening peaks, but this gets too complicated and will in many cases be unrelated.
-
-
-% Now the expected travel time at any time of day is given by
-% \begin{equation}\label{eq:peak_effect_day_calc}
-% \beta_{\ell,d}(t) =
-%     \mu_{\ell} + \sum_{i\in\{1,2\}} \pi_{\ell,i}
-%     \rho_{\ell,d,i}\exp\left\{{-\frac{(t - \tau_{\ell,d,i})^2}{2\omega_{\ell,d,i}^2}}\right\}
-% \end{equation}
-% where $\pi_{\ell,i} = \{0,1\}$ indicates whether or not that segment exhibits a peak period.
-
-
-% The above is fit using JAGS \citep{JAGS}, using noninformative priors for all parameters, to the first segment to ensure model validity before scaling up to include hyperparameters and fitting to all road segments.
-
-% <<tt_week0_seg1_fit,cache=TRUE,echo=FALSE,eval=FALSE>>=
-% source("load_week_data.R")
-% library(rstan)
-% options(mc.cores = 3L)
-% rstan_options(auto_write = TRUE)
-
-% wd0 <- data_week0 %>% filter(segment_id == sids[[2]])
-% wd0_stan <-
-%     list(
-%         b = wd0$travel_time,
-%         # time in decimal hours should be sufficient
-%         t = as.integer(format(wd0$time, "%H")) +
-%             as.integer(format(wd0$time, "%M")) / 60,
-%         d = as.integer(as.factor(wd0$date)),
-%         N = nrow(wd0),
-%         M = length(unique(wd0$date))
-%     )
-
-% week0_fit <-
-%     stan(
-%         file = "week_model.stan",
-%         data = wd0_stan
-%         # init = function() {
-%         #     list(
-%         #         mu = rnorm(1, median(wd0_stan$b), sd(wd0_stan$b)/sqrt(wd0_stan$N)),
-%         #         tau = rnorm(2, c(9, 17), 1),
-%         #         rho = runif(2, 100, 200)
-%         #     )
-%         # }
-%     )
-
-% save(week0_fit, file = "week0_samples.rda")
-% @
-
-% <<tt_week0_seg1_pars,echo=FALSE,cache=TRUE,fig.height=9,fig.width=6,out.width="\\linewidth",fig.cap="Model output parameters for single segment.",eval=FALSE>>=
-% source("load_week_data.R")
-% load("week0_samples.rda")
-
-% library(ggplot2)
-% library(tidybayes)
-
-% egg::ggarrange(
-%     week0_fit %>%
-%         spread_draws(mu) %>%
-%         ggplot(aes(.iteration, mu, colour = as.factor(.chain), group = .chain)) +
-%             geom_path(),
-%     week0_fit %>%
-%         spread_draws(mu_tau[j]) %>%
-%         ggplot(aes(.iteration, mu_tau, colour = as.factor(.chain), group = .chain)) +
-%             geom_path() +
-%             facet_wrap(~j, scales = "free_y"),
-%     week0_fit %>%
-%         spread_draws(mu_rho[j]) %>%
-%         ggplot(aes(.iteration, mu_rho, colour = as.factor(.chain), group = .chain)) +
-%             geom_path() +
-%             facet_wrap(~j, scales = "free_y"),
-%     week0_fit %>%
-%         spread_draws(sigma_tau, sigma_rho) %>%
-%         gather(key = "par", value = "value", sigma_tau, sigma_rho) %>%
-%         ggplot(aes(.iteration, value, colour = as.factor(.chain), group = .chain)) +
-%             geom_path() +
-%             facet_wrap(~par, scales = "free_y"),
-%     week0_fit %>%
-%         spread_draws(omega[j]) %>%
-%         ggplot(aes(.iteration, omega, colour = as.factor(.chain), group = .chain)) +
-%             geom_path() +
-%             facet_wrap(~j, scales = "free_y"),
-%     week0_fit %>%
-%         spread_draws(pi[j]) %>%
-%         ggplot(aes(.iteration, pi, colour = as.factor(.chain), group = .chain)) +
-%             geom_path() +
-%             facet_wrap(~j, scales = "free_y"),
-%     ncol = 1
-% )
-
-% @
-
-
-
-% <<tt_week0_seg1_plot,echo=FALSE,cache=TRUE,fig.height=9,fig.width=6,out.width="\\linewidth",fig.cap="Model output fitted to data.",eval=FALSE>>=
-% source("load_week_data.R")
-% load("week0_samples.rda")
-
-% library(ggplot2)
-% library(tidybayes)
-
-% mu <- week0_fit %>% spread_draws(mu) %>% pull(mu) %>% median + mean(wd0_stan$b)
-% pi <- week0_fit %>% spread_draws(pi[j]) %>% median_qi() %>% pull(pi)
-% tau <- week0_fit %>% spread_draws(tau[j,d]) %>% median_qi() %>% pull(tau) %>%
-%     matrix(nrow = 2, byrow = TRUE)
-% rho <- week0_fit %>% spread_draws(rho[j,d]) %>% median_qi() %>% pull(rho) %>%
-%     matrix(nrow = 2, byrow = TRUE)
-% omega <- week0_fit %>% spread_draws(omega[j]) %>% median_qi() %>% pull(omega)
-
-% xx <- seq(5, 24, length = 1000)
-% calc_tt <- function(t, mu, week, p, tau, omega, rho) {
-%     p <- as.integer(p)
-%     week <- as.integer(week)
-%     y <- mu
-%     for (j in 1:2)
-%         y <- y + week * p[j] * rho[j] * exp(-(t - tau[j])^2 * 0.5 / omega[j]^2)
-%     y
-% }
-
-% fit_df <-
-%     tibble(
-%         x = rep(xx, 7),
-%         d = rep(1:7, each = length(xx)),
-%         dow = rep(1:7, each = length(xx)),
-%     ) %>%
-%     group_by(d) %>%
-%     do((.) %>%
-%         mutate(
-%             y = calc_tt(x, mu, dow[1] < 6,
-%                 pi > 0.5, tau[,d[1]], omega, rho[,d[1]]
-%             )
-%         )
-%     )
-
-% data_week0 %>% filter(segment_id == sids[[2]]) %>%
-%     mutate(
-%         t = as.integer(format(time, "%H")) +
-%             as.integer(format(time, "%M")) / 60,
-%         dow = as.integer(dow)
-%     ) %>%
-%     ggplot(aes(t, travel_time)) +
-%         geom_point() +
-%         geom_path(aes(x, y), data = fit_df, colour = "orangered") +
-%         # scale_x_datetime(labels = function(t) format(t, "%l%P")) +
-%         facet_grid(dow~.) +
-%         theme_classic() +
-%         theme(strip.background = element_blank()) +
-%         xlab("Time") + ylab("Travel time (seconds)")
-
-% @
-
-% For the segment parameters, we assume a hierarchical model on the temporal location and width, with hyperparameters common across all segments in the network, while the magnitude will be independent for each segment. This leads to the following model:
-% \begin{equation}\label{eq:peak_effect_model}
-% \begin{split}
-% \mu_{\tau_{\ell,i}} &\sim \Normal{\mu_{\tau_i}}{\sigma_{\tau_i}}\\
-% \mu_{\omega_{\ell,i}} &\sim \Normal{\mu_{\omega_i}}{\sigma_{\omega_i}}.
-% \end{split}
-% \end{equation}
-
-% And then we fit the model using JAGS \citep{JAGS}.
