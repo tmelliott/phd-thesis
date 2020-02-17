@@ -3,31 +3,65 @@
 
 Due to the computational demand of the particle filter, significant speed improvements can be obtained if we were to use a normal approximation instead. The network state is a multivariate normal random variable already; hence, the issue lies with stop dwell times having a point mass at zero, which leads to a mixture predictive distribution. For each stop the vehicle passes, there are twice as many components, so after $m$ stops, there would be $2^m$ components. Fortunately, these mostly converge after a few stops as shown in \cref{fig:normal_approx}.
 
-<<normal_approx,cache=TRUE,echo=FALSE,fig.width=9,fig.height=3,fig.subcap=c("One intermediate stop", "Two intermediate stops", "Three intermediate stops", "Five intermediate stops"),fig.ncol=1,fig.colsep=rep("\\\\",5),fig.cap="Normal approximation">>=
-napprox <- function(n, pi = rep(0.8, n), t = c(80, 15), mu = rep(20, n), sigma = rep(5, n)) {
+<<normal_approx,cache=TRUE,echo=FALSE,fig.width=6,fig.height=2,fig.subcap=c("One intermediate stop", "Two intermediate stops", "Three intermediate stops", "Eight intermediate stops"),fig.ncol=1,fig.colsep=rep("\\\\",5),fig.cap="Normal approximation for a series of stops ahead. The true distribution is shown by the histogram with the underlying components (dashed curves). The red vertical lines represent the sample quantiles, while the dashed blue lines represent the approximated quantiles using the optimisation algorithm. Finally, the green curve and corresponding vertical lines represent the single normal approximation.",out.width=".8\\textwidth",fig.align="center">>=
+suppressPackageStartupMessages(library(tidyverse))
+napprox <- function(n, pi = rep(0.8, n), t = c(80, 15),
+                    mu = rep(20, n), sigma = rep(5, n)) {
     # indicator of stopping:
     d <- do.call(expand.grid, lapply(1:n, function(i) 0:1))
-    pi <- apply(sapply(1:n, function(i) ifelse(d[,i], pi[i], 1 - pi[i])), 1, prod)
-    mu <- apply(sapply(1:n, function(i) t[1] + ifelse(d[,i], mu[i], 0)), 1, sum)
-    sigma <- sqrt(apply(sapply(1:n, function(i) t[2] + ifelse(d[,i], sigma[i]^2, 0)), 1, sum))
+    pi <- apply(
+        sapply(1:n, function(i) ifelse(d[,i], pi[i], 1 - pi[i])),
+        1,
+        prod
+    )
+    mu <- apply(
+        sapply(1:n, function(i) t[1] + ifelse(d[,i], mu[i], 0)),
+        1,
+        sum
+    )
+    sigma <- sqrt(
+        apply(
+            sapply(1:n, function(i) t[2] + ifelse(d[,i], sigma[i]^2, 0)),
+            1,
+            sum
+        )
+    )
 
-    z <- apply(rmultinom(1e6, 1, pi), 2, function(x) which(x == 1))
-    x <- rnorm(1e6, mu[z], sigma[z])
-    hist(x, 50, freq = FALSE, col = "gray90", lty = 0)
-    for (i in 1:nrow(d))
-        curve(dnorm(x, mu[i], sigma[i]) * pi[i], n = 1001, add = TRUE,
-            lty = 2, col = "gray20")
+    daytah <- tibble(
+        z = apply(rmultinom(1e6, 1, pi), 2, function(x) which(x == 1)),
+        x = rnorm(1e6, mu[z], sigma[z])
+    )
 
+    px <- ggplot(daytah) +
+        geom_histogram(aes(x, stat(density)), bins = 50, fill = "lightgray")
+
+    xx <- seq(min(daytah$x), max(daytah$x), length = 1001)
+    curves <- lapply(1:nrow(d),
+        function(i) {
+            geom_path(
+                aes(x, y),
+                data = tibble(
+                    x = xx,
+                    y = dnorm(xx, mu[i], sigma[i]) * pi[i]
+                ),
+                lty = 2
+            )
+        }
+    )
+
+    px <- Reduce("+", c(list(px), curves))
 
     ## Can we calculate the quantiles?
-    q <- quantile(x, prob = c(0.05, 0.5, 0.95))
-    abline(v = q, col = "orangered", lwd = 2)
+    q <- quantile(daytah$x, prob = c(0.05, 0.5, 0.95))
+    px <- px + geom_vline(xintercept = q, colour = "orangered", lwd = 1)
 
     f <- function(x, q = 0.95) {
         (sum(pi * pnorm(x, mu, sigma)) - q)^2
     }
-    qq <- sapply(c(0.05, 0.5, 0.95), function(q) optimize(f, range(x), q = q)$minimum)
-    abline(v = qq, col = "blue", lty = 2)
+    qq <- sapply(c(0.05, 0.5, 0.95),
+        function(q) optimize(f, range(daytah$x), q = q)$minimum
+    )
+    px <- px + geom_vline(xintercept = qq, colour = "blue", lty = 2)
 
     ## mean and var
     mean <- sum(pi * mu)
@@ -36,21 +70,50 @@ napprox <- function(n, pi = rep(0.8, n), t = c(80, 15), mu = rep(20, n), sigma =
     VarEX <- sum(pi * mu^2) - sum(pi * mu)^2
     sd <- sqrt(EVarX + VarEX)
 
-    curve(dnorm(x, mean, sd), n = 1001, add = TRUE, col = "orangered")
+    px <- px + geom_path(
+        aes(x, y),
+        data = tibble(
+            x = xx,
+            y = dnorm(xx, mean, sd)
+        ),
+        colour = "green4"
+    )
 
     ## Compare quantiles of single normal vs mixture
     qx <- qnorm(c(0.05, 0.5, 0.95), mean, sd)
-    abline(v = qx, col = "green4")
-    invisible(list(
-        x = x,
-        pi = pi, mu = mu, sigma = sigma,
-        error = sum((qx - qq)^2)
-    ))
+    px <- px + geom_vline(xintercept = qx, colour = "green4")
+
+    ## prettify the plot
+    px <- px +
+        theme_classic() +
+        scale_x_continuous(
+            "ETA (minutes)",
+            breaks = function(x) pretty(x / 60) * 60,
+            labels = function(x) x / 60
+        ) +
+        scale_y_continuous("Probability density")
+    print(px)
+
+    invisible(
+        list(
+            x = daytah$x,
+            pi = pi, mu = mu, sigma = sigma,
+            error = sum((qx - qq)^2)
+        )
+    )
 }
 napprox(1, pi = 0.8, mu = 30, sigma = 20, t = c(30, 5))
 napprox(2, pi = c(0.8, 0.5), mu = c(30, 20), sigma = c(20, 10), t = c(70, 15))
-napprox(3, pi = c(0.5, 0.5, 0.5), mu = c(30, 20, 40), sigma = c(20, 10, 20), t = c(120, 20))
-napprox(5, pi = c(0.5, 0.5, 0.5, 0.5, 0.3), mu = c(30, 20, 40, 20, 6), sigma = c(20, 10, 20, 10, 5), t = c(200, 40))
+napprox(3, pi = c(0.5, 0.5, 0.5), mu = c(30, 20, 40),
+    sigma = c(20, 10, 20), t = c(120, 20))
+#napprox(5, pi = c(0.5, 0.5, 0.5, 0.5, 0.3), mu = c(30, 20, 40, 20, 6),
+#    sigma = c(20, 10, 20, 10, 5), t = c(200, 40))
+napprox(8,
+    pi = c(0.5, 0.5, 0.5, 0.5, 0.3, 0.5, 0.5, 0.5),
+    mu = c(30, 20, 40, 20, 6, 20, 20, 20),
+    sigma = c(20, 10, 20, 10, 5, 5, 5, 5),
+    t = c(200, 40)
+)
 @
 
 
