@@ -1,6 +1,6 @@
 \section{Real-time estimation of vehicle state}
 \label{sec:vehicle_model}
-Real-time vehicle tracking has been studied vigorously, particularly for robotics applications and self-driving cars (cite). In many of these, data is sampled at a very high frequency, often multiple times per second, leading to highly accurate estimates of the objects \emph{state}.\footnote{State, as we discuss shortly, includes properties such as the \emph{speed} of the object.} Alas with transit data this is seldom the case; instead, it is common for observations to be reported once every 10--30 seconds or, in some cases, even longer.
+Real-time vehicle tracking has been studied vigorously, particularly for robotics applications and self-driving cars \citep{cn}. In many of these, data is sampled at a very high frequency, often multiple times per second, leading to highly accurate estimates of the objects \emph{state}.\footnote{State, as we discuss shortly, includes properties such as the \emph{speed} of the object.} Alas with transit data this is seldom the case; instead, it is common for observations to be reported once every 10--30 seconds or, in some cases, even longer.
 
 Low-frequency observations lead to high uncertainties of state parameters and difficulty capturing all possible trajectories, which can lead to degradation of the model and loss of information. In figure 3, we show two possible trajectories for buses B and C; there are, in fact, countless possibilities: perhaps the bus waited at the stop a little longer? In this case, there is uncertainty about the bus' dwell time and speed; however, the first step of a recursive Bayesian model is to \emph{predict} the upcoming state \emph{before observing it} (section 2.4). If the model does not cover the vehicle's actual trajectory, we effectively ``lose'' the vehicle, and the filter is said to \emph{degenerate}. In that case, we typically need to reinitialize the vehicle's state, resulting in a loss of any information we might have gained in the last time step.
 
@@ -87,5 +87,3 @@ The \emph{likelihood} function, quite simply, describes the likelihood of an obs
 
 
 We now discuss the details of the two components of the model and their implementations. The \emph{prediction step} (\cref{sec:vehicle_model_trans}) supplies an estimate of the bus' state \emph{before observing it} by using a model of bus behaviour. Then the \emph{update state} (\cref{sec:pf-likelihood}) combines the prediction and observation, using the measurement function and likelihood, to obtain a posterior estimate of the vehicle's state.
-
-

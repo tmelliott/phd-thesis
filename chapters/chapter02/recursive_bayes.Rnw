@@ -19,28 +19,28 @@ This is typically estimated using an \gls{mcmc} algorithm, which are generally c
 In a \rt{} application, the columns of $\mat{Y}$ are observed sequentially, so that at time $t_k$ we have observed
 \begin{equation}
 \label{eq:bayes_y_vector}
-\mat{Y}_{1:k} = [\boldsymbol{y}_1,\cdots,\boldsymbol{y}_k],
+\mat{Y} = \boldsymbol{y}_{1:k} = [\boldsymbol{y}_1,\cdots,\boldsymbol{y}_k],
 \end{equation}
 and wish to estimate
 \begin{equation}
 \label{eq:bayes_x_vector}
-\mat{X}_{0:k} = [\boldsymbol{x}_0,\cdots,\boldsymbol{x}_k],
+\mat{X} = \bx_{0:k} = [\boldsymbol{x}_0,\cdots,\boldsymbol{x}_k],
 \end{equation}
 where $\boldsymbol{x}_0$ is the \emph{initial state} of the object being modelled. Rather than refitting the full model, as we would need to do using \gls{mcmc}, \gls{rbe} allows us to combine the previous \emph{posterior estimate} of the state with the new information.
 
 In a \gls{rbm}, we make two general assumptions. The first is that $\boldsymbol{x}$ follows a Markov process such that the state at time $t_k$ depends only upon the state at time $t_{k-1}$:
 \begin{equation}
 \label{eq:rbe_markov}
-p(\boldsymbol{x}_k \cond{} \boldsymbol{x}_{k-1}, \ldots, \boldsymbol{x}_{0}) =
+p(\boldsymbol{x}_k \cond{} \boldsymbol{x}_{0:k-1}) =
 p(\boldsymbol{x}_k \cond{} \boldsymbol{x}_{k-1})
 \end{equation}
 from which we can derive the joint distribution of the underlying state parameters
 \begin{equation}
 \label{eq:rbe_joint_x}
 \begin{split}
-p(\mat{X}_{0:k})
-&= p(\bx_0)p(\bx_1\cond{}\bx_0)p(\bx_2\cond{}\bx_1,\bx_0)\cdots
-p(\bx_{k}\cond{}\bx_{k-1},\ldots,\bx_0) \\
+p(\bx_{0:k})
+&= p(\bx_0)p(\bx_1\cond{}\bx_0)p(\bx_2\cond{}\bx_{0:1})\cdots
+p(\bx_{k}\cond{}\bx_{0:k-1}) \\
 &= p(\bx_0)p(\bx_1\cond{}\bx_0)p(\bx_2\cond{}\bx_1)\cdots p(\bx_k\cond{}\bx_{k-1}) \\
 &= p(\bx_0)\prod_{i=1}^k p(\bx_i\cond{}\bx_{i-1})
 \end{split}
@@ -49,16 +49,15 @@ p(\bx_{k}\cond{}\bx_{k-1},\ldots,\bx_0) \\
 The second assumption is that the \emph{observations} $\boldsymbol{y}_k$ of the state depend only on the current state and are independent of one another:
 \begin{equation}
 \label{eq:rbe_obs}
-p(\boldsymbol{y}_k \cond{} \boldsymbol{x}_{k}, \ldots, \boldsymbol{x}_{0},
-\boldsymbol{y}_{k-1}, \ldots, \boldsymbol{y}_{1}) =
+p(\boldsymbol{y}_k \cond{} \boldsymbol{x}_{0:k}, \boldsymbol{y}_{0:k-1}) =
 p(\boldsymbol{y}_k \cond{} \boldsymbol{x}_{k}).
 \end{equation}
 This allows us to derive the joint likelihood for the data,
 \begin{equation}
 \label{eq:rbe_joint_lh}
 \begin{split}
-p(\mat{Y}_{1:k}\cond{}\mat{X}_{0:k})
-&= p(\boldsymbol{y}_1\cond{}\bx_1,\bx_0)\cdots p(\boldsymbol{y}_k\cond{}\bx_k,\ldots,\bx_0) \\
+p(\boldsymbol{y}_{1:k}\cond{}\bx_{0:k})
+&= p(\boldsymbol{y}_1\cond{}\bx_{0:1})\cdots p(\boldsymbol{y}_k\cond{}\bx_{0:k}) \\
 &= p(\boldsymbol{y}_1\cond{}\bx_1)\cdots p(\boldsymbol{y}_k\cond{}\bx_k) \\
 &= \prod_{i=1}^k p(\boldsymbol{y}_i\cond{}\bx_i)
 \end{split}
@@ -66,18 +65,18 @@ p(\mat{Y}_{1:k}\cond{}\mat{X}_{0:k})
 along with the marginal distribution for the data,
 \begin{equation}
 \label{eq:rbe_marginal_y}
-p(\mat{Y}_{1:k}) = p(\boldsymbol{y}_1)\cdots p(\boldsymbol{y}_k)
+p(\boldsymbol{Y}_{1:k}) = p(\boldsymbol{y}_1)\cdots p(\boldsymbol{y}_k)
 = \prod_{i=1}^k p(\boldsymbol{y}_i)
 \end{equation}
 
 
 
-We can now express the posterior distribution $p(\mat{X}_{0:k}\cond{}\mat{Y}_{1:k})$ using \cref{eq:bayes} along with \cref{eq:rbe_joint_x,eq:rbe_joint_lh,eq:rbe_marginal_y} as
+We can now express the posterior distribution $p(\bx_{0:k}\cond{}\boldsymbol{y}_{1:k})$ using \cref{eq:bayes} along with \cref{eq:rbe_joint_x,eq:rbe_joint_lh,eq:rbe_marginal_y} as
 \begin{equation}
 \label{eq:rbe_posterior}
 \begin{split}
-p(\mat{X}_{0:k}\cond{}\mat{Y}_{1:k})
-&= \frac{p(\mat{X}_{0:k})p(\mat{Y}_{1:k}\cond{}\mat{X}_{0:k})}{p(\mat{Y}_{1:k})} \\
+p(\bx_{0:k}\cond{}\boldsymbol{y}_{1:k})
+&= \frac{p(\bx_{0:k})p(\boldsymbol{y}_{1:k}\cond{}\bx_{0:k})}{p(\boldsymbol{y}_{1:k})} \\
 &= \frac{
     p(\bx_0)\prod_{i=1}^k p(\bx_i) \cdot
     \prod_{i=1}^k p(\boldsymbol{y}_i\cond{}\bx_i)
@@ -92,37 +91,16 @@ p(\mat{X}_{0:k}\cond{}\mat{Y}_{1:k})
 }
 \end{split}
 \end{equation}
-
-Finally, when we to receive new data $\boldsymbol{y}_{k+1}$, the posterior distribution of the underlying state parameters using \cref{eq:rbe_posterior} is
+However, we can substitute the first $k-1$ terms in \cref{eq:rbe_posterior} to obtain the following recursive representation:
 \begin{equation}
-\label{eq:rbe_posterior2}
-\begin{split}
-p(\mat{X}_{0:k+1}\cond{}\mat{Y}_{1:k+1})
-&= p(\bx_0)\prod_{i=1}^{k+1}
+\label{eq:rbe_posterior_recursive}
+p(\bx_{0:{k}}\cond{}\boldsymbol{y}_{1:k})
+= p(\bx_{0:k-1}\cond{}\boldsymbol{y}_{1:k-1})
 \frac{
-    p(\bx_i) p(\boldsymbol{y}_i\cond{}\bx_i)
+    p(\bx_{k}) p(\boldsymbol{y}_{k}\cond{}\bx_{k})
 }{
-    p(\boldsymbol{y}_i)
-} \\
-&= p(\bx_0)\prod_{i=1}^k
-\frac{
-    p(\bx_i) p(\boldsymbol{y}_i\cond{}\bx_i)
-}{
-    p(\boldsymbol{y}_i)
-}
-\cdot
-\frac{
-    p(\bx_{k+1}) p(\boldsymbol{y}_{k+1}\cond{}\bx_{k+1})
-}{
-    p(\boldsymbol{y}_{k+1})
-} \\
-&= p(\mat{X}_{0:k}\cond{}\mat{Y}_{1:k})
-\frac{
-    p(\bx_{k+1}) p(\boldsymbol{y}_{k+1}\cond{}\bx_{k+1})
-}{
-    p(\boldsymbol{y}_{k+1})
+    p(\boldsymbol{y}_{k})
 }.
-\end{split}
 \end{equation}
 Here, the posterior distribution from the previous time step is used as a \emph{prior} for the next, and so it \emph{recursively} or \emph{sequentially} updates the state estimate as new data are observed. This is what makes \glspl{rbm} perfect for use in \rt{} applications.
 

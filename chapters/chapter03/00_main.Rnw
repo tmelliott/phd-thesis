@@ -115,7 +115,8 @@ p2 <- bind_rows(
         facet_grid(~id, scales = "free_x") +
         theme_classic() +
         theme(strip.background = element_blank(), legend.position = "none") +
-        xlab("Speed (km/h)")
+        xlab("Speed (km/h)") +
+        ylab("Density")
 
 
 p1

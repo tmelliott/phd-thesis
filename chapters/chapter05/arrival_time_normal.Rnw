@@ -199,6 +199,7 @@ For quantiles $q_\alpha$ we need to use an optimisation algorithm to solve
 which is straightforward using Brent's Algorithm \citep{Brent_1971}, which is implemented in the Boost C++ library \citep{cn}.
 
 
+
 However, after eight stops, the number of components is $2^8 = \Sexpr{2^8}$, after which point it would be more efficient to use the particle filter. Instead, we use a simplification criteria such that, when passed, a single new component is close enough in approximation to the set of components that it can replace them. We have chosen to compare quantiles, and if the maximum absolute difference is less than one minute\footnote{When providing \glspl{eta} to commuters, they are rounded to the nearest minute, anyway.}, we replace the set of components with a single new one with mean and variance as specified in \cref{eq:mixture_mean,eq:mixture_variance}. At subsequent stops, the process repeats, and we iteratively check if a single distribution is an adequate approximation.
 
 
