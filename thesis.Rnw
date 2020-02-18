@@ -279,8 +279,8 @@ The acknowledgments and the people to thank go here, don't forget to include you
 % Include the appendices of the thesis as separate files from the Appendices folder
 % Uncomment the lines as you write the Appendices
 
-\include{endmatter/appendix01/appendix01}
-\include{endmatter/appendix02/appendix02}
+\include{endmatter/appendix_gtfs/main}
+\include{endmatter/appendix_pf/main}
 
 
 %----------------------------------------------------------------------------------------
