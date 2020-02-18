@@ -7,7 +7,7 @@
 *.zip
 
 figure
-allrefs.bib
+#allrefs.bib
 thesis.pdf
 
 ### Emacs ###
