@@ -8,8 +8,8 @@ simulate_vehicle <- function(length = 2000,
                              noise = 0.5,
                              accel_prop = 0.5,
                              pi = 0,
-                             gamma = 6,
-                             tau = c(10, 5),
+                             gamma = 10,
+                             tau = c(18, 10),
                              rho = 0,
                              omega = c(30, 10)
                             ) {
