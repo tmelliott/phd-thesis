@@ -10,7 +10,8 @@ run_simulation <- function(seed = 1, include = "none",
                            noise = c(0.5, 2.0, 0.2),
                            accel_prop = 0.5,
                            n_particle = 2000,
-                           prefix = "simA_results") {
+                           prefix = "simA_results",
+                           draw = FALSE) {
     rda_file <- sprintf("sims/%s_%03d.rda", prefix, seed)
     if (file.exists(rda_file)) {
         load(rda_file)
@@ -45,9 +46,10 @@ run_simulation <- function(seed = 1, include = "none",
                         pf <- try({
                             particle_filter(dat$t, dat$x, n_particle, model,
                                 sim$stops, sim$segments,
-                                noise[model], 3.0, pr_stop, pr_int
+                                noise[model], 3.0, pr_stop, pr_int,
+                                draw = draw
                             )
-                        }, silent = TRUE)
+                        })
                         isBAD <- inherits(pf, "try-error")
                     }
                     tibble(
@@ -76,13 +78,18 @@ particle_filter <- function(t, x, n = 5000, model = 1,
                             stops, segments,
                             noise = 2.0, gps = 3.0,
                             pr_stop = 0.0, pr_int = 0.0,
-                            gamma = 6.0, tau = c(15, 5),
+                            gamma = 10.0, tau = c(18, 10),
                             draw = FALSE) {
 
     # storage
     Tstart <- matrix(0L, nrow = n, ncol = nrow(segments))
     Tend <- matrix(0L, nrow = n, ncol = nrow(segments))
     dwell <- matrix(0L, nrow = n, ncol = nrow(stops))
+    # map stops to segments
+    H <- matrix(0L, nrow = nrow(segments), ncol = nrow(stops))
+    for (i in 1:nrow(stops)) {
+        H[max(which(stops$distance[i] >= segments$distance)), i] <- 1L
+    }
 
     # inital state
     state <- tibble(
@@ -219,7 +226,7 @@ particle_filter <- function(t, x, n = 5000, model = 1,
                 ) +
                 ggtitle(sprintf("Neff = %s", Neff))
             )
-            grid::grid.locator()
+            # grid::grid.locator()
         }
 
 
@@ -232,9 +239,11 @@ particle_filter <- function(t, x, n = 5000, model = 1,
 
         # compute travel times
         if (min(state$segment_index) > current_segment) {
+
             Tend[, current_segment] <-
                 sapply(state$segment_end, function(z) z[current_segment])
             current_segment <- current_segment + 1
+
             Tstart[, current_segment] <-
                 sapply(state$segment_start, function(z) z[current_segment])
 
@@ -249,7 +258,10 @@ particle_filter <- function(t, x, n = 5000, model = 1,
                     dwell[, j] <- sapply(state$dwell_time, function(z) z[j])
                 }
             }
-        } else if (all(state$segment_index == nrow(segments))) {
+        #} else if (all(state$segment_index == nrow(segments))) {
+        } else if (all(state$distance == max(stops$distance))) {
+            # Tstart[, nrow(segments)] <-
+            #     sapply(state$segment_start, function(z) z[nrow(segments)])
             Tend[, nrow(segments)] <-
                 sapply(state$segment_end, function(z) z[nrow(segments)])
 
@@ -267,7 +279,7 @@ particle_filter <- function(t, x, n = 5000, model = 1,
         }
     }
 
-    TT <- Tend - Tstart
+    TT <- Tend - Tstart - dwell %*% t(H)
     speed <- sweep(TT, 2, segments$length,
         function(a, b) b / a)
 

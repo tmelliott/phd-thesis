@@ -1,7 +1,7 @@
 
 simulate_vehicle <- function(length = 2000,
                              stops = seq(0, length, length.out = 5),
-                             segments = c(200, 400, 800, 1400),
+                             segments = c(200, 400, 800, 1400, 1900),
                              include = c("none", "stops", "segments", "both"),
                              segment.speeds = runif(length(segments), 5, 15),
                              seed = 1,
@@ -84,6 +84,10 @@ simulate_vehicle <- function(length = 2000,
 
     Tmax <- length(distance) - 1
     Dmax <- max(distance)
+    # figure out dwell time in each segment:
+    z$seg_index <- sapply(z$distance,
+        function(dist) max(which(segments$distance <= dist)))
+    seg_dwell <- z %>% group_by(seg_index) %>% summarize(dwell = sum(d))
     list(
         path = tibble(
             time = 0:Tmax,
@@ -93,11 +97,14 @@ simulate_vehicle <- function(length = 2000,
         ),
         stops = z %>% filter(type == "stop"),
         segments = z %>% filter(type == "segment") %>%
+            select(-seg_index) %>%
             mutate(
                 id = as.character(1:n()),
                 segment = paste("Segment", id),
                 length = diff(c(distance, Dmax)),
-                tt = diff(c(t, Tmax)) - d, # minus dwell times at any stops in this segment
+                tt_total = diff(c(t, Tmax)),
+                dwell = seg_dwell$dwell,
+                tt = tt_total - dwell,
                 avg_speed = length / tt
             ),
         observations = structure(
