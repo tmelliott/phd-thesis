@@ -121,7 +121,7 @@ S0 %>%
     labs(colour = "")
 @
 
-<<sim1_pf_full,echo=FALSE,message=FALSE,warning=FALSE,fig.width=8,fig.height=8,fig.cap="Speed estimation results for 100 simulations. In each the vehicle trajectory is simulated using a different seed, and the speed estimate is taken as the mean of the particle speeds along each segment.">>=
+<<sim1_pf_full,echo=FALSE,message=FALSE,warning=FALSE,fig.width=8,fig.height=5,fig.cap="Speed estimation results for 100 simulations. In each the vehicle trajectory is simulated using a different seed, and the speed estimate is taken as the mean of the particle speeds along each segment.">>=
 # do the whole thing over and over again
 library(parallel)
 cl <- makeCluster(4L)
@@ -142,34 +142,46 @@ s00 <- pbapply::pblapply(1:100,
 
 stopCluster(cl)
 
-s00 %>%
-    filter(segment != "Segment 6") %>%
-    ggplot(
-        aes(
-            avg_speed,
-            speed_estimate - avg_speed,
-            fill = segment,
-            colour = segment
-        )
-    ) +
-    geom_hline(yintercept = 0, colour = "gray") +
-    geom_pointrange(
-        aes(
-            ymin = speed_estimate - avg_speed - speed_sd,
-            ymax = speed_estimate - avg_speed + speed_sd
+s00 <- s00 %>%
+    filter(is.finite(speed_estimate) & segment != "Segment 6")
+
+p_base <- s00 %>%
+    group_by(obs, model, segment) %>%
+    summarize(
+        rmse = sqrt(
+            mean(
+                (speed_estimate - avg_speed)^2,
+                na.rm = TRUE
+            )
         ),
-        shape = 19, size = 0.5
-    ) +
-    facet_grid(obs ~ model, scales = "free_y") +
-    theme_classic() +
-    theme(strip.background = element_blank()) +
-    xlab("Actual speed (m/s)") +
-    ylab("Estimate - Actual (m/s)") +
-    labs(colour = "", fill = "")
+        mae = mean(
+            abs(speed_estimate - avg_speed),
+            na.rm = TRUE
+        )
+    ) %>%
+    mutate(
+        segment = as.integer(as.factor(segment))
+    ) %>%
+    ggplot(aes(x = segment, colour = model)) +
+        facet_grid(~obs) +
+        theme_classic() +
+        theme(strip.background = element_blank()) +
+        xlab("Segment")
+
+library(patchwork)
+prmse <- p_base +
+    geom_point(aes(y = rmse)) +
+    geom_path(aes(y = rmse)) +
+    ylab("RMSE (m/s)")
+pmae <- p_base +
+    geom_point(aes(y = mae)) +
+    geom_path(aes(y = mae)) +
+    ylab("MAE (m/s)")
+
+prmse / pmae
 
 
 s00 %>%
-    filter(is.finite(speed_estimate) & segment != "Segment 6") %>%
     group_by(obs, model) %>%
     summarize(
         "RMSE (m/s)" = sqrt(
@@ -187,6 +199,13 @@ s00 %>%
             2
         )
     ) %>%
+    ungroup() %>%
+    mutate(
+        rank = rank(obs, ties = "min"),
+        obs = as.character(obs),
+        obs = ifelse(seq_along(obs) == rank, obs, "")
+    ) %>%
+    select(-rank) %>%
     rename(
         "Sampling method" = obs,
         "Model" = model
@@ -199,7 +218,8 @@ s00 %>%
         linesep = ""
     ) %>%
     kableExtra::row_spec(3, extra_latex_after = "\\midrule") %>%
-    kableExtra::row_spec(6, extra_latex_after = "\\midrule")
+    kableExtra::row_spec(6, extra_latex_after = "\\midrule") %>%
+    kableExtra::kable_styling(font_size = 8)
 
 @
 
@@ -293,7 +313,7 @@ S0 %>%
 
 Repeating the simulation 100~times with different vehicle trajectories, we can better compare the models (\cref{fig:sim2_pf_full}, which excludes the final segment). Uncertainties are now much higher, particularly under low-frequency sampling. Models A1 and A2 appear to perform similarly, and better estimate speed along slower segments, versus A3 which shows has difficulty even with slow segments.
 
-<<sim2_pf_full,echo=FALSE,message=FALSE,warning=FALSE,fig.width=8,fig.height=8,fig.cap="Speed estimation results for 100 simulations. In each the vehicle trajectory is simulated using a different seed, and the speed estimate is taken as the mean of the particle speeds along each segment.">>=
+<<sim2_pf_full,echo=FALSE,message=FALSE,warning=FALSE,fig.width=8,fig.height=5,fig.cap="Speed estimation results for 100 simulations. In each the vehicle trajectory is simulated using a different seed, and the speed estimate is taken as the mean of the particle speeds along each segment.">>=
 library(parallel)
 cl <- makeCluster(4L)
 r <- clusterEvalQ(cl, source("scripts/pf_simulation.R"))
@@ -321,17 +341,17 @@ s00 <- s00 %>%
         speed_estimate < 30
     )
 
-s00 %>%
-    ggplot(
-        aes(
-            avg_speed,
-            speed_estimate - avg_speed,
-            fill = segment,
-            colour = segment
-        )
-    ) +
-    geom_hline(yintercept = 0, colour = "gray") +
-    geom_point() +
+#s00 %>%
+#    ggplot(
+#        aes(
+#            avg_speed,
+#            speed_estimate - avg_speed,
+#            fill = segment,
+#            colour = segment
+#        )
+#    ) +
+#    geom_hline(yintercept = 0, colour = "gray") +
+#    geom_point() +
     # geom_pointrange(
     #     aes(
     #         ymin = speed_estimate - avg_speed - speed_sd,
@@ -339,12 +359,47 @@ s00 %>%
     #     ),
     #     shape = 19, size = 0.5
     # ) +
-    facet_grid(obs ~ model, scales = "free_y") +
-    theme_classic() +
-    theme(strip.background = element_blank()) +
-    xlab("Actual speed (m/s)") +
-    ylab("Estimate - Actual (m/s)") +
-    labs(colour = "", fill = "")
+#    facet_grid(obs ~ model, scales = "free_y") +
+#    theme_classic() +
+#    theme(strip.background = element_blank()) +
+#    xlab("Actual speed (m/s)") +
+#    ylab("Estimate - Actual (m/s)") +
+#    labs(colour = "", fill = "")
+
+p_base <- s00 %>%
+    group_by(obs, model, segment) %>%
+    summarize(
+        rmse = sqrt(
+            mean(
+                (speed_estimate - avg_speed)^2,
+                na.rm = TRUE
+            )
+        ),
+        mae = mean(
+            abs(speed_estimate - avg_speed),
+            na.rm = TRUE
+        )
+    ) %>%
+    mutate(
+        segment = as.integer(as.factor(segment))
+    ) %>%
+    ggplot(aes(x = segment, colour = model)) +
+        facet_grid(~obs) +
+        theme_classic() +
+        theme(strip.background = element_blank()) +
+        xlab("Segment")
+
+library(patchwork)
+prmse <- p_base +
+    geom_point(aes(y = rmse)) +
+    geom_path(aes(y = rmse)) +
+    ylab("RMSE (m/s)")
+pmae <- p_base +
+    geom_point(aes(y = mae)) +
+    geom_path(aes(y = mae)) +
+    ylab("MAE (m/s)")
+
+prmse / pmae
 
 s00 %>%
     group_by(obs, model) %>%
@@ -364,6 +419,13 @@ s00 %>%
             2
         )
     ) %>%
+    ungroup() %>%
+    mutate(
+        rank = rank(obs, ties = "min"),
+        obs = as.character(obs),
+        obs = ifelse(seq_along(obs) == rank, obs, "")
+    ) %>%
+    select(-rank) %>%
     rename(
         "Sampling method" = obs,
         "Model" = model
@@ -376,10 +438,18 @@ s00 %>%
         linesep = ""
     ) %>%
     kableExtra::row_spec(3, extra_latex_after = "\\midrule") %>%
-    kableExtra::row_spec(6, extra_latex_after = "\\midrule")
+    kableExtra::row_spec(6, extra_latex_after = "\\midrule") %>%
+    kableExtra::kable_styling(font_size = 8)
 
 @
 
 
 
 Comparing the estimates numerically using \gls{rmse} (\cref{tab:sim2_pf_full}) we see, within each sampling method, the errors are similar. Models A1 and A2 perform very similarly, while model A3 is consistently higher.
+
+
+
+\subsubsection{Simulation C: bus stops as nodes with unknown intersections}
+\label{sec:vehicle_sim_C}
+
+This time, we perform a simulation that more closely replicates the Auckland Transport system we are modelling. In it, we no longer know the locations of intersections, so road segments are specified between stops instead. In this simulation, the bus may still stop at intersections, but the underlying model does not know where these are. The goal is to esimate travel time along segments (which is now the \emph{link time} between stops).
