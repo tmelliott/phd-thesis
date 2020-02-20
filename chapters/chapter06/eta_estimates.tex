@@ -1,0 +1,29 @@
+\section{Estimates of arrival time}
+\label{sec:eta_estimates}
+
+As previously discussed, there is considerable uncertainty in the posterior predictive distribution of arrival time. This uncertainty makes point estimates challenging to provide since there is a strong negative correlation between \emph{accuracy}---how far the estimates are from the actual value---and \emph{reliability}---how \emph{useful} the estimate is. Take for example the median, which has, on average, the highest accuracy, but 50\% of the time the bus arrives earlier than the estimate, which could lead to a passenger missing their bus. To overcome this, we also explore using \emph{prediction intervals} to balance accuracy and reliability.
+
+The method for obtaining estimates from the \glspl{cdf} from \cref{sec:etas_cdfs} uses quantiles, such that the $q$-quantile, $q\in(0,1)$, is found by
+\begin{equation}
+\label{eq:eta_calc_quantile}
+\max\{a : \Pr{A < a} \geq q\}
+\end{equation}
+\Cref{fig:eta_calc_quantile} shows a single \gls{cdf} with a horizontal line at $q$, and the largest ETA with its quantile below this line is the desired value; in this case, $\hat A_{0.5} = 11$.
+
+
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{figure}
+
+{\centering \includegraphics[width=.8\textwidth]{figure/eta_calc_quantile-1} 
+
+}
+
+\caption[Quantile estimation from a CDF]{Quantile estimation from a CDF. ETA values with quantiles below the desired threshold are coloured red; the maximum of these is the quantile value.}\label{fig:eta_calc_quantile}
+\end{figure}
+
+
+\end{knitrout}
+
+
+\input{chapters/chapter06/eta_point.tex}
+\input{chapters/chapter06/eta_interval.tex}

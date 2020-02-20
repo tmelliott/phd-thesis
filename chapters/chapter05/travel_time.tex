@@ -1,0 +1,32 @@
+\section{Predicting travel time}
+\label{sec:trip_travel_time}
+
+Predicting the time the vehicle will take to arrive at each stop along the remainder of the route is the next step in the process. We do so by combining the trip state with the network state (and short-term forecasts) to estimate how long it will take the bus to travel along the intermediate roads to each stop, as well as include dwell time uncertainty. However, there are several ways we could do so. Perhaps the most obvious is to simply use (where available) the vehicle's particle set to travel the remainder of the route, but this is very computatinally intensive. Alternatively, we could use a normal approximation of the trip and network states, which reduces the problem to a sum, but including dwell time uncertainty is a slight nuisance there. Then there's a historical data-based approach, in which we use historical arrival times to predict (with uncertainty) the next ETA, or even use the current delay plus the scheduled arrival time (neither of which use the network state at all!).
+
+% \input{chapters/chapter05/travel_time_pf.tex}
+
+\subsection{Particle filter model}
+\label{sec:trip_travel_time_pf}
+
+Conceptually, using the particle sample associated with a vehicle is the simplest predictor of travel times, as it intuitively yields a point estimate with uncertainty, and pays no heed to multimodality and non-normality of the target distribution. However, computationally it is quite challenging, as we need to make $N\times(M-m)$ estimates \emph{per vehicle}, of which there are upwards of 1000 at peak times. We will deal with this later.
+
+
+For now, let's say a trip has state $\Tripr$, and is associated with vehicle $v$, which has a state approximated by $N$ particles as in \cref{eq:}. For each particle, we simply project it forward to all remaining stops, simulating a travel time along each intermediate segment from the network state distribution \cref{eq:}. The simplicity here is that the dwell times at each stop can also be modelling using the same model as in \cref{sec:vehicle_model}.
+
+
+% \input{chapters/chapter05/travel_time_normal.tex}
+\subsection{Normal approximation}
+\label{sec:trip_travel_time_normal}
+
+Due to the huge computational demand of using the particle filter, we could instead use a Normal approximation based on the currently estimate trip (or vehicle) state, and combine the network state. How? The network state is already summarized by a mean and an uncertainty from \cref{sec:nw_model}. We first sum up the roads between each stop (a link), and then sum the link times with dwell times too. However, dwell times are not normally distributed: they are zero-inflated.
+
+[[ pull in the maths stuff from next section ]]
+
+% \input{chapters/chapter05/travel_time_historical.tex}
+\subsection{Historical arrival time delays}
+\label{sec:trip_travel_time_historical}
+
+An alternative method of estimating arrival time is by using historical delays, which can be estimated from as much data as is available to estimate the mean and uncertainty. This is particularly valuable when no information for a trip is available, in which case it may be cancelled or the vehicle is operating without working \gls{avl}.
+
+
+% \input{chapters/chapter05/travel_time_schedule.tex}

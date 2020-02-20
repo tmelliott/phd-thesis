@@ -1,0 +1,49 @@
+\section{Real-time estimation of vehicle state}
+\label{sec:vehicle_model}
+Real-time vehicle tracking has been studied vigorously, particularly for robotics applications and self-driving cars \citep{cn}. In many of these, data is sampled at a very high frequency, often multiple times per second, leading to highly accurate estimates of the objects \emph{state}.\footnote{State, as we discuss shortly, includes properties such as the \emph{speed} of the object.} Alas with transit data this is seldom the case; instead, it is common for observations to be reported once every 10--30 seconds or, in some cases, even longer.
+
+Low-frequency observations lead to high uncertainties of state parameters and difficulty capturing all possible trajectories, which can lead to degradation of the model and loss of information. In figure 3, we show two possible trajectories for buses B and C; there are, in fact, countless possibilities: perhaps the bus waited at the stop a little longer? In this case, there is uncertainty about the bus' dwell time and speed; however, the first step of a recursive Bayesian model is to \emph{predict} the upcoming state \emph{before observing it} (section 2.4). If the model does not cover the vehicle's actual trajectory, we effectively ``lose'' the vehicle, and the filter is said to \emph{degenerate}. In that case, we typically need to reinitialize the vehicle's state, resulting in a loss of any information we might have gained in the last time step.
+
+When deciding which type of model implementation to use, historically the most common for these type of data is the Kalman filter (citations). However, it assumes a Gaussian state distribution, which we have hopefully demonstrated is not the case; instead, we implemented a \emph{particle filter}. Due to its high flexibility, the particle filter can account for a broad set of plausible trajectories (Hans, 2015), which makes it a strong candidate for transit modelling.
+
+\begin{knitrout}\small
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{figure}
+
+{\centering \includegraphics[width=\textwidth]{figure/vehicle_state-1} 
+
+}
+
+\caption[Visualisation of vehicle state]{Visualisation of vehicle state. The top graph shows the distance travelled, $x$, over time, with points representing observed states $\Vstate_k, k=0,\ldots,3$. The gradient of distance over time is speed, $\dot x$, which is displayed in the lower graph: steeper sections of the top graph correspond to higher speeds, and vice verca. Also included on the right is speed in kilometers per hour (km/h) for reference.}\label{fig:vehicle_state}
+\end{figure}
+
+
+\end{knitrout}
+
+
+The vehicle model itself involves describing bus behaviour algorithmically so that we can infer the vehicle's \emph{unknown state} $\Vstate_k$ from a sequence of GPS observations. Since buses service routes with a known path, we can represent their position using \emph{distance travelled} along the route's path, which we denote $\Vdist_k$ at time $\Vtime_k$. Additionally, we are interested in the \emph{speed} of the vehicle, $\Vspeed_k$. Therefore, the underlying, unknown, and \emph{unobservable} state of a vehicle at time t is denoted
+\begin{equation}
+\label{eq:vehicle_state}
+\Vstate_k = \tvec{\Vdist_k, \Vspeed_k}
+\end{equation}
+We can graph a series of vehicle states with time along the x-axis and distance travelled (in meters) along the y-axis, as in \cref{fig:vehicle_state}. The derivative (gradient) of the curve represents the vehicle's speed. So, for example, the vehicle state at time $t_1 = 30$~seconds is $\Vstate_1 = [\Vdist_1, \Vspeed_1]^\top = [200~\text{m}, 15~\text{m/s}]^\top$. The remainder of the section presents a model, along with a particle filter implementation of it, which allows us to estimate vehicle state.
+
+The particle filter represents the vehicle's state using a sample of \emph{particles}, each which has its own unique state, $\Vstate_k\vi$. We can think of each particle as an ``imaginary bus'' which represents one possible state (and associated trajectory) of the true bus. Together, the particles approximate the posterior distribution of the vehicle's state at time $\Vtime_k$ given all observations up to time $\Vtime_k$, denoted $\Vobs_{1:k}$. The posterior distribution can be expressed using the Dirac measure, $\dirac_a$,
+\begin{equation}
+\label{eq:vehicle_state_dirac}
+p(\Vstate_k | \Vobs_{1:k}) \approx
+\sum_{i=1}^\Np \Pwt_{k-1} \dirac_{\Vstate_k\vi}\left(\Vstate_k\right).
+\end{equation}
+
+
+Before implementing a recursive Bayesian filter to these data, we need a \emph{transition function}, a \emph{measurement function}, and a \emph{likelihood}. The transition function, $\Vtrans$, describes how a vehicle behaves between two consecutive observations: that is, the shape of the curve in \cref{fig:vehicle_state}. This allows us to \emph{predict} the future state of the vehicle \emph{given its last known state}. Additionally, we include the \emph{system noise} parameter $\Vnoise$, which represents the rate of change of speed. The measurement function, $\Vmeas$, describes the relationship between the vehicle's state, $\Vstate_k$, and the observation of this state, $\Vobs_k$, which is a \gls{gps} location with an associated \emph{measurement error}, $\GPSerr$. We represent this using two simple equations,
+\begin{equation}
+\label{eq:vehicle_model}
+\begin{split}
+\Vstate_k &= \Vtrans(\Vstate_{k-1}, \Vnoise_k) \\
+\Vobs_k &= \Vmeas(\Vstate_k) + \GPSerr
+\end{split}
+\end{equation}
+The \emph{likelihood} function, quite simply, describes the likelihood of an observation $\Vobs_k$ given an underlying state $\Vstate_k$.
+
+
+We now discuss the details of the two components of the model and their implementations. The \emph{prediction step} (\cref{sec:vehicle_model_trans}) supplies an estimate of the bus' state \emph{before observing it} by using a model of bus behaviour. Then the \emph{update state} (\cref{sec:pf-likelihood}) combines the prediction and observation, using the measurement function and likelihood, to obtain a posterior estimate of the vehicle's state.

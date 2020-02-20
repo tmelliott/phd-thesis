@@ -1,0 +1,49 @@
+
+\chapter{Modelling transit vehicles}
+\label{cha:vehicle_model}
+
+As vehicles travel along their respective routes, they report---in real-time---their geographical position as \gls{gps} coordinates. While these observations of location can be useful on their own, we wish to use them to infer the \emph{speed of the vehicle} which we cannot observe directly.\footnote{At least, not without being on the bus or standing on the roadside with a radar speed gun} These speeds can then be mapped to physical road segments and used in \cref{cha:network_model} to update the network state.
+
+Transit vehicles come in a variety of forms such as trains, trams, and buses. The last of these is the most notable for us since they are most affected by external factors, such as traffic congestion, and are therefore harder to predict. It is for this reason that we have used buses to develop the model presented in this chapter in which we explore the following behaviours:
+\begin{itemize}
+\item general travel along a known path (including acceleration and deceleration);
+\item bus stops, at which the bus may (or may not) stop;
+\item intersections (both controlled and uncontrolled) which may (or may not) temporarily halt a bus; and
+\item driver behaviour (this mostly comes under vehicle speed but is more significant in modelling buses versus trains).
+\end{itemize}
+
+
+\begin{knitrout}\small
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{figure}
+
+{\centering \subfloat[Observations (points) with possible trajectories which fit the data. The horizontal dashed line represents the location of the stop, and the vertical dotted line indicates the time point at which we wish to estimate vehicle speed (below).\label{fig:vobs_multimode1}]{\includegraphics[width=\textwidth]{figure/vobs_multimode-1} }\newline
+\subfloat[Estimated speed distribution at the indicated time (dotted vertical line top graph).\label{fig:vobs_multimode2}]{\includegraphics[width=\textwidth]{figure/vobs_multimode-2} }
+
+}
+
+\caption[An example of multimodality in vehicle state]{An example of multimodality in vehicle state. Note that the effects have been exaggerated here to illustrate the issue.}\label{fig:vobs_multimode}
+\end{figure}
+
+
+\end{knitrout}
+
+
+It is evident from the behaviours listed above (described in further detail in section \cref{sec:vehicle_model}) that there are many factors involved in determining a bus' trajectory. Many of these factors, such as speed, are unmeasurable (but can be estimated), while others are often unknowable. An example of the latter is whether or not the bus stopped at a bus stop. \Cref{fig:vobs_multimode1} shows a series of \emph{distance} observations\footnote{This is just an example to demonstrate the issue at hand.} for three buses passing a stop:
+\begin{itemize}
+\item bus A stops and reports both its arrival and departure times;
+\item bus B stops, but only reports its departure time;\footnote{This can happen if the arrival bservation is ``lost'' or overwritten by the departure time within the \gls{gtfs} update interval}
+\item bus C does not stop and reports a departure time as it passes the stop.
+\end{itemize}
+Overlaid on the observations are possible trajectory curves for each vehicle: for bus A, there is only one since we observe both the vehicle's arrival and departure. However, B and C each have two potential paths: one in which the vehicle stops, and another in which it does not. The main point is that \emph{we cannot know which is true}. This scenario is an example of \emph{multimodality} in the vehicle's state. \Cref{fig:vobs_multimode2} shows the possible distribution of the vehicles' speeds at the time marked with a dotted vertical line (in \cref{fig:vobs_multimode1}). For bus A, the distribution is \emph{unimodal}, which satisfies the assumptions of many estimation methods (such as the Kalman filter, \cref{sec:kf}). For buses B and C, however, the speed state is \emph{bimodal}, so the Kalman filter would no longer be an appropriate choice for these data. This multimodality was one of our main reasons for choosing a particle filter to implement our vehicle model.
+
+Once the vehicle's state has been estimated, we can make inferences about the average speed along a given road segment, covered in \cref{sec:vehicle_speeds}. This includes a simulation comparing the variant models introduced in \cref{sec:vehicle_model}, and showing the effectivness of our approach with simulated data. We conclude this chapter with a discussion of the real-time implementation of the model (\cref{sec:particle-filter}), including the process of parameter estimation for the various model parameters, and details of some of the difficulties we experienced modelling these data.
+
+
+
+\input{chapters/chapter03/vehicle_model.tex}
+\input{chapters/chapter03/vehicle_model_predict.tex}
+\input{chapters/chapter03/vehicle_likelihood.tex}
+
+\input{chapters/chapter03/vehicle_travel_times.tex}
+
+\input{chapters/chapter03/vehicle_implementation.tex}

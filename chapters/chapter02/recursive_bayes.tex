@@ -1,0 +1,216 @@
+\section{Recursive Bayesian models}
+\label{sec:recursive-bayes}
+
+The most challenging problem we face in this application is its \rt{} nature. Vehicle's report their current location, from which we want to estimate road speeds in order to predict arrival times, all within no more than 30~seconds. Fortunately, a certain class of models suit themselves well to \rt{} applications, and are indeed used in many vehicle tracking and robotis applications. These are, of course, \glspl{rbm}, sometimes referred to a \emph{sequential Bayes}.
+
+
+In a typical analysis, data $\mat{Y}$ would be stored in an $n\times k$ matrix corresponding to $k$ measurements of $n$ variables over time. Then Bayes' rule could be used to estimate the posterior distribution of an $m\times k$ matrix of parameters $\mat{X}$ all at once,
+\begin{equation}
+\label{eq:bayes}
+p(\mat{X}\cond{}\mat{Y}) =
+\frac{
+    p(\mat{X})
+    p(\mat{Y}\cond{}\mat{X})
+}{
+    p(\mat{Y})
+}
+\end{equation}
+This is typically estimated using an \gls{mcmc} algorithm, which are generally computationally intensive and take much longer than 30~seconds to converge.
+In a \rt{} application, the columns of $\mat{Y}$ are observed sequentially, so that at time $t_k$ we have observed
+\begin{equation}
+\label{eq:bayes_y_vector}
+\mat{Y} = \boldsymbol{y}_{1:k} = [\boldsymbol{y}_1,\cdots,\boldsymbol{y}_k],
+\end{equation}
+and wish to estimate
+\begin{equation}
+\label{eq:bayes_x_vector}
+\mat{X} = \bx_{0:k} = [\boldsymbol{x}_0,\cdots,\boldsymbol{x}_k],
+\end{equation}
+where $\boldsymbol{x}_0$ is the \emph{initial state} of the object being modelled. Rather than refitting the full model, as we would need to do using \gls{mcmc}, \gls{rbe} allows us to combine the previous \emph{posterior estimate} of the state with the new information.
+
+In a \gls{rbm}, we make two general assumptions. The first is that $\boldsymbol{x}$ follows a Markov process such that the state at time $t_k$ depends only upon the state at time $t_{k-1}$:
+\begin{equation}
+\label{eq:rbe_markov}
+p(\boldsymbol{x}_k \cond{} \boldsymbol{x}_{0:k-1}) =
+p(\boldsymbol{x}_k \cond{} \boldsymbol{x}_{k-1})
+\end{equation}
+from which we can derive the joint distribution of the underlying state parameters
+\begin{equation}
+\label{eq:rbe_joint_x}
+\begin{split}
+p(\bx_{0:k})
+&= p(\bx_0)p(\bx_1\cond{}\bx_0)p(\bx_2\cond{}\bx_{0:1})\cdots
+p(\bx_{k}\cond{}\bx_{0:k-1}) \\
+&= p(\bx_0)p(\bx_1\cond{}\bx_0)p(\bx_2\cond{}\bx_1)\cdots p(\bx_k\cond{}\bx_{k-1}) \\
+&= p(\bx_0)\prod_{i=1}^k p(\bx_i\cond{}\bx_{i-1})
+\end{split}
+\end{equation}
+
+The second assumption is that the \emph{observations} $\boldsymbol{y}_k$ of the state depend only on the current state and are independent of one another:
+\begin{equation}
+\label{eq:rbe_obs}
+p(\boldsymbol{y}_k \cond{} \boldsymbol{x}_{0:k}, \boldsymbol{y}_{0:k-1}) =
+p(\boldsymbol{y}_k \cond{} \boldsymbol{x}_{k}).
+\end{equation}
+This allows us to derive the joint likelihood for the data,
+\begin{equation}
+\label{eq:rbe_joint_lh}
+\begin{split}
+p(\boldsymbol{y}_{1:k}\cond{}\bx_{0:k})
+&= p(\boldsymbol{y}_1\cond{}\bx_{0:1})\cdots p(\boldsymbol{y}_k\cond{}\bx_{0:k}) \\
+&= p(\boldsymbol{y}_1\cond{}\bx_1)\cdots p(\boldsymbol{y}_k\cond{}\bx_k) \\
+&= \prod_{i=1}^k p(\boldsymbol{y}_i\cond{}\bx_i)
+\end{split}
+\end{equation}
+along with the marginal distribution for the data,
+\begin{equation}
+\label{eq:rbe_marginal_y}
+p(\boldsymbol{Y}_{1:k}) = p(\boldsymbol{y}_1)\cdots p(\boldsymbol{y}_k)
+= \prod_{i=1}^k p(\boldsymbol{y}_i)
+\end{equation}
+
+
+
+We can now express the posterior distribution $p(\bx_{0:k}\cond{}\boldsymbol{y}_{1:k})$ using \cref{eq:bayes} along with \cref{eq:rbe_joint_x,eq:rbe_joint_lh,eq:rbe_marginal_y} as
+\begin{equation}
+\label{eq:rbe_posterior}
+\begin{split}
+p(\bx_{0:k}\cond{}\boldsymbol{y}_{1:k})
+&= \frac{p(\bx_{0:k})p(\boldsymbol{y}_{1:k}\cond{}\bx_{0:k})}{p(\boldsymbol{y}_{1:k})} \\
+&= \frac{
+    p(\bx_0)\prod_{i=1}^k p(\bx_i) \cdot
+    \prod_{i=1}^k p(\boldsymbol{y}_i\cond{}\bx_i)
+}{
+    \prod_{i=1}^k p(\boldsymbol{y}_i)
+} \\
+&= p(\bx_0)\prod_{i=1}^k
+\frac{
+    p(\bx_i) p(\boldsymbol{y}_i\cond{}\bx_i)
+}{
+    p(\boldsymbol{y}_i)
+}
+\end{split}
+\end{equation}
+However, we can substitute the first $k-1$ terms in \cref{eq:rbe_posterior} to obtain the following recursive representation:
+\begin{equation}
+\label{eq:rbe_posterior_recursive}
+p(\bx_{0:{k}}\cond{}\boldsymbol{y}_{1:k})
+= p(\bx_{0:k-1}\cond{}\boldsymbol{y}_{1:k-1})
+\frac{
+    p(\bx_{k}) p(\boldsymbol{y}_{k}\cond{}\bx_{k})
+}{
+    p(\boldsymbol{y}_{k})
+}.
+\end{equation}
+Here, the posterior distribution from the previous time step is used as a \emph{prior} for the next, and so it \emph{recursively} or \emph{sequentially} updates the state estimate as new data are observed. This is what makes \glspl{rbm} perfect for use in \rt{} applications.
+
+
+There are several types of \glspl{rbe}, but they all consist of two main steps: the \emph{prediction}, and the \emph{update}. In the prediction step, the algorithm uses a \emph{transition function} $f$ (or matrix) to predict the new state based only upon the current state, while the \emph{update} step incorporates the data to adjust the estimate using a \emph{measurement function} $h$, which describes the relationship between $x$ and $y$. These can be expressed by the following model equations:
+\begin{equation}
+\label{eq:rbe_model}
+\begin{split}
+\bx_k &= f(\bx_{k-1}, \boldsymbol{w}_k) \\
+\boldsymbol{y}_k &= h(\bx_k) + \boldsymbol{v}_k.
+\end{split}
+\end{equation}
+The additional parameters $\boldsymbol{w}_k$ and $\boldsymbol{v}_k$ represent \emph{system noise} and \emph{measurement error}, respectively. The choice of $f$, $h$, and the distributions for the error terms depends on the choice of model. We now discuss two types of \gls{rbe} which are used throughout this work: the \kf{} and the \pf{}.
+
+
+\subsection{\kf{}}
+\label{sec:kf}
+
+Commonly used in vehicle tracking applications, the \kf{} is a very fast, simple estimation method that assumes Gaussian noise and approximates the state by a normal random variable with length $m$ mean vector and $m\times x$ covariance matrix
+\begin{equation}
+\label{eq:kf_estimators}
+\begin{split}
+\hat\bx_{k|k} &= \E{\bx_k | \boldsymbol{y}_{1:k}} \\
+\mat{P}_{k|k} &= \Var{\bx_k | \boldsymbol{y}_{1:k}}
+\end{split}.
+\end{equation}
+A \kf{} implementation requires a $m\times m$ \emph{transition matrix}, $\mat{F}_k$, which defines the relationship between states at time $t_{k-1}$ and $t_k$, and a $n\times m$ \emph{measurement matrix}, $\mat{H}_k$, defining the relationship between $\boldsymbol{y}$, a length $n$ vector, and $\bx$, a length $m$ vector. The \kf{} version of the model presented in \cref{eq:rbe_model} is
+\begin{equation}
+\label{eq:kf_model}
+\begin{split}
+\bx_k &= F_k\bx_{k-1} + \boldsymbol{w}_k \\
+\boldsymbol{y}_k &= H_k\bx_k + \boldsymbol{v}_k,
+\end{split}
+\end{equation}
+where $\boldsymbol{w}_k$ and $\boldsymbol{v}_k$ are normal random variables with mean zero and covariance matrices $\mat{Q}_k$ and $\mat{R}_k$, respectively. The $m\times m$ covariance matrix $\mat{Q}_k$ represents the system noise at time $t_k$, which is defined as the rate of change of the variance of process noise \citep{Cathey_2003}. Measurement error is expressed by the $n\times n$ covariance matrix $\mat{R}_k$.
+
+The \kf{} is implemented through two sets of equations. First is the prediction step, in which the current state (represented by the mean vector and covariance matrix) is predicted based solely on the previous state:
+\begin{equation}
+\label{eq:ch2:kf_predict}
+\begin{split}
+\hat\bx_{k|k-1} = \E{\bx_k | \bx_{k-1}}
+    &= \mat{F}_k \hat\bx_{k-1|k-1} \\
+\mat{P}_{k|k-1} = \Var{\bx_k | \bx_{k-1}}
+    &= \mat{F}_k \mat{P}_{k-1|k-1} \mat{F}_k^\top + \mat{Q}_k
+\end{split}
+\end{equation}
+Next, the update step uses the observation $\boldsymbol{y}_k$ to adjust the predicted state. This is done using the following set of equations, which are effectively taking a ratio of the state and measurement uncertainties:
+\begin{equation}
+\label{eq:ch2:kf_update}
+\begin{split}
+\bz_k &= \boldsymbol{y}_k - \mat{H}_k \hat\bx_{k|k-1} \\
+\mat{S}_k &= \mat{R}_k + \mat{H}_k \mat{P}_{k|k-1} \mat{H}_k^\top \\
+\mat{K}_k &= \mat{P}_{k|k-1} \mat{H}_k^\top \mat{S}_k^{-1} \\
+\hat\bx_{k|k} &= \hat\bx_{k|k-1} + \mat{K}_k \bz_k \\
+\mat{P}_{k|k} &= (\mat{I} - \mat{K}_k \mat{H}_k) \mat{P}_{k|k-1}
+    (\mat{I} - \mat{K}_k \mat{H}_k)^\top + \mat{K}_k \mat{R}_k \mat{K}_k^\top.
+\end{split}
+\end{equation}
+
+
+The simplicity of the \kf{} means that, so long as the number of parameters $m$ is small, it can be calculated incredibly quickly with minimal processing demand, making it a strong competitor for \rt{} applications. Conversely, the \kf{} makes several strong assumptions about the shape of the parameter distributions, and is limited to linear relationships between states and measurements since these must be expressed in matrix form.
+
+
+
+\subsection{Particle filter}
+\label{sec:pf}
+
+The other framework we use is the \pf{}, a more generalised, numerical approach to recursive Bayesian modelling. The state is approximated by a sample of $\Np$ particles, each of which is an independent point estimate of the state $\bx\vi_k$ with a weight $w\vi \geq 0$ and $\sum_i w\vi = 1$. The state estimate is expressed using the Dirac delta measure $\dirac$ (see \cref{app:dirac-delta-measure} for details), such that
+\begin{equation}
+\label{eq:pf_state}
+p(\bx_{k-1} | \boldsymbol{y}_{1:k-1}) \approx
+\sum_{i=1}^\Np w\vi_{k-1} \DiracMeasure{\bx\vi_{k-1}}{\bx_{k-1}}
+\end{equation}
+
+The first main advantage of the \pf{} is that we are no longer constrained in our choice of transition function, $f$, or in our error distribution. The reason for this is that, instead of working with the mean and variance of the state (as is the case with the \kf{}) we work with \emph{independent point estimates} which each represent a plausible state. Here we use a normal random variable for the system noise, but this could be any appropriate distribution (for example a Cauchy if heavier tails are necessary). The state prediction step is thus carried out on each particle,
+\begin{equation}
+\label{eq:ch2:pf_predict_particle}
+\bx\vi_k = f\left(\bx\vi_{k-1}, \boldsymbol{v}\vi_k\right),
+\quad
+\boldsymbol{v}\vi_k \sim \Normal{\boldsymbol{0}}{\mat{Q}_k}
+\end{equation}
+The prior-predictive distribution of the state, using the Dirac delta measure, is given by
+\begin{equation}
+\label{eq:ch2:pf_predict_state}
+p(\bx_k | \bx_{k-1}) \approx
+\sum_{i=1}^\Np w\vi_{k-1} \DircMeasure{\bx\vi_k}{\bx_k}
+\end{equation}
+
+
+The next step is to update the state to account for the observation by using the likelihood function directly. This is simply done by reweighting each particle using the likleihood function, and normalising the weights to sum to unity:
+\begin{equation}
+\label{eq:pf_reweight}
+w\vi_k =
+\frac{
+    w\vi_{k-1} p(\boldsymbol{y}_k | \bx\vi_k)
+}{
+    \sum_{j=1}^\Np w\vi_{k-1} p(\boldsymbol{y}_k | \bx\vi[j]_k)
+}
+\end{equation}
+This yields the final posterior distribution of the state,
+\begin{equation}
+\label{eq:pf_state_post}
+p(\bx_{k} | \boldsymbol{y}_{1:k}) \approx
+\sum_{i=1}^\Np w\vi_{k} \DiracMeasure{\bx\vi_{k}}{\bx_{k}}.
+\end{equation}
+
+
+Over time, many of the particle weights will go to zero as they disperse due to the system noise. This leaves only a few particles contributing to the state, which, if none end near the actual vehicle location, will result in all vehicles having likelihoods close to zero. To prevent this situation of particle filter \emph{degeneration}, we perform \emph{importance resampling} (a weighted bootstrap) in which particles are sampled, with replacement, according to their weight. Afterwards, particle weights are reset to $N^{-1}$.
+
+
+The advantage of the \pf{} is that it is general, and as we discuss in \cref{sec:vehicle_model}, we can easily create a transition function to describe a complex system, as well as define a likelihood function that accurately defines the relationship between observed and unobserved states.
+
+The disadvantage is, of course, that the computational demand is high, as each particle is translated independently, and resampling can be slow for large $\Np$, having order $\mathcal{O}(\Np\log\Np)$ in the C++ algorithm we use. However, as we discuss in the next chapter, the advantages far outweigh the additional computational demands of the \pf{}, which can be minimised if implemented carefully.

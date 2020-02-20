@@ -1,0 +1,19 @@
+\chapter{Mathematical formulae}
+\label{app:math}
+
+\section{Numerical assessment criteria}
+\label{app:error-functions}
+
+We use three formulae to assess the performance of methods. These are the \acrfull{rmse}, \acrfull{mae}, and \acrfull{mape}. In each of these, we obtain $N$ estimates of a value $\hat X_n$ of which the the actual value is $X_a$ and compare the difference. The formulae are as follows:
+\begin{align}
+\label{eq:app_rmse}
+\text{RMSE} &= \sqrt{\frac{1}{N}\sum_{n=1}^N \left(X_a - \hat X_n\right)^2} \\
+\label{eq:app_mae}
+\text{MAE} &= \frac{1}{N}\sum_{n=1}^N \left|X_a - \hat X_n\right| \\
+\label{eq:app_mape}
+\text{MAPE} &= \frac{100}{N}\sum_{n=1}^N \left|\frac{X_a - \hat X_n}{X_a}\right|
+\end{align}
+The units for \gls{rmse} and \gls{mae} are the same as the units of $X$, while \gls{mape} is a percentage. In all cases, smaller values indicate better estimation or prediction.
+
+
+\gls{rmse} and \gls{mae} give similar results, though the former is more sensitive to extreme values. \gls{mape} is relative to the \emph{size} of the true value, so, in the context of forecasting (arrival time prediction), it is more sensitive to errors in short-term predictions.

@@ -43,6 +43,8 @@ the weighted mean of the sample,
 \end{equation}
 
 
+To evaluate and compare the estimation performance of the models, we use \gls{rmse} and \gls{mae}, which are defined in \cref{app:error-functions}.
+
 
 \subsubsection{Simulation A: general vehicle model}
 \label{sec:vehicle_sim_A}
@@ -91,6 +93,7 @@ p1 + geom_point(aes(t, x), data = s1$observations$waypoints)
 <<sim1_pf,echo=FALSE,message=FALSE,warning=FALSE,fig.height=3,fig.width=8,out.width="\\linewidth",fig.cap="Simulation results for the three models (rows) applied to the data from three sampling methods (columns), using $\\Np=2000$ particles. The standard deviation of the particle travel times is represented as error bars, though in many cases the error is too small to display.">>=
 S0 <- sim1$fits
 S0 %>%
+    filter(segment != "Segment 6") %>%
     mutate(
         xpos = as.numeric(as.factor(model)) +
             as.numeric(as.factor(segment)) / 15,
@@ -140,6 +143,7 @@ s00 <- pbapply::pblapply(1:100,
 stopCluster(cl)
 
 s00 %>%
+    filter(segment != "Segment 6") %>%
     ggplot(
         aes(
             avg_speed,
@@ -165,7 +169,7 @@ s00 %>%
 
 
 s00 %>%
-    filter(is.finite(speed_estimate)) %>%
+    filter(is.finite(speed_estimate) & segment != "Segment 6") %>%
     group_by(obs, model) %>%
     summarize(
         "RMSE (m/s)" = sqrt(
@@ -174,7 +178,14 @@ s00 %>%
                 na.rm = TRUE
             )
         ) %>%
-            round(2)
+            round(2),
+        "MAE (m/s)" = round(
+            mean(
+                abs(speed_estimate - avg_speed),
+                na.rm = TRUE
+            ),
+            2
+        )
     ) %>%
     rename(
         "Sampling method" = obs,
@@ -250,6 +261,7 @@ The results of the simulation are shown in \cref{fig:sim2_pf}, where we see some
 <<sim2_pf,echo=FALSE,message=FALSE,warning=FALSE,fig.height=3,fig.width=8,out.width="\\linewidth",fig.cap="Simulation results for the three models (rows) applied to the data from three sampling methods (columns), using $\\Np=2000$ particles. [details].">>=
 S0 <- sim2$fits
 S0 %>%
+    filter(segment != "Segment 6") %>%
     mutate(
         xpos = as.numeric(as.factor(model)) +
             as.numeric(as.factor(segment)) / 15,
@@ -302,7 +314,14 @@ s00 <- pbapply::pblapply(1:100,
 
 stopCluster(cl)
 
-s00 %>% filter(segment != "Segment 5") %>%
+s00 <- s00 %>%
+    filter(
+        segment != "Segment 6" &
+        is.finite(speed_estimate) &
+        speed_estimate < 30
+    )
+
+s00 %>%
     ggplot(
         aes(
             avg_speed,
@@ -312,13 +331,14 @@ s00 %>% filter(segment != "Segment 5") %>%
         )
     ) +
     geom_hline(yintercept = 0, colour = "gray") +
-    geom_pointrange(
-        aes(
-            ymin = speed_estimate - avg_speed - speed_sd,
-            ymax = speed_estimate - avg_speed + speed_sd
-        ),
-        shape = 19, size = 0.5
-    ) +
+    geom_point() +
+    # geom_pointrange(
+    #     aes(
+    #         ymin = speed_estimate - avg_speed - speed_sd,
+    #         ymax = speed_estimate - avg_speed + speed_sd
+    #     ),
+    #     shape = 19, size = 0.5
+    # ) +
     facet_grid(obs ~ model, scales = "free_y") +
     theme_classic() +
     theme(strip.background = element_blank()) +
@@ -327,7 +347,6 @@ s00 %>% filter(segment != "Segment 5") %>%
     labs(colour = "", fill = "")
 
 s00 %>%
-    filter(is.finite(speed_estimate)) %>%
     group_by(obs, model) %>%
     summarize(
         "RMSE (m/s)" = sqrt(
@@ -336,7 +355,14 @@ s00 %>%
                 na.rm = TRUE
             )
         ) %>%
-            round(2)
+            round(2),
+        "MAE (m/s)" = round(
+            mean(
+                abs(speed_estimate - avg_speed),
+                na.rm = TRUE
+            ),
+            2
+        )
     ) %>%
     rename(
         "Sampling method" = obs,

@@ -1,0 +1,92 @@
+
+
+
+\input{chapters/chapter01/intro_history.tex}
+
+
+
+\subsection{Particulars of Bus Behaviour}
+\label{sec:bus-behaviour}
+
+
+Many of the models used in transit research were originally developed for
+more generic tracking applications or traffic state models;
+however, there are several features that are unique to transit vehicles,
+such as bus lanes and bus stops \citep{Yu_2011},
+so models have needed adjusting accordingly.
+The two which are of particular importance are dwell time and headway,
+which have become a requirement in modern bus prediction methods
+\citep{Jeong_2005,Hans_2014,Hans_2015,Cats_2016}.
+
+
+Dwell time is defined as \emph{the total time lost due to stopping at a bus stop}.
+This is shown visually in \cref{fig:dwell-time},
+which shows the hypothetical paths of two vehicles,
+one of which stops while the other does not.
+Therefore, there are two components to consider:
+whether the bus stops, and if so, for how long.
+The former can be expressed as a Bernoulli random variable, $p_j \sim \mathcal{B}(\pi_j)$,
+where $\pi_j$, the average proportion of buses that stop,
+is modeled according to the data available and the framework being used.
+
+
+If a bus does stop, it must first decelerate,
+and after servicing the bus stop it will take some time to accelerate back up to speed.
+Additionally, there is time taken to open and close the doors.
+These delays are usually combined into a common affect, $\gamma$,
+as they apply to every bus and stop.
+Once a bus has stopped, it will remain there while passengers board and disembark.
+This can be modeled with an exponential distribution,
+$\tau'_j \sim \mathcal{E}(\mu_\tau)$,
+or else more complex queuing models can be constructed if the data allows
+\citep{Hans_2015}.
+The total dwell time experienced by the vehicle is $\tau_j = p_j(\gamma + \tau_j')$,
+as shown in \cref{fig:dwell-time}.
+
+% \begin{figure}[bt]
+%   \centering
+%   \includegraphics[width=0.8\textwidth]{dwell_time.png}
+%   \caption{Dwell time, $\tau_j$, is the total time lost due to stopping at a bus stop (indicated by the dashed black line).}
+%   \label{fig:dwell-time}
+% \end{figure}
+
+The other important feature is headway,
+which is the \emph{time delay between consecutive buses},
+and can affect both travel times and dwell times.
+If two consecutive routes are close together,
+then the travel times are expected to be similar;
+however, since they are both servicing the same route,
+we expect the number of passengers waiting at a stop---and therefore
+the dwell time---to be inversely proportional to the headway
+\citep{Hans_2014,Hans_2015}.
+
+
+
+
+\subsection{Availability of AVL Data}
+\label{sec:data-types}
+
+While there has been a lot of research in transit applications,
+many of them have been concerned with operations control,
+for example reducing bus bunching behaviour \citep{Hans_2015},
+or else they require more informative data than is available in most systems,
+such as \glspl{apc} and actual arrival times.
+For the latter, it is usually because the \gls{avl} recording is triggered by stops
+\citep{Hans_2015},
+is high frequency \citep{Chang_2010},
+or in some cases the test data was collected manually
+\citep{Yu_2010}.
+
+
+In Auckland's transport system, the only publicly available data is provided
+by \gls{gps}, which is updated approximately every 30~seconds,
+so arrival times must be estimated as latency variables and,
+in a \rt{} deployment, will remain unknown.
+Another issue specifically with Auckland Transport is that,
+over the next few years,
+the route structure is being completely redesigned
+and rolled out slowly across the city.
+Therefore, focus will be on using \rt{} and recent data (same day, week) to predict arrival times,
+rather than relying on historical data collected over months or years.
+
+

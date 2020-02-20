@@ -1,0 +1,36 @@
+\section{Constructing a network from GTFS data}
+\label{sec:route-segments}
+
+In \cref{sec:literature}, we reported how arrival time prediction is greatly improved when data from multiple routes is combined to estimate traffic conditions \citep{cn}. However, many of these applications were specific to a certain set of routes, or used external information (such as automatic toll readers and taxis) to get \rt{} traffic information. We wanted to develop a \emph{simpler}, \emph{more generalised} approach that uses solely \GTFS{} data (stops and shapes) to construct a network of non-overlapping\footnote{Except of course reverse directions.} road segments. The network should consist of \emph{nodes} (which could be intersections or bus stops) connected by \emph{edges}, or road segments.
+
+
+Essentially, we want to detect where two routes overlap, even partially, so tspeed information from one can be used to improve \glspl{eta} for the other. An obvious place to start is by looking at common subsequences of bus stops. Using stops as nodes is not ideal, however, as there are many situations where there will still be overlapping road segments. For example, an express route might skip a series of stops on a busy road, likely services by non-express versions of the same route, as well as other routes. Additionally, routes do not diverge at bus stops\footnote{Who would put a bus stop on an intersection?}, and instead overlap until an \emph{intersection} at which point they diverge.
+
+
+% (Note to self: maybe this can be dropped, since it hasn't been done yet ...?)
+% Getting intersection data is not easy, however, and initial attempts at doing so using Open Street Maps \citep{OpenStreetMap_2017} were unsuccessful due to the difficulty in identifying an intersection, and replication of traffic lights (one for each physical light). One possible method to reduce the instances of the second situation is to find road segments that end at the same stop, but have a different origin (or vice versa). Then we travel along the paths until they meet, at which point we place an intersection.
+
+
+
+One other issue specific to \AT{}'s \GTFS{} feed is that all of the object IDs are \emph{versioned}. That is, instead of a fixed route having a route ID of \verb+02702+, the date and version number are appended to it: \verb+02702-20190806160740_v82.21+. This is the same for the IDs of trips, shapes, and stops. This makes it difficult to transfer existing segments based on stops from previous versions of the \gls{api}, requiring an additional step to remove the version information from the raw data.
+
+
+The algorithm we implemented uses only bus stops, but has the capability to extend to intersections, if available. To avoid the versioning issue described above, each stop is processed as though it is an intersection point, and checked to see if a node in that location already exists. If it does, the route is assigned the existing node; otherwise, a new node is created and assigned instead. As for the road segments, these are defined as unique connections between any two stops; that is, there can only be one segment going from node $A$ to node $B$ (the reverse is considered a different segment). The network can be constructed by the \verb+transitr+ package using the \verb+construct()+ function:
+\begin{knitrout}\small
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlkwd{library}\hlstd{(transitr)}
+\hlstd{nw} \hlkwb{<-} \hlkwd{load_gtfs}\hlstd{(}\hlstr{"at_gtfs.sqlite"}\hlstd{)} \hlopt{%>%} \hlkwd{construct}\hlstd{()}
+\hlstd{transitr}\hlopt{:::}\hlkwd{load_road_segments}\hlstd{(nw)} \hlopt{%>%} \hlstd{head}
+\end{alltt}
+\begin{verbatim}
+##   road_segment_id node_from node_to    length
+## 1               1      5414     537  485.6548
+## 2               2       537    3987  196.5567
+## 3               3      3987    7265  567.0883
+## 4               4      7265    1255 1049.0181
+## 5               5      1255    4099  682.5452
+## 6               6      4099    3436  535.0515
+\end{verbatim}
+\end{kframe}
+\end{knitrout}

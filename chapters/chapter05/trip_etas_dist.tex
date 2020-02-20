@@ -1,0 +1,145 @@
+\subsection{Analytic \glspl{eta}}
+\label{sec:trip_etas_dist}
+
+We can estimate arrival times using analytical methods.
+
+
+To estimate travel time along the segments of a route,
+we need to obtain a subset of the network state $\NWstate_c$.
+Let $\RouteSegs$ be the set, in order,
+of $\Nseg$ road segments making up a given trip.
+The travel times along these are assumed to have a
+multivariate normal distribution (as the full network does)
+with mean $\vec{b}_c$ and covariance matrix $\mat{T}_c$.
+
+
+To obtain the mean vector,
+we simply set
+$(\vec{b}_c)_i = (\hat\NWstate_c)_{\RouteSegs_i}$,
+and
+$(\mat{T}_c)_{i,j} = (\hat\NWvar_c)_{\RouteSegs_i,\RouteSegs_j}$,
+Assuming the network model is developed in the future
+to estimate covariances between road segments,
+the subset for a given route will also include the
+necessary covariance structure.
+
+
+Now we can compute the full distribution of arrival times
+using \cref{eq:trip_eta}.
+
+
+% However, simply including the covariance between segments is not enough.
+% Later, we will need to compute the distribution of the sum of links,
+% which are in turn the sums of segments.
+% So, we can calculate the mean and varince of these, too:
+% \begin{equation}
+% \label{eq:link_sum_mean}
+% \E{\sum_i \Linkt_{i}} = \sum_i \E{\Linkt_{i}}
+% \end{equation}
+% which we can compute using \cref{eq:link_tt_mean_partial}.
+
+% The variance is a little trickier \ldots
+% substituting \cref{eq:link_tt_partial},
+% \begin{equation}
+% \label{eq:link_sum_var}
+% \Var{\sum_i \Linkt_{i}}
+% = \sum_i \sum_j \Cov{\Linkt_{i}}{\Linkt_{j}}
+% \end{equation}
+% and we can compute each individual covariance component using
+% \begin{equation}
+% \label{eq:link_cov}
+% \begin{split}
+% \Cov{\Linkt_{i}}{\Linkt_{j}}
+% &= \Cov{\sum_{k\in\RouteSegs_i} \SegProg_k (\NWstate^\Tripr_c)_k}%
+%     {\sum_{\ell\in\RouteSegs_j} \SegProg_\ell (\NWstate^\Tripr_c)_\ell} \\
+% &= \sum_{k\in\RouteSegs_i} \sum_{\ell\in\RouteSegs_j}
+%     \Cov{\SegProg_k(\NWstate^\Tripr_c)_k}{\SegProg_\ell(\NWstate^\Tripr_c)_\ell} \\
+% &= \sum_{k\in\RouteSegs_i} \sum_{\ell\in\RouteSegs_j}
+%     \SegProg_k\SegProg_\ell(\NWvar^\Tripr_c)_{k,\ell}
+% \end{split}
+% \end{equation}
+
+
+% Now we can compute the arrival times,
+% using the link and dwell times from
+% \cref{sec:trip_state_link,sec:trip_state_dwell},
+% respectively.
+From \cref{eq:trip_eta},
+and assuming link times and dwell times are independent,
+we estimate the arrival time for the current trip
+at stop $j$ has mean
+\begin{align}
+\label{eq:trip_eta_dist_mean}
+\E{\Tarr_j} &=
+    \E{\Vtime_k +
+    \SegProg \left(\NWstate_c\right)_{\RouteSegs_r} +
+    \sum_{i=\TripSeg+1}^{\TripSeg(j)-1}
+        \left(\NWstate_c\right)_{\RouteSegs_i} +
+    \sum_{m=\TripStop + \TripDep}^{j-1} \Tdwell_m} \nonumber\\
+&=
+    \Vtime_k +
+    \SegProg \E{\left(\NWstate_c\right)_{\RouteSegs_r}} +
+    \sum_{i=\TripSeg+1}^{\TripSeg(j)-1}
+        \E{\left(\NWstate_c\right)_{\RouteSegs_i}} +
+    \sum_{m=\TripStop + \TripDep}^{j-1}
+        \E{\Tdwell_m} \nonumber\\
+\intertext{which, from \cref{sec:nw_realtime,eq:trip_dwell_mean}, is simply}
+\E{\Tarr_j} &=
+    \Vtime_k +
+    \SegProg \left(\hat\NWstate_c\right)_{\RouteSegs_r} +
+    \sum_{i=\TripSeg+1}^{\TripSeg(j)-1}
+        \left(\hat\NWstate_c\right)_{\RouteSegs_i} +
+    \sum_{m=\TripStop + \TripDep}^{j-1}
+        \Prstop_m(\mindwell + \dwell_m)
+\end{align}
+
+Similarly for the variance, we get
+\begin{align}
+\label{eq:trip_eta_dist_var}
+\Var{\Tarr_j}
+&=
+    \Var{\Vtime_k +
+    \SegProg \left(\NWstate_c\right)_{\RouteSegs_r} +
+    \sum_{i=\TripSeg+1}^{\TripSeg(j)-1}
+        \left(\NWstate_c\right)_{\RouteSegs_i} +
+    \sum_{m=\TripStop + \TripDep}^{j-1} \Tdwell_m} \nonumber\\
+&=
+    \Var{
+        \SegProg \left(\NWstate_c\right)_{\RouteSegs_r} +
+        \sum_{i=\TripSeg+1}^{\TripSeg(j)-1}
+            \left(\NWstate_c\right)_{\RouteSegs_i}
+    } + \Var{
+        \sum_{m=\TripStop + \TripDep}^{j-1} \Tdwell_m
+    } \nonumber\\
+&=
+    \SegProg^2
+        \Cov{(\NWstate_c)_{\RouteSegs_r}}%
+            {(\NWstate_c)_{\RouteSegs_r}} +
+    2\SegProg\sum_{i=r+1}^{r(j)-1}
+        \Cov{(\NWstate_c)_{\RouteSegs_r}}%
+            {(\NWstate_c)_{\RouteSegs_i}} \nonumber\\
+&\phantom{=} +
+    \sum_{i=r+1}^{r(j)-1} \sum_{\ell=r+1}^{r(j)-1}
+        \Cov{(\NWstate_c)_{\RouteSegs_i}}%
+            {(\NWstate_c)_{\RouteSegs_\ell}} +
+    \sum_{m=\TripStop + \TripDep}^{j-1}
+        \Var{\Tdwell_m} \nonumber\\
+\intertext{which, from \cref{sec:nw_realtime,eq:trip_dwell_var},
+    is}
+\Var{\Tarr_j} &=
+    \SegProg^2 (\NWvar_c)_{\RouteSegs_r,\RouteSegs_r} +
+    2\SegProg\sum_{i=r+1}^{r(j)-1}
+        (\NWvar_c)_{\RouteSegs_r,\RouteSegs_i} +
+    \sum_{i=r+1}^{r(j)-1} \sum_{\ell=r+1}^{r(j)-1}
+        (\NWvar_c)_{\RouteSegs_i,\RouteSegs_\ell}
+    \nonumber\\
+&\phantom{=} +
+    \sum_{m=s+d}^{j-1}
+        \Prstop_{m} \left(
+            \dwellvar_{m} +
+            (1-\Prstop_{m})(\mindwell + \dwell_{m})^2
+        \right)
+\end{align}
+
+This is computationally easy to calculate for each stop
+$j=r+1, \ldots, \Nstop$.

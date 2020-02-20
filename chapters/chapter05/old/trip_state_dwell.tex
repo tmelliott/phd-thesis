@@ -1,0 +1,68 @@
+\subsection{Estimating dwell times at stops}
+\label{sec:trip_state_dwell}
+
+
+The dwell time at stops is also an unknown parameter
+that accounts for a lot of the variability.
+At peak times, buses can spend a lot of time picking up
+and dropping off passengers at all stops between
+where it is now, and the target bus stop,
+all of which can add up.
+However, it is also possible that,
+for one reason or another,
+no passengers embark or disembark the bus,
+and it needn't stop at all.
+We need to be able to account for this in the arrival time estimates.
+
+NOTE TO SELF: Eq (3.11) on page 15 needs to be fixed - p (gamma + tau) is wrong ... truncation point should be 0
+
+We described bus stop dwell time in \cref{sec:vehicle_model_stops},
+and the distribution is shown in
+\cref{fig:eta_dwell_times} on \cpageref{fig:eta_dwell_times}.
+The model for dwell time is
+\begin{gather}
+\label{eq:stop_dwell_times}
+\Tdwell_{j} = \Istop_{j} (\mindwell + \dot D_{j}) \\
+\dot D_{j} \sim \TNormal{\dwell_{j}}{\dwellvar_{j}}{0}{\infty} \nonumber \\
+\Istop_{j} \sim \Bern{\Prstop_{j}} \nonumber
+\end{gather}
+
+So we can compute the expectation and variance of this thing.
+First, we assume that dwell time and stopping probability are independent,
+which is likely not far from the truth.
+There is, of course, relationship between the two,
+but it is very complicated and depends more so on other buses
+that the parameters themselves.
+So, we can trivially show that the expected dwell time is
+\begin{align}
+\label{eq:trip_dwell_mean}
+\E{\Tdwell_{j}}
+&= \E{\Istop_{j} (\mindwell + \dot D_{j})} \nonumber \\
+&= \E{\Istop_{j} \mindwell} + \E{\Istop_{j}\dot D_{j}} \nonumber \\
+&= \Prstop_{j}\mindwell + \Prstop_{j}\dwell_{j}
+\end{align}
+with variance
+\begin{align}
+\label{eq:trip_dwell_var}
+\Var{\Tdwell_{j}}
+&= \Var{\Istop_{j} (\mindwell + \dot D_{j})} \nonumber \\
+&= \Big(\Var{\Istop_{j}} + \E{\Istop_{j}}^2\Big)
+    \Big(\Var{\mindwell + \dot D_{j}} + \E{\mindwell + \dot D_{j}}^2\Big)
+    \nonumber \\
+    &\phantom{=} - \E{\Istop\vphantom{\dot D_{j}}}^2 \E{\mindwell + \dot D_{j}}^2 \nonumber \\
+&= \left(\Prstop_{j}(1-\Prstop_{j}) + \Prstop_{j}^2\right)
+    \left(\dwellvar_{j} + (\mindwell + \dwell_{k})^2\right) -
+    \Prstop_{j}^2 (\mindwell + \dwell_{j})^2 \nonumber  \\
+&= \Prstop_{j}(\dwellvar + (\mindwell + \dwell_{j})^2) -
+    \Prstop_{j}^2(\mindwell + \dwell_{j})^2  \nonumber \\
+&= \Prstop_{j} \left(
+    \dwellvar_{j} + (1-\Prstop_{j})(\mindwell + \dwell_{j})^2
+\right)
+\end{align}
+
+
+
+While this is certainly not a good approximation of dwell time distributions,
+it makes it easy to combine to travel times and other stop dwell times
+to obtain a final arrival time distribution.
+
