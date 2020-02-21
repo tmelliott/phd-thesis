@@ -7,9 +7,9 @@ The goal of the prediction step is to obtain a \emph{prior distribution} of the 
 p(\Vstate_k | \Vstate_{k-1}) \approx
 \sum_{i=1}^\Np
     \Pwt_{k-1}
-    \dirac\left(\Vstate_k - f(\Vstate\vi_{k-1}, \Vtdiff_k, \Vnoise_k)\right),
+    \DiracMeasure{\Vstate_k\vi}{\Vstate_k},
 \end{equation}
-where $\Vtdiff_k = \Vtime_k - \Vtime_{k-1}$.
+where $\Vstate_k\vi = f(\Vstate\vi_{k-1}, \Vtdiff_k, \Vnoise_k)$ and $\Vtdiff_k = \Vtime_k - \Vtime_{k-1}$.
 
 The transition function $\Vtrans$ is where we define the vehicle behaviours mentioned earlier (and others). In Kalman filter applications, one is limited to linear transformations of the state which can be expressed in a \emph{transition matrix}. However, we see in \cref{eq:vehicle_pf_predict} that, in the particle filter implementation, the transition function is applied to each particle independently, allowing for a lot more flexibility in $\Vtrans$. We now describe the various model components of $\Vtrans$, which we implemented as an algorithm in the \verb+transitr+ package (see \cref{sec:particle-filter} for details). The core components are vehicle motion (speed and acceleration along a known path), stopping behaviour at known locations (bus stops and intersections), and a suite of other scenarios we may need to include to avoid degeneration.
 
@@ -46,7 +46,7 @@ The resulting transition function, $\Vtrans_{A1}$, can quite simply be implement
 
 \Cref{fig:transition_a1_demo} demonstrates transition model $\Vtrans_{A1}$ using a sample of $N=10$~particles which, at time $t_{k-1}$, take one of three unique states (due to resampling in the previous iteration). The points have been coloured by this initial state to demonstrate the effect of adding noise \emph{before} transitioning, and how the system noise controls how the state spreads. The interpretation of the noise parameter is \emph{the average change in speed, per second, between vehicle observations}. \textcolor{blue}{[[re-write para]]}
 
-\begin{knitrout}
+\begin{knitrout}\small
 \definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{figure}
 
 {\centering \includegraphics[width=.8\textwidth]{figure/transition_a1_demo-1} 
@@ -84,7 +84,7 @@ The main issue with this model is that it assumes constant speed between observa
 % \end{equation}
 % which grows at a cubic rate, compared to the quadratic rate of $A1$. We must therefore take care when choosing the system noise when $\Vtdiff_k$ is large. To control the variance so it grows more linearly with $\Vtdiff_k$, we can multiply the system noise by $\frac{6\Vtdiff_k^2}{\Vtdiff_k(\Vtdiff_k+1)(2\Vtdiff_k+1)}}$, so now $A1$ and $A2$ have the same variance; however, we will use a larger value of $\Vnoise$ for $A2$ to allow for greater variance of trajectories.
 
-\begin{knitrout}
+\begin{knitrout}\small
 \definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{figure}
 
 {\centering \includegraphics[width=.8\textwidth]{figure/transition_a2_demo-1} 
@@ -119,7 +119,7 @@ v_k \sim \TNormal{0}{\Vnoise}{-\Vspeed_{k-1} - \Vaccel_{k-1}}{30 - \Vspeed_{k-1}
 Again, we have displayed the resulting trajectories in \cref{fig:transition_a3_demo}. The main issue is that it is difficult to parameterize and constrain the acceleration to ensure speed remains in the desired region, \emph{and} that the function can still generate plausible trajectories.
 
 
-\begin{knitrout}
+\begin{knitrout}\small
 \definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{figure}
 
 {\centering \includegraphics[width=.8\textwidth]{figure/transition_a3_demo-1} 
@@ -138,7 +138,7 @@ Again, we have displayed the resulting trajectories in \cref{fig:transition_a3_d
 
 In \cref{sec:route-segments}, we created a road network consisting of nodes---either bus stops or intersections---and the roads connecting them. As a result of this \emph{segementisation}, each route can be expressed as a \emph{sequence of nodes} and connecting \emph{road segments}, as demonstrated in \cref{fig:route-nodes}. Component A of the transition model dealt with vehicle behaviour along the road segments; we now handle the behaviour at these node points.
 
-\begin{knitrout}
+\begin{knitrout}\small
 \definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{figure}
 
 {\centering \includegraphics[width=.8\textwidth]{figure/route-nodes-1} 
@@ -196,11 +196,12 @@ which, under the particle filtering framework, is straightforward to implement. 
 
 One other scenario for bus stops is a \emph{layover}, which is when a bus arrives early at a major stop\footnote{This is more common on longer routes in an attempt to keep them to schedule} and waits until the scheduled departure time. In the GTFS stop times table, layovers are denoted by an arrival time early\footnote{This is usually a one-second difference} than the corresponding departure time, as shown in \cref{tab:layover_times}. Again, under the particle filtering framework, this is simple enough to implement: if the particle arrives early, wait until the scheduled departure time before leaving (i.e., adjusting the dwell time). However, it is not always the case that buses will wait for the layover, so we add a probability of adherence, similar to the stopping probability in equation (Bernoulli).
 
-\begin{knitrout}
+\begin{knitrout}\small
 \definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{table}
 
 \caption{\label{tab:layover_times}Arrival times for a trip with layover stops marked with an asterix ($\star$).}
 \centering
+\fontsize{8}{10}\selectfont
 \begin{tabular}[t]{rll}
 \toprule
 Stop & Arrives & Departs\\
@@ -220,9 +221,14 @@ Stop & Arrives & Departs\\
 \end{knitrout}
 
 
-\begin{knitrout}
+\begin{knitrout}\small
 \definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{figure}
-\includegraphics[width=\maxwidth]{figure/eta_dwell_times-1} \caption[Dwell time at bus stop $m$]{Dwell time at bus stop $m$}\label{fig:eta_dwell_times}
+
+{\centering \includegraphics[width=.8\textwidth]{figure/eta_dwell_times-1} 
+
+}
+
+\caption[The \gls{pdf} of dwell time at bus stop $m$]{The \gls{pdf} of dwell time at bus stop $m$.}\label{fig:eta_dwell_times}
 \end{figure}
 
 

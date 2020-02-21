@@ -7,9 +7,9 @@ The goal of the prediction step is to obtain a \emph{prior distribution} of the 
 p(\Vstate_k | \Vstate_{k-1}) \approx
 \sum_{i=1}^\Np
     \Pwt_{k-1}
-    \dirac\left(\Vstate_k - f(\Vstate\vi_{k-1}, \Vtdiff_k, \Vnoise_k)\right),
+    \DiracMeasure{\Vstate_k\vi}{\Vstate_k},
 \end{equation}
-where $\Vtdiff_k = \Vtime_k - \Vtime_{k-1}$.
+where $\Vstate_k\vi = f(\Vstate\vi_{k-1}, \Vtdiff_k, \Vnoise_k)$ and $\Vtdiff_k = \Vtime_k - \Vtime_{k-1}$.
 
 The transition function $\Vtrans$ is where we define the vehicle behaviours mentioned earlier (and others). In Kalman filter applications, one is limited to linear transformations of the state which can be expressed in a \emph{transition matrix}. However, we see in \cref{eq:vehicle_pf_predict} that, in the particle filter implementation, the transition function is applied to each particle independently, allowing for a lot more flexibility in $\Vtrans$. We now describe the various model components of $\Vtrans$, which we implemented as an algorithm in the \verb+transitr+ package (see \cref{sec:particle-filter} for details). The core components are vehicle motion (speed and acceleration along a known path), stopping behaviour at known locations (bus stops and intersections), and a suite of other scenarios we may need to include to avoid degeneration.
 
@@ -345,11 +345,12 @@ knitr::kable(times,
   caption = "Arrival times for a trip with layover stops marked with an asterix ($\\star$).",
   escape = FALSE,
   linesep = ""
-)
+) %>%
+    kableExtra::kable_styling(font_size = 8)
 @
 
 
-<<eta_dwell_times, echo=FALSE, fig.height=3,fig.cap="Dwell time at bus stop $m$">>=
+<<eta_dwell_times,echo=FALSE,fig.width=8*.8,fig.height=3,out.width=".8\\textwidth",fig.cap="The \\gls{pdf} of dwell time at bus stop $m$.",fig.align="center">>=
 suppressPackageStartupMessages(library(tidyverse))
 gamma <- 10
 tau <- 20
@@ -365,7 +366,7 @@ tibble(x = xx, y = yy) %>%
         shape = 21, fill = "white") +
     geom_point(data = tibble(x = c(0, gamma), y = c(pi, yy[1])),
         shape = 19) +
-    xlab("Dwell time") + ylab("Probability density") +
+    xlab("Dwell time") + ylab("") +
     scale_x_continuous(breaks = c(0, gamma, tau),
         labels = c(0, expression(gamma), expression(gamma + tau[m]))) +
     scale_y_continuous(breaks = c(0, pi),

@@ -20,6 +20,8 @@ p(\Vtt_\ell | \Vobs_{1:k}) \approx
 In situations where only some of the particles have completed travel along a segment, we wait until the next iteration to re-check that all particles have completed it and, since start and end times are stored for each individual particle, we can still estimate average speed.
 
 
+\subsection{Simulation study}
+\label{eq:pf_simulation_study}
 
 In order to explore the accuracy of the models presented in \cref{sec:vehicle_model}, a simple vehicle simulation was performed with known road speeds and involved tracking the vehicle along the route while ignoring bus stops. In a second simulation, the bus stopped at each stop, and the particle filter implemented the bus stop behaviour model. For each, we used three different sampling methods:
 \begin{itemize}
@@ -28,7 +30,6 @@ In order to explore the accuracy of the models presented in \cref{sec:vehicle_mo
 \item non-uniform sampling at nodes.
 \end{itemize}
 As mentioned in \cref{sec:vp_data}, the last of these is, in fact, a common feature of the Auckland Transport data; we discuss the complications further in \cref{sec:pf_implementation}. In each simulation, we implemented the three variations of the transition function: $\Vtrans_{A1}$, $\Vtrans_{A2}$, and $\Vtrans_{A3}$.
-
 
 
 The posterior mean travel time was used
@@ -53,17 +54,14 @@ To evaluate and compare the estimation performance of the models, we use \gls{rm
 
 
 
-The simulated data, shown in \cref{fig:sim1_graph1}, uses the transition model described by $\Vtrans_{A1}$ to simulate a vehicle trajectory, and uses several time point sampling methods: uniform sampling with high (\cref{fig:sim1_graph2}) and low (\cref{fig:sim1_graph3}) frequency, and non-uniform sampling (\cref{fig:sim1_graph4}), which is more in line with how the Auckland Transport data is collected.
+The simulated data, shown in \cref{fig:sim1_graph}, uses the transition model described by $\Vtrans_{A1}$ to simulate a vehicle trajectory, and uses several time point sampling methods: uniform sampling with high and low frequency, and non-uniform sampling, which is more in line with how the Auckland Transport data is collected.
 
 
 The goal of the simulation is to estimate the average vehicle speeds along several road segments, as well as the associated uncertainty. The simulation was performed in R \citep{rcore} using $\Np = 2000$ particles per vehicle, and so the implementation is slightly different from the C++ one defined in \cref{sec:pf_implementation}.
 
 \begin{knitrout}\small
 \definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{figure}
-\subfloat[The simulated data.\label{fig:sim1_graph1}]{\includegraphics[width=.49\linewidth]{figure/sim1_graph-1} }
-\subfloat[10~s sampling.\label{fig:sim1_graph2}]{\includegraphics[width=.49\linewidth]{figure/sim1_graph-2} }\newline
-\subfloat[30~s sampling.\label{fig:sim1_graph3}]{\includegraphics[width=.49\linewidth]{figure/sim1_graph-3} }
-\subfloat[Observations at bus stops and intersections.\label{fig:sim1_graph4}]{\includegraphics[width=.49\linewidth]{figure/sim1_graph-4} }\caption[Simulated vehicle trajectory, with five road segments]{Simulated vehicle trajectory, with five road segments.}\label{fig:sim1_graph}
+\includegraphics[width=\linewidth]{figure/sim1_graph-1} \caption[Simulated vehicle trajectory, with five full road segments, along with simulated observations with three sampling techniques]{Simulated vehicle trajectory, with five full road segments, along with simulated observations with three sampling techniques.}\label{fig:sim1_graph}
 \end{figure}
 
 
@@ -79,7 +77,7 @@ The goal of the simulation is to estimate the average vehicle speeds along sever
 
 \begin{knitrout}\small
 \definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{figure}
-\includegraphics[width=\maxwidth]{figure/sim1_pf_full-1} \caption[Speed estimation results for 100 simulations]{Speed estimation results for 100 simulations. In each the vehicle trajectory is simulated using a different seed, and the speed estimate is taken as the mean of the particle speeds along each segment.}\label{fig:sim1_pf_full}
+\includegraphics[width=\linewidth]{figure/sim1_pf_full-1} \caption[Speed estimation results for 100 simulations]{Speed estimation results for 100 simulations. In each the vehicle trajectory is simulated using a different seed, and the speed estimate is taken as the mean of the particle speeds along each segment.}\label{fig:sim1_pf_full}
 \end{figure}
 
 \begin{table}

@@ -7,9 +7,7 @@ The second component of \gls{rbe} is the update step, which involves accounting 
 p(\Vstate_k | \Vobs_{1:k}) \approx
 \sum_{i=1}^\Np
     \Pwt_{k}
-    \dirac\left(
-        \Vstate_k - \Vstate\vi_k
-    \right)
+    \DiracMeasure{\Vstate\vi_k}{\Vstate_k}
 \end{equation}
 where
 \begin{equation}
@@ -31,7 +29,7 @@ The \pf{} effectively checks to see how plausible the observation is assuming ea
 \subsubsection{GPS vehicle locations}
 \label{sec:lhood_gps}
 
-\begin{knitrout}
+\begin{knitrout}\small
 \definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{figure}
 \includegraphics[width=\maxwidth]{figure/lhood_obs-1} \caption[Observations of vehicle on a simple path]{Observations of vehicle on a simple path. The red points indicate the reported GPS positions, with circles indicating the GPS error associated with each observation. Observation Y1 is easy to map to the route, while Y2 is more complicated and has two plausible, distinct locations.}\label{fig:lhood_obs}
 \end{figure}
@@ -51,7 +49,7 @@ to calculate the GPS position of the \emph{particle}, $\Ppos\vi_k$, by using the
 \end{equation}
 which is simply a deterministic function given the route's path, $\ShapePath$, which is a sequence of latitude-longitude pairs and the cumulative distance along the line. Once the geographical position of the particle is obtained, it is compared to the observed vehicle location, as shown in \cref{fig:gps_dist}.
 
-\begin{knitrout}
+\begin{knitrout}\small
 \definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{figure}
 
 {\centering \includegraphics[width=0.8\textwidth]{figure/gps_dist-1} 
@@ -84,7 +82,7 @@ This is shown visually in \cref{fig:gps_projection}.
 Note that conversion from degrees to radians is achieved by
 multiplying degrees by $\frac{\pi}{180}$.
 
-\begin{knitrout}
+\begin{knitrout}\small
 \definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{figure}
 
 {\centering \subfloat[GPS coordinates\label{fig:gps_projection1}]{\includegraphics[width=0.49\textwidth]{figure/gps_projection-1} }
@@ -124,7 +122,7 @@ can more simply be expressed by
 % \Vobs_k = \Viproj{\vec{r}\vi_k}{\Vmeas(\Vstate\vi_k)}.
 % \end{equation}
 
-\begin{knitrout}
+\begin{knitrout}\small
 \definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{figure}
 
 {\centering \subfloat[GPS map error\label{fig:gps_error1}]{\includegraphics[width=0.49\textwidth]{figure/gps_error-1} }
@@ -186,7 +184,7 @@ allowing the particles to be reweighted using \cref{eq:vehicle_pf_reweight}.
 This is shown visually in \cref{fig:pf_wts}.
 
 
-\begin{knitrout}
+\begin{knitrout}\small
 \definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{figure}
 
 {\centering \includegraphics[width=\maxwidth]{figure/pf_wts-1} 
@@ -248,14 +246,14 @@ p(\Vobs_k | \Vstate\vi_k) =
 \end{equation}
 which allows the particle sample to be reweighted according to the temporal difference in arrival and departure times. This is demonstrated in \cref{fig:tu_update}.
 
-\begin{knitrout}
+\begin{knitrout}\small
 \definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{figure}
 
 {\centering \includegraphics[width=0.8\textwidth]{figure/tu_update-1} 
 
 }
 
-\caption[Particle's travelling past an intermediate stop with an arrival time observation (red point)]{Particle's travelling past an intermediate stop with an arrival time observation (red point). Particle trajectories are coloured by whether or not they stopped. The likelihood is used to reweight the particles, indicated by line opacity.}\label{fig:tu_update}
+\caption[Particle's travelling past an intermediate stop with an arrival time observation (red point)]{Particle's travelling past an intermediate stop with an arrival time observation (red point). Solid lines represent particles that stopped, while dashed lines indicate the particle drove straight past the stop. The lines are coloured by their resepective weights according to the likelihood based on the observed arrival time (red dot), where greyer lines have less weight.}\label{fig:tu_update}
 \end{figure}
 
 

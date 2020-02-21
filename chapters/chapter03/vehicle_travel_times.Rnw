@@ -20,6 +20,8 @@ p(\Vtt_\ell | \Vobs_{1:k}) \approx
 In situations where only some of the particles have completed travel along a segment, we wait until the next iteration to re-check that all particles have completed it and, since start and end times are stored for each individual particle, we can still estimate average speed.
 
 
+\subsection{Simulation study}
+\label{eq:pf_simulation_study}
 
 In order to explore the accuracy of the models presented in \cref{sec:vehicle_model}, a simple vehicle simulation was performed with known road speeds and involved tracking the vehicle along the route while ignoring bus stops. In a second simulation, the bus stopped at each stop, and the particle filter implemented the bus stop behaviour model. For each, we used three different sampling methods:
 \begin{itemize}
@@ -28,7 +30,6 @@ In order to explore the accuracy of the models presented in \cref{sec:vehicle_mo
 \item non-uniform sampling at nodes.
 \end{itemize}
 As mentioned in \cref{sec:vp_data}, the last of these is, in fact, a common feature of the Auckland Transport data; we discuss the complications further in \cref{sec:pf_implementation}. In each simulation, we implemented the three variations of the transition function: $\Vtrans_{A1}$, $\Vtrans_{A2}$, and $\Vtrans_{A3}$.
-
 
 
 The posterior mean travel time was used
@@ -59,35 +60,45 @@ segs <- lapply(1:nrow(s1$segments),
     function(i) s1$segments$distance[i] + c(0, s1$segments$length[i])
 )
 tt <- s1$segments$tt
-fcap1 <- 'Simulated vehicle trajectory, with five road segments.'
+fcap1 <- 'Simulated vehicle trajectory, with five full road segments, along with simulated observations with three sampling techniques.'
 fscap1 <- c(
-    "The simulated data.",
-    "10~s sampling.",
-    "30~s sampling.",
-    "Observations at bus stops and intersections."
+    "Simulated vehicle trajectory",
+    "10~s sampling",
+    "30~s sampling",
+    "Observations at nodes"
 )
 simnames <- c("Uniform (10s)", "Uniform (30s)", "Waypoints")
 @
 
 
-The simulated data, shown in \cref{fig:sim1_graph1}, uses the transition model described by $\Vtrans_{A1}$ to simulate a vehicle trajectory, and uses several time point sampling methods: uniform sampling with high (\cref{fig:sim1_graph2}) and low (\cref{fig:sim1_graph3}) frequency, and non-uniform sampling (\cref{fig:sim1_graph4}), which is more in line with how the Auckland Transport data is collected.
+The simulated data, shown in \cref{fig:sim1_graph}, uses the transition model described by $\Vtrans_{A1}$ to simulate a vehicle trajectory, and uses several time point sampling methods: uniform sampling with high and low frequency, and non-uniform sampling, which is more in line with how the Auckland Transport data is collected.
 
 
 The goal of the simulation is to estimate the average vehicle speeds along several road segments, as well as the associated uncertainty. The simulation was performed in R \citep{rcore} using $\Np = 2000$ particles per vehicle, and so the implementation is slightly different from the C++ one defined in \cref{sec:pf_implementation}.
 
-<<sim1_graph,echo=FALSE,fig.height=2,fig.width=4,out.width=".49\\linewidth",fig.cap=fcap1,fig.subcap=fscap1,fig.ncol=2,warning=FALSE,message=FALSE>>=
-p1 <- ggplot(s1$path, aes(time, distance)) +
+<<sim1_graph,echo=FALSE,fig.height=4,fig.width=8,out.width="\\linewidth",fig.cap=fcap1,warning=FALSE,message=FALSE>>=
+p0 <- ggplot(s1$path, aes(time, distance)) +
     geom_hline(yintercept = s1$segments$distance[-1],
         lty = 2, colour = "gray") +
     theme_classic() +
-    theme(panel.grid = element_blank()) +
+    theme(
+        panel.grid = element_blank(),
+        plot.title = element_text(size = 10)
+    ) +
     xlab('Time (s)') + ylab('Distance (m)') +
     ylim(0, max(s1$path$distance)) + xlim(0, max(s1$path$time))
 
-p1 + geom_path()
-p1 + geom_point(aes(t, x), data = s1$observations$high)
-p1 + geom_point(aes(t, x), data = s1$observations$low)
-p1 + geom_point(aes(t, x), data = s1$observations$waypoints)
+library(patchwork)
+
+p1 <- p0 + geom_path() + ggtitle(fscap1[1])
+p2 <- p0 + geom_point(aes(t, x), data = s1$observations$high) +
+    ggtitle(fscap1[2])
+p3 <- p0 + geom_point(aes(t, x), data = s1$observations$low) +
+    ggtitle(fscap1[3])
+p4 <- p0 + geom_point(aes(t, x), data = s1$observations$waypoints) +
+    ggtitle(fscap1[4])
+
+(p1 + p2) / (p3 + p4)
 @
 
 <<sim1_pf,echo=FALSE,message=FALSE,warning=FALSE,fig.height=3,fig.width=8,out.width="\\linewidth",fig.cap="Simulation results for the three models (rows) applied to the data from three sampling methods (columns), using $\\Np=2000$ particles. The standard deviation of the particle travel times is represented as error bars, though in many cases the error is too small to display.">>=
@@ -121,7 +132,7 @@ S0 %>%
     labs(colour = "")
 @
 
-<<sim1_pf_full,echo=FALSE,message=FALSE,warning=FALSE,fig.width=8,fig.height=5,fig.cap="Speed estimation results for 100 simulations. In each the vehicle trajectory is simulated using a different seed, and the speed estimate is taken as the mean of the particle speeds along each segment.">>=
+<<sim1_pf_full,echo=FALSE,message=FALSE,warning=FALSE,fig.width=8,fig.height=5,out.width="\\linewidth",fig.cap="Speed estimation results for 100 simulations. In each the vehicle trajectory is simulated using a different seed, and the speed estimate is taken as the mean of the particle speeds along each segment.">>=
 # do the whole thing over and over again
 library(parallel)
 cl <- makeCluster(4L)

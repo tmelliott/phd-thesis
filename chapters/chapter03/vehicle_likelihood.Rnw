@@ -7,9 +7,7 @@ The second component of \gls{rbe} is the update step, which involves accounting 
 p(\Vstate_k | \Vobs_{1:k}) \approx
 \sum_{i=1}^\Np
     \Pwt_{k}
-    \dirac\left(
-        \Vstate_k - \Vstate\vi_k
-    \right)
+    \DiracMeasure{\Vstate\vi_k}{\Vstate_k}
 \end{equation}
 where
 \begin{equation}
@@ -439,7 +437,7 @@ p(\Vobs_k | \Vstate\vi_k) =
 \end{equation}
 which allows the particle sample to be reweighted according to the temporal difference in arrival and departure times. This is demonstrated in \cref{fig:tu_update}.
 
-<<tu_update,echo=FALSE,fig.width=8,fig.height=4,out.width="0.8\\textwidth",fig.align="center",fig.cap="Particle's travelling past an intermediate stop with an arrival time observation (red point). Particle trajectories are coloured by whether or not they stopped. The likelihood is used to reweight the particles, indicated by line opacity.">>=
+<<tu_update,echo=FALSE,fig.width=8*.8,fig.height=4,out.width="0.8\\textwidth",fig.align="center",fig.cap="Particle's travelling past an intermediate stop with an arrival time observation (red point). Solid lines represent particles that stopped, while dashed lines indicate the particle drove straight past the stop. The lines are coloured by their resepective weights according to the likelihood based on the observed arrival time (red dot), where greyer lines have less weight.">>=
 suppressPackageStartupMessages(library(tidyverse))
 set.seed(444)
 
@@ -453,23 +451,28 @@ d <- tibble(
     Ta = t + round((Sd - d) / v),
     w = rbinom(10L, 1L, 0.501) * (6 + truncnorm::rtruncnorm(10L, 0, Inf, 5, 3)),
     Td = Ta + w,
-    stopped = ifelse(w > 0, "stopped", "did not stop"),
+    stopped = ifelse(w > 0, "yes", "no"),
     t2 = t + 30L,
     d2 = Sd + (t2 - Td) * v,
     lh = dnorm(Ta, A, 2),
     wt = lh / sum(lh)
 )
 
-ggplot(d, aes(alpha = wt, colour = stopped)) +
+ggplot(d, aes(colour = wt, lty = stopped)) +
     geom_hline(yintercept = Sd, lty = 2) +
     geom_segment(aes(x = t, y = d, xend = Ta, yend = Sd)) +
     geom_segment(aes(x = Ta, y = Sd, xend = Td, yend = Sd)) +
     geom_segment(aes(x = Td, y = Sd, xend = t2, yend = d2)) +
     geom_point(aes(x = A, y = Sd), colour = "red") +
     theme_classic() +
-    guides(alpha = FALSE) +
-    labs(colour = " ") +
+    theme(
+        legend.position = "bottom"
+    ) +
+    guides(colour = FALSE) +
+    labs(lty = "Stoped at bus stop: ") +
     scale_x_continuous("Time (seconds)") +
-    scale_y_continuous("Distance travelled (m)")
+    scale_y_continuous("Distance travelled (m)") +
+    scale_colour_gradient(low = "gray", high = "black") +
+    scale_linetype_manual(values = c("no" = 2, "yes" = 1))
 
 @

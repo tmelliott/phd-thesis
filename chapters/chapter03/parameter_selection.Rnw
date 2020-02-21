@@ -158,7 +158,7 @@ We are able to observe a large proportion of dwell times at stops, by compiling 
 \Vdwell_{srm} = \Vdep_{srm} - \Varr_{srm}
 \end{equation}
 
-<<observed_dwell,cache=TRUE,message=FALSE,warning=FALSE,echo=FALSE,fig.width=8,fig.height=3,fig.cap="Distribution of dwell times observed over the course of five days, truncated at one minute.">>=
+<<observed_dwell,cache=TRUE,message=FALSE,warning=FALSE,echo=FALSE,fig.width=8,fig.height=3,out.width="\\linewidth",fig.cap="Distribution of dwell times observed over the course of five days, truncated at one minute.">>=
 library(tidyverse)
 dwellfile <- "data/dwell.rda"
 if (file.exists(dwellfile)) {
@@ -195,15 +195,21 @@ ggplot(dwell %>% filter(dwell < 60)) +
     geom_path(aes(x, p),
         data = tibble(
             x = seq(0, 60, length = 1001),
-            p = truncnorm::dtruncnorm(x - gamma, 0, Inf, 18, 10)
+            p = truncnorm::dtruncnorm(x, gamma, Inf, 28, 10)
         ),
         lty = 2, colour = "red"
     )
+
 @
 
-There is no precise way to measure the minimum dwell time parameter $mindwell$. \cite{Hans_2015} used $\mindwell = 6$~seconds, which is marked by a dashed vertical line in \cref{fig:observed_dwell}. There are a few dwell times less than this, but given the spike at 6~seconds, it seems reasonable to continue with this value.
+There is no precise way to measure the minimum dwell time parameter $mindwell$. \cite{Hans_2015} used 14.25~seconds as the time lost due to deceleration and acceleration, and 4.1~seconds as the time needed to open and close the doors. Other studies have found values of \ldots, 
 
-The raw data from five~days' observations are shown in \cref{fig:observed_dwell}. Here, we see an interesting pattern with apparent peaks every nine~seconds. While we could not determine the precise cause, we assume it to be due to a systematic problem in the arrival time recording system used to collect the data. From the historical dwell time data, we were able to estimate the mean and variance of dwell time for each stop $j$, $\bar\dwell_j$ and $\dwellvar_j$, respectively, which could then be used in the dwell time model.
+
+% which is marked by a dashed vertical line in \cref{fig:observed_dwell}. There are a few dwell times less than this, but given the spike at 6~seconds, it seems reasonable to continue with this value.
+
+The raw data from five~days' observations are shown in \cref{fig:observed_dwell}. Here, we see an interesting pattern with apparent peaks every nine~seconds. While we could not determine the precise cause, we assume it to be due to a systematic problem in the arrival time recording system used to collect the data. However, this makes the first peak at 9~seconds difficult to evaluate: are there really dwell times this short (contrary to the literature) or is the an artefact? For example, if a bus passes a stop without stopping and reports an arrival time followed a few seconds later by a departure time, does the reporting delay of about 9~seconds affect this? 
+
+From the historical dwell time data, we were able to estimate the mean and variance of dwell time for each stop $j$, $\bar\dwell_j$ and $\dwellvar_j$, respectively, which could then be used in the dwell time model.
 
 
 The dwell times for each stop calcualted above \emph{include} the minimum dwell time phase. To avoid having to recompute each stop's dwell time parameter whenever $\mindwell$ is changed, we adjusted the mean of each stop's dwell time at run time to account for the minimum dwell time. That is, we use $\dwell_j = \bar\dwell_j - \mindwell$ in \cref{eq:stop_dwell_time}.
