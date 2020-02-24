@@ -165,7 +165,7 @@ For the \gls{gps} location update, the inherent \gls{gps} error, $\GPSerr$, need
 to calculate the GPS position of the \emph{particle}, $\Ppos\vi_k$, by using the \emph{measurement function},
 \begin{equation}
 \label{eq:pf_measurement_fun}
-\Ppos\vi_k = \Vmeas(\Vstate\vi_k, \ShapePath)
+\Ppos\vi_k = \Vmeas(\Vstate\vi_k, \ShapePath)z
 \end{equation}
 which is simply a deterministic function given the route's path, $\ShapePath$, which is a sequence of latitude-longitude pairs and the cumulative distance along the line. Once the geographical position of the particle is obtained, it is compared to the observed vehicle location, as shown in \cref{fig:gps_dist}.
 

@@ -18,19 +18,20 @@ Additionally, we also want to compare the predictive power of the various foreca
 
 
 
-\begin{knitrout}
+\begin{knitrout}\small
 \definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{table}
 
-\caption{\label{tab:model_results_rmse}Predictive model comparison of RMSE, in seconds, PPI coverage, and mean PPI width, in minutes, with (0.025, 0.975) quantiles.}
+\caption{\label{tab:model_results_rmse}Predictive model comparison of RMSE and MAE, in seconds, MAPE (\%), PPI coverage, and mean PPI width, in minutes, with (0.025, 0.975) quantiles.}
 \centering
-\begin{tabular}[t]{lrrrl}
+\fontsize{8}{10}\selectfont
+\begin{tabular}[t]{lrrrrrl}
 \toprule
-  & RMSE (s) & $\Pr{\Varr_m \in \text{PPI}}$ & \multicolumn{2}{c}{PPI width (m)} \\
+  & RMSE (s) & MAE (s) & MAPE (\%) & $\Pr{\Varr_m \in \text{PPI}}$ & \multicolumn{2}{c}{PPI width (m)} \\
 \midrule
-$\mathcal{F}_1$: Particle filter & 230 & 0.77 & 7 & (0.4, 19.8)\\
-$\mathcal{F}_2$: Normal approximation & 485 & 0.91 & 30 & (0, 102.6)\\
-$\mathcal{F}_3$: Historical delays & 243 & 0.84 & 11 & (2.4, 26.8)\\
-$\mathcal{F}_4$: Schedule-delay & 236 &  &  & \\
+$\mathcal{F}_1$: Particle filter & 232 & 146 & 19 & 0.77 & 7 & (0.6, 19.8)\\
+$\mathcal{F}_2$: Normal approximation & 489 & 349 & 38 & 0.91 & 30 & (0, 103.5)\\
+$\mathcal{F}_3$: Historical delays & 244 & 166 & 47 & 0.84 & 11 & (2.4, 26.8)\\
+$\mathcal{F}_4$: Schedule-delay & 238 & 164 & 27 &  &  & \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -64,11 +65,9 @@ The \gls{rmse} (\cref{fig:model_results_rmse_time1}) for the four models shows t
 As for the \gls{ppi}, \cref{fig:model_results_rmse_time2,fig:model_results_rmse_time3}, the normal approximation has too greater coverage and quickly increasing width, while the historical method is again fairly constant in both its coverage (close to 85\%) and width, though again we see a slight increase in the latter the further out the bus gets, for the same reason as above. The particle filter again isn't capturing enough uncertainty, as its coverage is below the desired 85\%, though as a result the width is smaller than both of the other methods, particularly compared to $\FM_2$---significantly so once we get above 20~minutes  \textcolor{red}{... I'm not sure about this para}.
 
 
-\begin{knitrout}
-\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{figure}[!t]
-\subfloat[\label{fig:model_results_rmse_time1}]{\includegraphics[width=\textwidth]{figure/model_results_rmse_time-1} }\newline
-\subfloat[\label{fig:model_results_rmse_time2}]{\includegraphics[width=\textwidth]{figure/model_results_rmse_time-2} }\newline
-\subfloat[\label{fig:model_results_rmse_time3}]{\includegraphics[width=\textwidth]{figure/model_results_rmse_time-3} }\caption[Model comparative statistics as a function of time until arrival]{Model comparative statistics as a function of time until arrival.}\label{fig:model_results_rmse_time}
+\begin{knitrout}\small
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{figure}
+\includegraphics[width=\textwidth]{figure/model_results_rmse_time-1} \caption[Model comparative statistics as a function of time until arrival]{Model comparative statistics as a function of time until arrival.}\label{fig:model_results_rmse_time}
 \end{figure}
 
 
@@ -82,11 +81,9 @@ Similarly to time until arrival, we grouped results by stop sequence---one being
 
 
 
-\begin{knitrout}
+\begin{knitrout}\small
 \definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{figure}
-\subfloat[\label{fig:model_results_rmse_stopn1}]{\includegraphics[width=\textwidth]{figure/model_results_rmse_stopn-1} }\newline
-\subfloat[\label{fig:model_results_rmse_stopn2}]{\includegraphics[width=\textwidth]{figure/model_results_rmse_stopn-2} }\newline
-\subfloat[\label{fig:model_results_rmse_stopn3}]{\includegraphics[width=\textwidth]{figure/model_results_rmse_stopn-3} }\caption[Model comparative statistics as a function of stop sequence]{Model comparative statistics as a function of stop sequence.}\label{fig:model_results_rmse_stopn}
+\includegraphics[width=\textwidth]{figure/model_results_rmse_stopn-1} \caption[Model comparative statistics as a function of stop sequence]{Model comparative statistics as a function of stop sequence.}\label{fig:model_results_rmse_stopn}
 \end{figure}
 
 
@@ -109,11 +106,9 @@ The coverage of the \glspl{ppi} for both $\FM_1$ and $\FM_3$ are, during the day
 
 
 
-\begin{knitrout}
+\begin{knitrout}\small
 \definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{figure}
-\subfloat[\label{fig:model_results_rmse_timeofday1}]{\includegraphics[width=\textwidth]{figure/model_results_rmse_timeofday-1} }\newline
-\subfloat[\label{fig:model_results_rmse_timeofday2}]{\includegraphics[width=\textwidth]{figure/model_results_rmse_timeofday-2} }\newline
-\subfloat[\label{fig:model_results_rmse_timeofday3}]{\includegraphics[width=\textwidth]{figure/model_results_rmse_timeofday-3} }\caption[Model comparative statistics as a function of time of day]{Model comparative statistics as a function of time of day.}\label{fig:model_results_rmse_timeofday}
+\includegraphics[width=\textwidth]{figure/model_results_rmse_timeofday-1} \caption[Model comparative statistics as a function of time of day]{Model comparative statistics as a function of time of day.}\label{fig:model_results_rmse_timeofday}
 \end{figure}
 
 
@@ -155,11 +150,12 @@ For the remainder of this section, we use 6~minutes before the specified \gls{et
 
 
 
-\begin{knitrout}
+\begin{knitrout}\small
 \definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{table}
 
 \caption{\label{tab:model_results_pr_miss}The probability of catching a bus given a passenger arrives by the mean/median ($\mathbb{P}_m$) and lower quantile ($\mathbb{P}_\ell$), along with the expected waiting time, in minutes, given arrival by the lower quantile, for each of the for forecast methods.}
 \centering
+\fontsize{8}{10}\selectfont
 \begin{tabular}[t]{lrrrl}
 \toprule
   & $\mathbb{P}_m$ & $\mathbb{P}_\ell$ & $\mathbb{E}_\ell$ (m) & (95\% CI)\\
@@ -175,10 +171,14 @@ $\mathcal{F}_4$: Schedule-delay & 0.38 &  &  & \\
 
 \end{knitrout}
 
-\begin{knitrout}
+\begin{knitrout}\small
 \definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{figure}
-\subfloat[\label{fig:model_results_pr_gtfs1}]{\includegraphics[width=\textwidth]{figure/model_results_pr_gtfs-1} }\newline
-\subfloat[\label{fig:model_results_pr_gtfs2}]{\includegraphics[width=\textwidth]{figure/model_results_pr_gtfs-2} }\caption[GTFS equivalent]{GTFS equivalent}\label{fig:model_results_pr_gtfs}
+
+{\centering \includegraphics[width=\textwidth]{figure/model_results_pr_gtfs-1} 
+
+}
+
+\caption[GTFS equivalent]{GTFS equivalent}\label{fig:model_results_pr_gtfs}
 \end{figure}
 
 
@@ -196,11 +196,9 @@ Finally, we look at the expected waiting time, given a passenger arrives at the 
 
 
 
-\begin{knitrout}
+\begin{knitrout}\small
 \definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{figure}
-\subfloat[One\label{fig:model_results_pr_time1}]{\includegraphics[width=\textwidth]{figure/model_results_pr_time-1} }\newline
-\subfloat[Two\label{fig:model_results_pr_time2}]{\includegraphics[width=\textwidth]{figure/model_results_pr_time-2} }\newline
-\subfloat[Three\label{fig:model_results_pr_time3}]{\includegraphics[width=\textwidth]{figure/model_results_pr_time-3} }\caption[Summary values by time until arrival]{Summary values by time until arrival.}\label{fig:model_results_pr_time}
+\includegraphics[width=\textwidth]{figure/model_results_pr_time-1} \caption[Summary values by time until arrival]{Summary values by time until arrival.}\label{fig:model_results_pr_time}
 \end{figure}
 
 
@@ -214,11 +212,9 @@ Next, we computed the same values by stop sequence, as is shown in \cref{fig:mod
 The trend for $\mathbb{P}_\ell$ is similar to what we saw with time until arrival. This time, however, the particle filter has much lower probabilities for the first few stops, again due to the reasons stated above. Even so, $\FM_4$ is consistently higher than $\FM_1$ until stop 40. The expected waiting time again shows better performance with the particle filter method until about stop 40, after which point the methods are more or less the same, given not many routes have over 40~stops. There is a trade-off here between waiting time and catch probability.
 
 
-\begin{knitrout}
+\begin{knitrout}\small
 \definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{figure}
-\subfloat[One\label{fig:model_results_pr_stop1}]{\includegraphics[width=\textwidth]{figure/model_results_pr_stop-1} }\newline
-\subfloat[Two\label{fig:model_results_pr_stop2}]{\includegraphics[width=\textwidth]{figure/model_results_pr_stop-2} }\newline
-\subfloat[Three\label{fig:model_results_pr_stop3}]{\includegraphics[width=\textwidth]{figure/model_results_pr_stop-3} }\caption[Summary values by stop sequence]{Summary values by stop sequence.}\label{fig:model_results_pr_stop}
+\includegraphics[width=\textwidth]{figure/model_results_pr_stop-1} \caption[Summary values by stop sequence]{Summary values by stop sequence.}\label{fig:model_results_pr_stop}
 \end{figure}
 
 
@@ -233,11 +229,9 @@ Calculating the probabilities and expected waiting time in 15~minute intervals f
 For the expected waiting time, the particle filter is overall the lowest, even during peak where it shows a significant increase, seen in \cref{fig:model_results_pr_timeofday3}. The historical and schedule-delay methods both have similar expected waiting times of about 6--7 minutes.
 
 
-\begin{knitrout}
+\begin{knitrout}\small
 \definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{figure}
-\subfloat[One\label{fig:model_results_pr_timeofday1}]{\includegraphics[width=\textwidth]{figure/model_results_pr_timeofday-1} }\newline
-\subfloat[Two\label{fig:model_results_pr_timeofday2}]{\includegraphics[width=\textwidth]{figure/model_results_pr_timeofday-2} }\newline
-\subfloat[Three\label{fig:model_results_pr_timeofday3}]{\includegraphics[width=\textwidth]{figure/model_results_pr_timeofday-3} }\caption[Summary values by time of day]{Summary values by time of day.}\label{fig:model_results_pr_timeofday}
+\includegraphics[width=\textwidth]{figure/model_results_pr_timeofday-1} \caption[Summary values by time of day]{Summary values by time of day.}\label{fig:model_results_pr_timeofday}
 \end{figure}
 
 

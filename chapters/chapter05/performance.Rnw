@@ -69,9 +69,10 @@ kable(
     tbl_times,
     align = "lrlrl",
     booktabs = TRUE,
-    caption = "Time taken during various parts of the program, running on a single core."
+    caption = "Time taken, in milliseconds, during various parts of the program, running on a single core."
 ) %>%
-    row_spec(6, extra_latex_after = "\\midrule")
+    row_spec(6, extra_latex_after = "\\midrule") %>%
+    kableExtra::kable_styling(font_size = 8)
 @
 
 
@@ -79,7 +80,7 @@ However, there is a high level of variability in the number of buses operating a
 \textcolor{red}{Note to self: re-run simulations overnight, when you're not also using the CPU cores for other tasks, which should remove the oddity between about 9am and 2pm.}
 
 
-<<prediction_timing_time,warning=FALSE,echo=FALSE,cache=F,dependson=c(-1),fig.width=9,fig.height=4,out.width="\\textwidth",fig.cap="Timing results over time for various stages of the program: (L) Load data, (O) Update vehicles information, (V) Vehicle state update, (N) Network state update, (P) Predict ETAs, (W) Write ETAs to protobuf feed, (T) Total iteration time.">>=
+<<prediction_timing_time,warning=FALSE,echo=FALSE,cache=TRUE,dependson="prediction_timing",fig.width=8*.8,fig.height=3,out.width=".8\\textwidth",fig.align="center",fig.cap="Timing results over time for various stages of the program: (L) Load data, (O) Update vehicles information, (V) Vehicle state update, (N) Network state update, (P) Predict ETAs, (W) Write ETAs to protobuf feed, (T) Total iteration time.">>=
 # totals:
 total_time <- timings %>%
     group_by(timestamp) %>%
@@ -97,5 +98,9 @@ timings %>%
     ggplot(aes(timestamp)) +
         geom_path(aes(y = wall, colour = Stage, group = Stage)) +
         theme_classic() +
-        xlab("Time") + ylab("Iteration timing (seconds, wall clock)")
+        xlab("Time") +
+        scale_y_continuous(
+            "Iteration timing (milliseconds, wall clock)",
+            trans = "log10"
+        )
 @
