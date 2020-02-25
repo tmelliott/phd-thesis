@@ -2,6 +2,66 @@
 \chapter{Introduction}
 \label{cha:intro}
 
+Over the last three decades, technological advances have changed the way people use public transport. In times gone by, one might have used a paper timetable to decide when to leave home, and then be subjected to an indefinite wait until the bus finally appeared around the corner. These days, you just take out your phone to see the bus' precide location on a map. Despite this revolutionary change, to this day it remains a complicated business of converting a location into an \gls{eta}.
+
+
+Around the world, public transport providers have invested in systems to provide \gls{rti} to their passengers in efforts to improve ridership, the number of commuters choosing to use public transport. Research has shown that \gls{rti} reduced the experienced wait time at bus stops \citep{TCRP_2003} and allows for improved decision making by passengers, leading to shorter waiting times \citep{Cats_2015,Lu_2017}. This, of course, assumes the \gls{rti} is reliable, wherein lies the issue.
+
+
+One of the main issues with \gls{rti} is that it requires considerable infrastruture to keep track of and report the information \citep{TCRP_2003b}, particularly in recent times when fleet sizes exceed 1000~vehicles. This has inevitably led to a simplification of how arrival times are predicted, which consequently has led to less reliable information, particularly in Auckland, New Zealand.
+
+
+\section{The evolution of transit \gls{rti}}
+\label{sec:literature}
+
+\paragraph{In the beginning, there were buses and timetables.}
+
+
+\paragraph{Then along came vehicle tracking and the rise of ``real-time information''.}
+\cite{TCRP_1997}.
+
+
+\paragraph{In the early days, data collection was simple (odometer, signpost), and so were the models (Kalman filter), which were limited by the computers of the time.}
+\cite{TCRP_1997,TCRP_2003,Wall_1999,Reinhoudt_1997},
+and maybe \cite{Dailey_2001}.
+
+
+\paragraph{The GPS became widespread in AVL, allowing the precise vehicle location to be reported.}
+Maybe \cite{Dailey_2001},
+\cite{Cathey_2003,Shalaby_2004,Jeong_2005,TCRP_2003,TCRP_2003b}.
+
+
+\paragraph{The idea of arrival time prediction has always been of the form: location + intermediate link travel times + dwell times.}
+\cite{Reinhoudt_1997,Wall_1999,Dailey_2001,Cathey_2003,Shalaby_2004,Jong_2005,Yu_2006}.
+
+
+\paragraph{Lead to radical improvements in tracking, reporting (servers, etc), and computational power allowing for more complex models (ANN, SVM).}
+\cite{Chang_2010,Yu_2006,Yu_2010,Yu_2011,Gong_2013,Yin_2017,Mazloumi_2011}.
+Dwell time models:
+\cite{Shen_2013,Wang_2016,Meng_2013,Robinson_2013}.
+Networks: \cite{Celan_2018,Celan_2017}.
+
+
+\paragraph{Also the ability to store lots of data and use this to model things (historical regression, kNN, etc).}
+\cite{Julio_2016}
+
+
+\paragraph{Also (manual) combination of routes using the same roads became a thing, and was shown to improve things.}
+
+
+\paragraph{Adoption of GTFS globally led to better access to transit data, but also to the loss of better models---instead of predicting arrival times using fancy models, just adjust schedule with current delay (low server demand)...}
+
+
+\paragraph{Focus of vehicle modelling shifted to operations management---how do we make buses run on time better? But this needs independent research and implementation in each region.}
+
+
+\paragraph{As part of this, some great new models of vehicle behaviour arose, namely the particle filter (until now, it was too computationally demanding for real-time use).}
+
+
+\paragraph{Most recently, the current state-of-the-art varies between cities, countries, as much of the research is location-specific: for example, X, Y, and Z.}
+
+
+\paragraph{The concensus: you need to use real-time information to predict arrival times, using as much data as possible (taxis? other buses?). The hard part is getting that data, and as far as we could find, there is no general method for combining data from multiple routes to use in arrival time prediction.}
 
 
 \pagebreak
