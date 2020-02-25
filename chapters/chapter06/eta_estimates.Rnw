@@ -11,7 +11,7 @@ The method for obtaining estimates from the \glspl{cdf} from \cref{sec:etas_cdfs
 \Cref{fig:eta_calc_quantile} shows a single \gls{cdf} with a horizontal line at $q$, and the largest ETA with its quantile below this line is the desired value; in this case, $\hat A_{0.5} = 11$.
 
 
-<<eta_calc_quantile,echo=FALSE,fig.width=6,fig.height=3,out.width=".8\\textwidth",fig.cap="Quantile estimation from a CDF. ETA values with quantiles below the desired threshold are coloured red; the maximum of these is the quantile value.",fig.align="center">>=
+<<eta_calc_quantile,echo=FALSE,fig.width=8*.6,fig.height=2.5,out.width=".6\\textwidth",fig.cap="Quantile estimation from a CDF. ETA values with quantiles below the desired threshold are coloured red; the maximum of these is the quantile value.",fig.align="center">>=
 
 suppressPackageStartupMessages(library(tidyverse))
 d <- tibble(

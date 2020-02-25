@@ -18,7 +18,7 @@ which leads to the \gls{cdf}
 \end{equation}
 For a chosen stop along a selected trip, this can be graphed, as we have done in \cref{fig:eta_cdf}. The remainder of this chapter explores the choice of summary statistics to display to commuters.
 
-<<eta_cdf,echo=FALSE,fig.width=6,fig.height=3,out.width=".8\\textwidth",fig.cap="CDF of arrival time.",fig.align="center">>=
+<<eta_cdf,echo=FALSE,fig.width=8*.6,fig.height=2.5,out.width=".6\\textwidth",fig.cap="CDF of arrival time.",fig.align="center">>=
 suppressPackageStartupMessages(library(tidyverse))
 d <- tibble(
     t = 7:20,

@@ -6,7 +6,7 @@ So far we have been concerned with the arrival time of a bus at a single stop wi
 The remainder of this chapter explores the use of arrival time \glspl{cdf} to estimate probabilities and expectations associated with various journey options. These can then be used by passengers to make decisions based on their journey-specific constraints: for example, are they going to work, meeting a friend for coffee, or having a job interview? Additionally, we will compare (where possible) our results with those made using the currently deployed GTFS system.
 
 
-\begin{knitrout}
+\begin{knitrout}\small
 \definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{figure}
 
 {\centering \includegraphics[width=\textwidth]{figure/eta_journey_arrival_prep-1} 
@@ -34,7 +34,7 @@ In this scenario, a passenger lives within walking distance of two major roads, 
 We can answer these questions using the \glspl{cdf} of arrival time at the start and end stops and taking into account walking times.
 
 
-\begin{knitrout}
+\begin{knitrout}\small
 \definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{figure}
 
 {\centering \includegraphics[width=\textwidth]{figure/eta_journey_arrival-1} 
@@ -52,7 +52,7 @@ We can answer these questions using the \glspl{cdf} of arrival time at the start
 
 
 
-\begin{knitrout}
+\begin{knitrout}\small
 \definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{figure}
 
 {\centering \includegraphics[width=\textwidth]{figure/eta_journey_arriveby-1} 
@@ -68,11 +68,12 @@ We can answer these questions using the \glspl{cdf} of arrival time at the start
 Based on the arrival results alone, it would likely make sense to walk to option A (a shorter walk) which has a decent chance of a short wait time; however, we also need to account for the passenger's appointment at 9~am. \Cref{fig:eta_journey_arriveby} provides \glspl{cdf} of the arrival time of the trips at the final stop, as well as vertical lines representing the appointment time (solid) and walking time (dotted). This time, we want the curve to be on the left-hand side of the dotted line, which is the case for most of the trips. For option A, the 7:58 has an (almost) 100\% chance of arriving on time, while the 8:00 and 8:08 have 98\% and 96\% chances, respectively. Option B tells a similar story, with (almost) 100\% for the 7:55 and 99\% for the 8:05 trips.
 
 
-\begin{knitrout}
+\begin{knitrout}\small
 \definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{table}
 
 \caption{\label{tab:eta_journey_results}Journey planning.}
 \centering
+\fontsize{8}{10}\selectfont
 \begin{tabular}[t]{lllrrrllll}
 \toprule
 Option & Route & Trip & $P_\text{catch}$ & $E_\text{travel}$ & $P_\text{arrive}$ & GTFS1 & GTFS2 & Caught & Arrived on time\\
@@ -101,7 +102,7 @@ It is worth noting at this point that, as mentioned in the previous chapter, the
 
 
 
-\begin{knitrout}
+\begin{knitrout}\small
 \definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{figure}
 
 {\centering \includegraphics[width=\textwidth]{figure/eta_journey_results_avg-1} 
@@ -115,6 +116,7 @@ It is worth noting at this point that, as mentioned in the previous chapter, the
 
 \caption{\label{tab:eta_journey_results_avg}GTFS prediction outcomes for arriving at stop before bus.}
 \centering
+\fontsize{8}{10}\selectfont
 \begin{tabular}[t]{lrrrrr}
 \toprule
 \multicolumn{1}{c}{ } & \multicolumn{2}{c}{Catch bus} & \multicolumn{1}{c}{} & \multicolumn{2}{c}{Arrive on time} \\
@@ -142,7 +144,7 @@ A more complex scenario is one where the passenger must transfer from one route 
 
 
 
-\begin{knitrout}
+\begin{knitrout}\small
 \definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{figure}
 
 {\centering \includegraphics[width=\textwidth]{figure/eta_journey_transfer_prep-1} 
@@ -157,7 +159,7 @@ A more complex scenario is one where the passenger must transfer from one route 
 
 
 
-\begin{knitrout}
+\begin{knitrout}\small
 \definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{figure}
 
 {\centering \includegraphics[width=\textwidth]{figure/eta_journey_transfer_graph-1} 
@@ -191,11 +193,12 @@ To calculate the probability that a given trip along route A will arrive at the 
 which we can easily compute given the \glspl{cdf} of the arrival time of each trip obtained from \cref{eq:pf_cdf_arrivaltime}. In table \cref{tab:eta_journey_transfer_res} we display the results, along with the binary predictions using GTFS and the observed outcomes. Our results appear reasonable at predicting transfer probabilities; in contrast, the GTFS makes one poor choice between A1 and B3, which it predicts \emph{will} connect, but infact they do not (our prediction was for a 32\% chance). This is where a prediction probability shows its power, in that a passenger could, where applicable, base their decision on how important it is they make the transfer. While this is a fairly non-exciting example (it's a short wait for the next bus), there are other situations where the headway between trips is 30--60~minutes, in which case missing a transfer by a few minutes would be frustrating. However, until our application has been updated to make predictions for upcoming (and not just active) trips, we could not obtain any examples of this.
 
 
-\begin{knitrout}
+\begin{knitrout}\small
 \definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{table}
 
 \caption{\label{tab:eta_journey_transfer_res}Transfer probabilities}
 \centering
+\fontsize{8}{10}\selectfont
 \begin{tabular}[t]{llrll}
 \toprule
 A & B & $\mathbb{P}_\text{catch} & GTFS & Outcome\\
@@ -222,7 +225,7 @@ A2 & B5 & 0.93 & Y & Y\\
 As before, we proceed to repeat the procedure for multiple times (this time between 6~am and 8~pm), and compute the probabilities of available transfers and whether or not they connected. \Cref{fig:eta_journey_transfer_many} shows the predicted transfer probabilities grouped by outcome, and coloured by the GTFS prediction. This is complimented with contingency \cref{tab:eta_journey_transfer_many,tab:eta_journey_transfer_many2} for the GTFS method and our own, respectively. For the GTFS method, in 16\% of cases a predicted successfull connection failed, versus only 8\% using our method and a rule of $\Ptransfer > 0.5$. The false negative rate was similar for both methods, although slightly higher for our own (7\% versus 3\% for GTFS).
 
 
-\begin{knitrout}
+\begin{knitrout}\small
 \definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{figure}
 
 {\centering \includegraphics[width=\textwidth]{figure/eta_journey_transfer_many-1} 
@@ -236,6 +239,7 @@ As before, we proceed to repeat the procedure for multiple times (this time betw
 
 \caption{\label{tab:eta_journey_transfer_many}GTFS prediction outcomes.}
 \centering
+\fontsize{8}{10}\selectfont
 \begin{tabular}[t]{lrr}
 \toprule
   & No & Yes\\
@@ -249,11 +253,12 @@ Yes & 0.16 & 0.84\\
 
 \end{knitrout}
 
-\begin{knitrout}
+\begin{knitrout}\small
 \definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{table}
 
 \caption{\label{tab:eta_journey_transfer_many2}PF prediction outcomes using rule: P > 0.5}
 \centering
+\fontsize{8}{10}\selectfont
 \begin{tabular}[t]{lrr}
 \toprule
   & No & Yes\\

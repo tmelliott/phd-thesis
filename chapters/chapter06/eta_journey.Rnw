@@ -157,7 +157,6 @@ We can answer these questions using the \glspl{cdf} of arrival time at the start
 <<eta_journey_arrival,echo=FALSE,cache=TRUE,dependson="eta_journey_arrival_prep",message=FALSE,fig.width=8,fig.height=5,out.width="\\textwidth",fig.cap="ETA predictions for two route options. The coloured curves represent the CDF of arrival time for individual trips made at 7am. The vertical black lines indicate the estimated walking time (according to Google Maps) from the Start location to each stop.",fig.align="center">>=
 
 con <- dbConnect(SQLite(), "data/eta_quantiles.sqlite")
-
 trip_etas <- con %>% tbl("etas")
 
 trip_results <- lapply(seq_len(nrow(route_info)),
@@ -487,7 +486,8 @@ knitr::kable(
     escape = FALSE,
     linesep = ""
 ) %>%
-  kableExtra::row_spec(lineAfter, extra_latex_after = "\\midrule")
+  kableExtra::row_spec(lineAfter, extra_latex_after = "\\midrule") %>%
+  kableExtra::kable_styling(font_size = 8)
 @
 
 
@@ -713,7 +713,8 @@ knitr::kable(
 ) %>%
   kableExtra::add_header_above(
     c(" ", "Catch bus" = 2, "", "Arrive on time" = 2)
-  )
+  ) %>%
+  kableExtra::kable_styling(font_size = 8)
 
 
 ## the same for GTFS?
@@ -877,7 +878,6 @@ ggmap(map) +
 
 
 <<eta_journey_transfer_graph,echo=FALSE,cache=TRUE,dependson=-1,fig.height=6,fig.width=8,out.width="\\textwidth",fig.cap="Arrival times",fig.align="center">>=
-
 library(ggrepel)
 
 TSTART <- as.POSIXct(paste(DATE, "13:00:00"))
@@ -1058,7 +1058,8 @@ knitr::kable(tab,
   escape = FALSE,
   linesep = ""
 ) %>%
-  kableExtra::row_spec(nn, extra_latex_after = "\\midrule")
+  kableExtra::row_spec(nn, extra_latex_after = "\\midrule") %>%
+  kableExtra::kable_styling(font_size = 8)
 
 @
 
@@ -1211,7 +1212,8 @@ knitr::kable(gtfs_pc,
   caption = "GTFS prediction outcomes.",
   escape = FALSE,
   linesep = ""
-)
+) %>%
+  kableExtra::kable_styling(font_size = 8)
 
 
 @
@@ -1229,7 +1231,8 @@ knitr::kable(pf_pc,
   caption = "PF prediction outcomes using rule: P > 0.5",
   escape = FALSE,
   linesep = ""
-)
+) %>%
+  kableExtra::kable_styling(font_size = 8)
 
 
 

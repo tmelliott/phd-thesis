@@ -19,49 +19,50 @@ suppressPackageStartupMessages({
 qfile <- "data/eta_ints_symmetric.rda"
 if (file.exists(qfile)) {
   load(qfile)
+} else {
+  con <- dbConnect(SQLite(), "data/eta_quantiles.sqlite")
+  etas <- con %>% tbl("etas")
+
+  intx <- function(etas, p) {
+    if (p <= 0 | p >= 1) stop("p should be between 0 and 1 (exclusive)")
+    alpha <- 1 - p
+    etas %>%
+      group_by(trip_id, stop_sequence, timestamp) %>%
+      select(trip_id, stop_sequence, timestamp, eta, quantile,
+        gtfs_eta, time_until_arrival) %>%
+      filter(quantile >= !!alpha / 2 & quantile <= 1 - !!alpha / 2) %>%
+      collect() %>%
+      summarize(
+        pf_lower = min(eta, na.rm = TRUE),
+        pf_upper = max(eta, na.rm = TRUE) + 1,
+        gtfs = max(gtfs_eta, na.rm = TRUE),
+        actual = max(time_until_arrival, na.rm = TRUE)
+      ) %>%
+      # collect() %>%
+      ungroup() %>%
+      filter(gtfs - actual > -60*60 & gtfs - actual < 2*60*60) %>%
+      mutate(
+        gtfs = gtfs %/% 60,
+        actual = actual / 60,
+        width = pf_upper - pf_lower
+      )
+
+  }
+  if (!exists("int99")) int99 <- intx(etas, 0.99)
+  if (!exists("int95")) int95 <- intx(etas, 0.95)
+  if (!exists("int90")) int90 <- intx(etas, 0.90)
+  if (!exists("int80")) int80 <- intx(etas, 0.80)
+
+  dbDisconnect(con)
+
+  save(int99, int95, int90, int80, file = qfile)
 }
-con <- dbConnect(SQLite(), "data/eta_quantiles.sqlite")
-etas <- con %>% tbl("etas")
-
-intx <- function(etas, p) {
-  if (p <= 0 | p >= 1) stop("p should be between 0 and 1 (exclusive)")
-  alpha <- 1 - p
-  etas %>%
-    group_by(trip_id, stop_sequence, timestamp) %>%
-    select(trip_id, stop_sequence, timestamp, eta, quantile,
-      gtfs_eta, time_until_arrival) %>%
-    filter(quantile >= !!alpha / 2 & quantile <= 1 - !!alpha / 2) %>%
-    collect() %>%
-    summarize(
-      pf_lower = min(eta, na.rm = TRUE),
-      pf_upper = max(eta, na.rm = TRUE) + 1,
-      gtfs = max(gtfs_eta, na.rm = TRUE),
-      actual = max(time_until_arrival, na.rm = TRUE)
-    ) %>%
-    # collect() %>%
-    ungroup() %>%
-    filter(gtfs - actual > -60*60 & gtfs - actual < 2*60*60) %>%
-    mutate(
-      gtfs = gtfs %/% 60,
-      actual = actual / 60,
-      width = pf_upper - pf_lower
-    )
-
-}
-if (!exists("int99")) int99 <- intx(etas, 0.99)
-if (!exists("int95")) int95 <- intx(etas, 0.95)
-if (!exists("int90")) int90 <- intx(etas, 0.90)
-if (!exists("int80")) int80 <- intx(etas, 0.80)
-
-dbDisconnect(con)
-
-save(int99, int95, int90, int80, file = qfile)
 @
 
 
 
 
-<<eta_cis,echo=FALSE,cache=TRUE,dependson="eta_ci_load",fig.width=10,fig.height=3,out.width="\\textwidth",fig.align="center",fig.cap="ETA CIs">>=
+<<eta_cis,echo=FALSE,cache=TRUE,dependson="eta_ci_load",fig.width=8,fig.height=2.5,out.width="\\textwidth",fig.align="center",fig.cap="ETA CIs">>=
 # coverage prob
 cov99 <- with(int99, mean(actual >= pf_lower & actual <= pf_upper))
 cov95 <- with(int95, mean(actual >= pf_lower & actual <= pf_upper))
@@ -87,18 +88,22 @@ d <- tibble(
   cov = cov, pbefore = pbefore, len = len
 )
 
-p1 <- ggplot(d, aes(cov, alpha)) +
-  geom_point() + geom_segment(aes(xend = 0, yend = alpha)) +
-  scale_x_continuous("Coverage probability")
-p2 <- ggplot(d, aes(pbefore, alpha)) +
-  geom_point() + geom_segment(aes(xend = 0, yend = alpha)) +
-  scale_x_continuous("P(bus arrives before lower)")
-p3 <- ggplot(d, aes(len, alpha)) +
-  geom_point() + geom_segment(aes(xend = 0, yend = alpha)) +
-  scale_x_continuous("Average width (minutes)")
+p1 <- ggplot(d, aes(p, 100*cov)) +
+  geom_path() +
+  geom_path(aes(y = p), lty = 3) +
+  scale_y_continuous("Observed coverage (%)") +
+  scale_x_continuous("Theoretical coverage (%)")
+p2 <- ggplot(d, aes(alpha / 2, pbefore)) +
+  geom_path() +
+  geom_path(aes(y = alpha / 2), lty = 3) +
+  scale_y_continuous("Observed P[l]") +
+  scale_x_continuous("Theoretical P[l]")
+p3 <- ggplot(d, aes(p, len)) +
+  geom_path() +
+  scale_y_continuous("Average width (minutes)") +
+  scale_x_continuous("Theoretical coverage (%)")
 
 p1 + p2 + p3 &
-  scale_y_continuous("Interval") &
   theme_classic()
 
 @

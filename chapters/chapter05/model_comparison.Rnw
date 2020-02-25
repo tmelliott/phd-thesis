@@ -166,7 +166,7 @@ The \gls{rmse} (\cref{fig:model_results_rmse_time1}) for the four models shows t
 As for the \gls{ppi}, \cref{fig:model_results_rmse_time2,fig:model_results_rmse_time3}, the normal approximation has too greater coverage and quickly increasing width, while the historical method is again fairly constant in both its coverage (close to 85\%) and width, though again we see a slight increase in the latter the further out the bus gets, for the same reason as above. The particle filter again isn't capturing enough uncertainty, as its coverage is below the desired 85\%, though as a result the width is smaller than both of the other methods, particularly compared to $\FM_2$---significantly so once we get above 20~minutes  \textcolor{red}{... I'm not sure about this para}.
 
 
-<<model_results_rmse_time,warning=FALSE,echo=FALSE,cache=TRUE,dependson=c("model_results_load","model_colours"),cache.lazy=FALSE,fig.width=8,fig.height=5,out.width="\\textwidth",fig.cap="Model comparative statistics as a function of time until arrival.">>=
+<<model_results_rmse_time,warning=FALSE,echo=FALSE,cache=TRUE,dependson=c("model_results_load","model_colours"),cache.lazy=FALSE,fig.width=8,fig.height=5,out.width="\\textwidth",fig.cap="Model comparative statistics as a function of time until arrival. Note the log-scale for RMSE, MAE, and MAPE.">>=
 # tidyverse is loaded!
 res_min <- eta_results %>%
     mutate(
@@ -213,7 +213,10 @@ plot_rmse <- plot_base +
     geom_path(aes(y = normal_rmse, colour = "normal")) +
     geom_path(aes(y = hist_rmse, colour = "historical")) +
     geom_path(aes(y = gtfs_rmse, colour = "gtfs")) +
-    ylab("RMSE (s)") + ylim(0, 400) +
+    scale_y_continuous(
+        "RMSE (s)",
+        trans = "log10"
+    ) +
     theme(legend.position = "right")
 
 plot_mae <- plot_base +
@@ -221,7 +224,10 @@ plot_mae <- plot_base +
     geom_path(aes(y = normal_mae, colour = "normal")) +
     geom_path(aes(y = hist_mae, colour = "historical")) +
     geom_path(aes(y = gtfs_mae, colour = "gtfs")) +
-    ylab("MAE (s)") + ylim(0, 400)
+    scale_y_continuous(
+        "MAE (s)",
+        trans = "log10"
+    )
 
 plot_mape <- plot_base +
     geom_path(aes(y = 100 * pf_mape, colour = "pf")) +
@@ -350,7 +356,10 @@ plot_rmse <- plot_base +
     geom_path(aes(y = normal_rmse, colour = "normal")) +
     geom_path(aes(y = hist_rmse, colour = "historical")) +
     geom_path(aes(y = gtfs_rmse, colour = "gtfs")) +
-    ylab("RMSE (s)") + ylim(0, 400) +
+    scale_y_continuous(
+        "RMSE (s)",
+        trans = "log10"
+    ) +
     theme(legend.position = "right")
 
 plot_mae <- plot_base +
@@ -358,7 +367,10 @@ plot_mae <- plot_base +
     geom_path(aes(y = normal_mae, colour = "normal")) +
     geom_path(aes(y = hist_mae, colour = "historical")) +
     geom_path(aes(y = gtfs_mae, colour = "gtfs")) +
-    ylab("MAE (s)") + ylim(0, 400)
+    scale_y_continuous(
+        "MAE (s)",
+        trans = "log10"
+    )
 
 plot_mape <- plot_base +
     geom_path(aes(y = 100 * pf_mape, colour = "pf")) +
@@ -369,7 +381,6 @@ plot_mape <- plot_base +
         "MAPE (%)",
         trans = "log10"
     )
-    #ylab("MAPE (%)") + ylim(0, 160)
 
 plot_ci <- plot_base +
     geom_hline(aes(yintercept = 0.85), lty = 2) +
@@ -495,7 +506,10 @@ plot_rmse <- plot_base +
     geom_path(aes(y = normal_rmse, colour = "normal")) +
     geom_path(aes(y = hist_rmse, colour = "historical")) +
     geom_path(aes(y = gtfs_rmse, colour = "gtfs")) +
-    ylab("RMSE (s)") +
+    scale_y_continuous(
+        "RMSE (s)",
+        trans = "log10"
+    ) +
     theme(legend.position = "right")
 
 plot_mae <- plot_base +
@@ -503,7 +517,10 @@ plot_mae <- plot_base +
     geom_path(aes(y = normal_mae, colour = "normal")) +
     geom_path(aes(y = hist_mae, colour = "historical")) +
     geom_path(aes(y = gtfs_mae, colour = "gtfs")) +
-    ylab("MAE (s)")
+    scale_y_continuous(
+        "MAE (s)",
+        trans = "log10"
+    )
 
 plot_mape <- plot_base +
     geom_path(aes(y = 100 * pf_mape, colour = "pf")) +
@@ -514,7 +531,6 @@ plot_mape <- plot_base +
         "MAPE (%)",
         trans = "log10"
     )
-    #ylab("MAPE (%)") + ylim(0, 160)
 
 plot_ci <- plot_base +
     geom_hline(aes(yintercept = 0.85), lty = 2) +

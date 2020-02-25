@@ -19,59 +19,59 @@ suppressPackageStartupMessages({
 qfile <- "data/eta_q.rda"
 if (file.exists(qfile)) {
   load(qfile)
+} else {
+  con <- dbConnect(SQLite(), "data/eta_quantiles.sqlite")
+  etas <- con %>% tbl("etas")
+
+  # etas %>%
+  #     select(trip_id, vehicle_id) %>%
+  #     distinct() %>%
+  #     group_by(trip_id) %>%
+  #     tally() %>%
+  #     filter(n > 1)
+  # thedata <- etas %>%
+  #   select(trip_id, stop_sequence, timestamp, gtfs_eta, time_until_arrival) %>%
+  #   distinct() %>%
+  #   collect() %>%
+  #   mutate(gtfs_error = gtfs_eta - time_until_arrival)
+
+  # thedata %>% filter(gtfs_error > -60*60 & gtfs_error < 2*60*60) %>%
+  #   summarize(rmse = sqrt(mean(gtfs_error^2 / 60^2)))
+
+  qx <- function(etas, q) {
+    if (q < 0 | q > 1) stop("q should be between 0 and 1")
+    etas %>%
+      group_by(trip_id, stop_sequence, timestamp) %>%
+      filter(quantile <= q) %>%
+      summarize(
+        pf = max(eta, na.rm = TRUE),
+        gtfs = max(gtfs_eta, na.rm = TRUE),
+        actual = max(time_until_arrival, na.rm = TRUE)
+      ) %>%
+      collect() %>%
+      ungroup() %>%
+      filter(gtfs - actual > -60*60 & gtfs - actual < 2*60*60) %>%
+      mutate(
+        gtfs = gtfs %/% 60,
+        actual = actual / 60
+      )
+
+  }
+  if (!exists("q90")) q90 <- qx(etas, 0.90)
+  if (!exists("q75")) q75 <- qx(etas, 0.75)
+  if (!exists("q60")) q60 <- qx(etas, 0.6)
+  if (!exists("q50")) q50 <- qx(etas, 0.50)
+  if (!exists("q40")) q40 <- qx(etas, 0.4)
+  if (!exists("q25")) q25 <- qx(etas, 0.25)
+  if (!exists("q05")) q05 <- qx(etas, 0.05)
+
+  dbDisconnect(con)
+
+  save(q90, q75, q60, q50, q40, q25, q05, file = qfile)
 }
-con <- dbConnect(SQLite(), "data/eta_quantiles.sqlite")
-etas <- con %>% tbl("etas")
-
-# etas %>%
-#     select(trip_id, vehicle_id) %>%
-#     distinct() %>%
-#     group_by(trip_id) %>%
-#     tally() %>%
-#     filter(n > 1)
-# thedata <- etas %>%
-#   select(trip_id, stop_sequence, timestamp, gtfs_eta, time_until_arrival) %>%
-#   distinct() %>%
-#   collect() %>%
-#   mutate(gtfs_error = gtfs_eta - time_until_arrival)
-
-# thedata %>% filter(gtfs_error > -60*60 & gtfs_error < 2*60*60) %>%
-#   summarize(rmse = sqrt(mean(gtfs_error^2 / 60^2)))
-
-qx <- function(etas, q) {
-  if (q < 0 | q > 1) stop("q should be between 0 and 1")
-  etas %>%
-    group_by(trip_id, stop_sequence, timestamp) %>%
-    filter(quantile <= q) %>%
-    summarize(
-      pf = max(eta, na.rm = TRUE),
-      gtfs = max(gtfs_eta, na.rm = TRUE),
-      actual = max(time_until_arrival, na.rm = TRUE)
-    ) %>%
-    collect() %>%
-    ungroup() %>%
-    filter(gtfs - actual > -60*60 & gtfs - actual < 2*60*60) %>%
-    mutate(
-      gtfs = gtfs %/% 60,
-      actual = actual / 60
-    )
-
-}
-if (!exists("q90")) q90 <- qx(etas, 0.90)
-if (!exists("q75")) q75 <- qx(etas, 0.75)
-if (!exists("q60")) q60 <- qx(etas, 0.6)
-if (!exists("q50")) q50 <- qx(etas, 0.50)
-if (!exists("q40")) q40 <- qx(etas, 0.4)
-if (!exists("q25")) q25 <- qx(etas, 0.25)
-if (!exists("q05")) q05 <- qx(etas, 0.05)
-
-dbDisconnect(con)
-
-save(q90, q75, q60, q50, q40, q25, q05, file = qfile)
-
 @
 
-<<eta_overall_results,echo=FALSE,cache=TRUE,dependson="eta_load",fig.width=10,fig.height=3,out.width="\\textwidth",fig.align="center",fig.cap="ETA stuff">>=
+<<eta_overall_results,echo=FALSE,cache=TRUE,dependson="eta_load",fig.width=8,fig.height=5,out.width="\\textwidth",fig.align="center",fig.cap="ETA stuff">>=
 pf_rmse90 <- with(q90, sqrt(mean((pf - actual)^2)))
 pf_rmse75 <- with(q75, sqrt(mean((pf - actual)^2)))
 pf_rmse60 <- with(q60, sqrt(mean((pf - actual)^2)))
@@ -83,6 +83,35 @@ gtfs_rmse <- with(q50, sqrt(mean((gtfs - actual)^2)))
 rmse <- c(pf_rmse90, pf_rmse75, pf_rmse60, pf_rmse50,
   pf_rmse40, pf_rmse25, pf_rmse05, gtfs_rmse)
 
+pf_mae90 <- with(q90, mean(abs(pf - actual)))
+pf_mae75 <- with(q75, mean(abs(pf - actual)))
+pf_mae60 <- with(q60, mean(abs(pf - actual)))
+pf_mae50 <- with(q50, mean(abs(pf - actual)))
+pf_mae40 <- with(q40, mean(abs(pf - actual)))
+pf_mae25 <- with(q25, mean(abs(pf - actual)))
+pf_mae05 <- with(q05, mean(abs(pf - actual)))
+gtfs_mae <- with(q50, mean(abs(gtfs - actual)))
+mae <- c(pf_mae90, pf_mae75, pf_mae60, pf_mae50,
+  pf_mae40, pf_mae25, pf_mae05, gtfs_mae)
+
+pf_mape90 <- with(q90 %>% filter(actual > 0),
+  mean(abs((pf - actual) / actual), na.rm = TRUE))
+pf_mape75 <- with(q75 %>% filter(actual > 0),
+  mean(abs((pf - actual) / actual), na.rm = TRUE))
+pf_mape60 <- with(q60 %>% filter(actual > 0),
+  mean(abs((pf - actual) / actual), na.rm = TRUE))
+pf_mape50 <- with(q50 %>% filter(actual > 0),
+  mean(abs((pf - actual) / actual), na.rm = TRUE))
+pf_mape40 <- with(q40 %>% filter(actual > 0),
+  mean(abs((pf - actual) / actual), na.rm = TRUE))
+pf_mape25 <- with(q25 %>% filter(actual > 0),
+  mean(abs((pf - actual) / actual), na.rm = TRUE))
+pf_mape05 <- with(q05 %>% filter(actual > 0),
+  mean(abs((pf - actual) / actual), na.rm = TRUE))
+gtfs_mape <- with(q50 %>% filter(actual > 0),
+  mean(abs((gtfs - actual) / actual), na.rm = TRUE))
+mape <- c(pf_mape90, pf_mape75, pf_mape60, pf_mape50,
+  pf_mape40, pf_mape25, pf_mape05, gtfs_mape)
 
 pf_pcatch90 <- with(q90, mean(pf < actual))
 pf_pcatch75 <- with(q75, mean(pf < actual))
@@ -110,29 +139,38 @@ ewait <- c(pf_ewait90, pf_ewait75, pf_ewait60, pf_ewait50,
 d <- tibble(
   m = c("PF90", "PF75", "PF60", "PF50",
     "PF40", "PF25", "PF05", "GTFS"),
-  rmse = rmse, pcatch = pcatch, ewait = ewait
+  rmse = rmse, mae = mae, mape = 100 * mape,
+  pcatch = pcatch, ewait = ewait
 )
 
 p1 <- ggplot(d, aes(rmse, m)) +
   geom_point() + geom_segment(aes(xend = 0, yend = m)) +
   scale_x_continuous("RMSE (minutes)")
-p2 <- ggplot(d, aes(pcatch, m)) +
+p2 <- ggplot(d, aes(mae, m)) +
+  geom_point() + geom_segment(aes(xend = 0, yend = m)) +
+  scale_x_continuous("MAE (minutes)")
+p3 <- ggplot(d, aes(mape, m)) +
+  geom_point() + geom_segment(aes(xend = 0, yend = m)) +
+  scale_x_continuous("MAPE (%)")
+p4 <- ggplot(d, aes(pcatch, m)) +
   geom_point() + geom_segment(aes(xend = 0, yend = m)) +
   scale_x_continuous("P(bus arrives after ETA)")
-p3 <- ggplot(d, aes(ewait, m)) +
+p5 <- ggplot(d, aes(ewait, m)) +
   geom_point() + geom_segment(aes(xend = 0, yend = m)) +
   scale_x_continuous("Expected wait time (minutes)")
 
-p1 + p2 + p3 &
+p1 + p2 + p3 + p4 + p5 +
+  plot_layout(nrow = 2) &
   scale_y_discrete("Predictor") &
   theme_classic()
+
 @
 
 
 We calculated, for all stops, trips, and times, a range of arrival times quantiles ($q \in \{0.05, 0.25, 0.5, 0.6, 0.6, 0.75, 0.9\}$), and for each computed the \gls{rmse}, the probability of catching the bus given you arrive at the stated \gls{eta}, $\Pcatch$, and the expected waiting time given you catch the bus, $\Ewait$. The results are displayed in \cref{fig:eta_overall_results}, along with the same values computed used the \gls{gtfs} arrival time estimates. For the particle filter, the lowest \gls{rmse} value is achieved when using the 60\% quantile, which obtains a \Sexpr{round(100*d$pcatch[3])}\% probability of the bus arriving after the \gls{eta} and an expected waiting time of \Sexpr{round(d$ewait[3], 1)}~minutes. The coverage of the quantiles are being overestimated---we would expect the 60\% quantile to have an approximately 40\% success rate---which indicates that the current implementation of the particle filter is underestimating arrival times.
 
 
-<<eta_headway_results,echo=FALSE,cache=TRUE,dependson="eta_load",fig.width=10,fig.height=10,out.width="\\textwidth",fig.align="center",fig.cap="More ETA stuff">>=
+<<eta_headway_results,echo=FALSE,cache=TRUE,dependson="eta_load",fig.width=8,fig.height=5,out.width="\\textwidth",fig.align="center",fig.cap="More ETA stuff">>=
 
 # Use headway to estimate cost of missing the bus
 # (just simple start-of-route headway, nothing too complex)
@@ -202,37 +240,38 @@ q_cost <- function(q) {
 
 if (file.exists("data/eta_q_cost.rda")) {
   load("data/eta_q_cost.rda")
+} else {
+  if (!exists("c25")) c25 <- q_cost(q25)
+  if (!exists("c40")) c40 <- q_cost(q40)
+  if (!exists("c50")) c50 <- q_cost(q50)
+  if (!exists("c60")) c60 <- q_cost(q60)
+  if (!exists("c75")) c75 <- q_cost(q75)
+  if (!exists("c90")) c90 <- q_cost(q90)
+  save(c25, c40, c50, c60, c75, c90, file = "data/eta_q_cost.rda")
 }
 
-if (!exists("c25")) c25 <- q_cost(q25)
-if (!exists("c40")) c40 <- q_cost(q40)
-if (!exists("c50")) c50 <- q_cost(q50)
-if (!exists("c60")) c60 <- q_cost(q60)
-if (!exists("c75")) c75 <- q_cost(q75)
-if (!exists("c90")) c90 <- q_cost(q90)
-save(c25, c40, c50, c60, c75, c90, file = "data/eta_q_cost.rda")
-
 p1 <- ggplot(NULL, aes(headway_min, p_catch)) +
-  scale_y_continuous("Probability bus arrives after")
+  scale_y_continuous("P(catch)")
 
 p2 <- ggplot(NULL, aes(headway_min, wait_catch)) +
-  scale_y_continuous("E(wait time | bus arrives after ETA)")
+  scale_y_continuous("E(wait time | catch) (min)")
 
 p3 <- ggplot(NULL, aes(headway_min, wait_miss)) +
-  scale_y_continuous("E(wait time | bus arrives before ETA)")
+  scale_y_continuous("E(wait time | miss) (min)")
 
 p4 <- ggplot(NULL, aes(headway_min, cost)) +
-  scale_y_continuous("Expected wait time (minutes)")
+  scale_y_continuous("E(wait time) (min)")
 
 
-p1 / p2 / p3 / p4 &
-  geom_point(aes(colour = "25"), data = c25 %>% filter(headway_min <= 60)) &
-  geom_point(aes(colour = "40"), data = c40 %>% filter(headway_min <= 60)) &
-  geom_point(aes(colour = "50"), data = c50 %>% filter(headway_min <= 60)) &
-  geom_point(aes(colour = "60"), data = c60 %>% filter(headway_min <= 60)) &
-  geom_point(aes(colour = "75"), data = c75 %>% filter(headway_min <= 60)) &
-  geom_point(aes(colour = "90"), data = c90 %>% filter(headway_min <= 60)) &
+p1 + p2 + p3 + p4 + plot_layout(nrow = 2, guides = "collect") &
+  geom_path(aes(colour = "25"), data = c25 %>% filter(headway_min <= 60)) &
+  geom_path(aes(colour = "40"), data = c40 %>% filter(headway_min <= 60)) &
+  geom_path(aes(colour = "50"), data = c50 %>% filter(headway_min <= 60)) &
+  geom_path(aes(colour = "60"), data = c60 %>% filter(headway_min <= 60)) &
+  geom_path(aes(colour = "75"), data = c75 %>% filter(headway_min <= 60)) &
+  geom_path(aes(colour = "90"), data = c90 %>% filter(headway_min <= 60)) &
   theme_classic() &
+  theme(legend.position = "bottom") &
   scale_x_continuous("Trip headway (minutes)") &
   labs(colour = "ETA quantile (%)")
 

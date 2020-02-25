@@ -100,7 +100,6 @@ timings %>%
         theme_classic() +
         xlab("Time") +
         scale_y_continuous(
-            "Iteration timing (milliseconds, wall clock)",
-            trans = "log10"
+            "Iteration timing (milliseconds, wall clock)"
         )
 @
