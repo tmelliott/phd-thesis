@@ -10,7 +10,7 @@ The two components of the model to assess are the iteration timings and the perf
 At peak hour on a typical weekday morning, there can be in excess of 1000~buses operating in Auckland. This leads to having more than $1000\Np$~particles in memory, each being mutated and reweighted approximately once every 30~seconds or so. By varying $N$, we can control how quickly each set of observations is processed. \Cref{fig:pf_timings} shows the average timings of the vehicle model component of our application, as well as the average time per particle. More particles require more processing power, though there is additional overhead during the \emph{resampling} phase. Limiting the frequency of resampling is therefore necessary to make the program run faster. This is why we use the effective sample size, $\Neff$.
 
 
-\begin{knitrout}
+\begin{knitrout}\small
 \definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{figure}
 
 {\centering \includegraphics[width=.8\textwidth]{figure/pf_timings-1} 
@@ -34,7 +34,7 @@ To assess how well our model performs in \rt{}, we repeated the simulation with 
 
 The \emph{proportional effective sample size} is simply a measure of the proportion of effective sample size, $\tilde\Neff = \frac{\Neff}{\Np}$. The higher this value, the less often the vehicle's state needs resampling, which decreases the average iteration time. \Cref{fig:model_performance_neff} shows the effect of $\Np$, system noise, and GPS error on $\tilde\Neff$. The most striking relationship is between $\tilde\Neff$ and GPS error: for larger error, more particles retain a high likelihood, and so the total weight is more evenly distributed. Conversely, larger values of system noise result in more variation between particles, which leads to fewer particles ending near the observation position.
 
-\begin{knitrout}
+\begin{knitrout}\small
 \definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{figure}
 
 {\centering \includegraphics[width=\textwidth]{figure/model_performance_neff-1} 
@@ -50,7 +50,7 @@ The \emph{proportional effective sample size} is simply a measure of the proport
 
 The \emph{degeneration rate} is the proportion of samples in which no particles end near the vehicle's reported position. In this case, all of the particle likelihoods tend to zero, so the weights become undefined. This results in needing to reinitialize the particle filter for that vehicle, leading to the loss of any information about vehicle speed along the most recently travelled road segment(s). We see from \cref{fig:model_performance_degen} that increasing GPS error or the number of particles reduces degeneration rate, while increasing system noise only slightly reduces degeneration. Larger GPS error means that particles do not need to end as close to the observed location to have a positive likelihood, while increasing $\Np$ means more chance for a particle to end near the true bus.
 
-\begin{knitrout}
+\begin{knitrout}\small
 \definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{figure}
 
 {\centering \includegraphics[width=\textwidth]{figure/model_performance_degen-1} 
@@ -81,7 +81,7 @@ That is, for each segment in each simulation, we have a value representing wheth
 A small value of $\bar v^{e,s}$ tells us that, on average, the simulation with GPS error $e$ and system nosie $s$ estimates road speed \emph{with greater precision} than the other simulations. \Cref{fig:model_performance_var} presents these results, where we see the greatest effect on relative variance caused by increasing GPS error. Increasing $\Np$ produces a small decrease, and chances to system noise show no discernable effect.
 
 
-\begin{knitrout}
+\begin{knitrout}\small
 \definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{figure}
 
 {\centering \includegraphics[width=\textwidth]{figure/model_performance_var-1} 

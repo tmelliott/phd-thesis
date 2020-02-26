@@ -56,7 +56,7 @@ This is less reference-based and more a personal observation ...
 
 
 \paragraph{As part of this, some great new models of vehicle behaviour arose, namely the particle filter (until now, it was too computationally demanding for real-time use).}
-\cite{Hands_2015b,Chen_2014}.
+\cite{Hans_2015b,Chen_2014}.
 
 
 \paragraph{Most recently, the current state-of-the-art varies between cities, countries, as much of the research is location-specific: for example, X, Y, and Z.}
@@ -119,7 +119,6 @@ This allows traffic flow to be incorporated into arrival time predictions
 providing commuters with a more reliable answer to their question,
 \emph{just how long until my bus arrives?}
 (chapter~\ref{cha:etas}).
-
 
 
 \textbf{Old Stuff}
