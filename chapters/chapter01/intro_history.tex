@@ -58,7 +58,7 @@ We give a full description of the \kf{} in \cref{sec:kf}.
 
 
 One key idea is that of travel time variability over time.
-\cite{Cathey_2003} proposed a general prescription using a prediction function
+\citet{Cathey_2003} proposed a general prescription using a prediction function
 which could use historical data, including time of day, weather, etc
 to generate predictions.
 Others using \gls{knn} and \gls{ann} to predict arrival times based off a variety of data
@@ -76,13 +76,13 @@ This is, in effect, estimating \rt{} traffic.
 
 
 However often trip frequency is not high enough to capture \rt{} changes in congestion.
-So \cite{Yu_2011} proposed using data from multiple routes to estimate current travel times.
+So \citet{Yu_2011} proposed using data from multiple routes to estimate current travel times.
 This was done by using automatic toll readers uproute from a major stop.
 This provided a marked improvement over alternative single-route strategies.
 Since then, other methods of estimating traffic state (congestion, effectively)
 have beeen proposed, as as using taxis \citep{Xinghao_2013},
 and other stuff \ldots
-Some more advanced methods using shockwaves proposed by \cite{Julio_2016}.
+Some more advanced methods using shockwaves proposed by \citet{Julio_2016}.
 
 
 As far as the methods used to estimate \rt{} vehicle and road state,
@@ -100,13 +100,13 @@ noisy observations of a Markov process, particularly usedful in vehicle tracking
 
 
 The \kf{} is the simplest of the \glspl{rbe},
-and was commonly used by the likes of \cite{Wall_1999,Cathey_2003} and others.
+and was commonly used by the likes of \citet{Wall_1999,Cathey_2003} and others.
 However, it is a very simplisted model and has high potential for failure,
 particularly when sampling intervals are long \citep{cn},
 allowing a higher uncertainty in the vehicle trajectory.
 
 
-In \cite{Hans_2015} (?? or earlier) a \pf{} was used to model transit vehicles.
+In \citet{Hans_2015} (?? or earlier) a \pf{} was used to model transit vehicles.
 The main advantage was described as being that it could cover a higher proportion
 of likely trajectories, even with low sampling.
 They also used particle trajectories for prediction (the median was used as a point estimate).
@@ -117,9 +117,9 @@ Modelling the (\rt{}) travel times along roads or, more commonly, between stops,
 has been shown to be a vital predictor of arrival time
 \citep{cn}.
 Initial work just used the time of the previous trip along the same route,
-combined with some \gls{svm} model to predict current vehicle travel time \cite{Yu_2006}.
-Further work used other routes serving the same stop(s) \cite{Yu_2011}.
-More recently, \cite{Cats_2016} (maybe 2015 paper too?) used travel times of previous buses
+combined with some \gls{svm} model to predict current vehicle travel time \citet{Yu_2006}.
+Further work used other routes serving the same stop(s) \citet{Yu_2011}.
+More recently, \citet{Cats_2016} (maybe 2015 paper too?) used travel times of previous buses
 between stops to predict travel times,
 and some fancy weighting formula.
 
@@ -155,7 +155,7 @@ focusing on the transit-specific features that were incorporated into them.
 
 
 The first use of recusive Bayesian models in arrival time estimation
-was by \cite{Wall_1999},
+was by \citet{Wall_1999},
 in which measurements of \emph{distance-until-destination}
 were used to estimate vehicle position,
 and a \emph{travel time function} based on historical data
@@ -167,7 +167,7 @@ along two test routes.
 
 \textcolor{red}{
     \singlespacing
-    There's another paper by \cite{Dailey_2001}.
+    There's another paper by \citet{Dailey_2001}.
     \begin{itemize}
         \item predicting \gls{eta} up to 1~hour in advance
         \item \gls{avl} data: \{time, location\}, 1--3~min rate
@@ -185,7 +185,7 @@ along two test routes.
 }
 
 In a later paper,
-\cite{Cathey_2003} described a general framework for arrival time prediction
+\citet{Cathey_2003} described a general framework for arrival time prediction
 involving three components:
 the tracker, the filter, and the predictor.
 The \emph{tracker} consists of vehicle data combined with schedule information,
@@ -195,7 +195,7 @@ to estimate location and speed along the route.
 The \emph{predictor} is charged with generating arrival time estimates.
 
 
-The tracking component used by \cite{Cathey_2003} has become more-or-less obsolete
+The tracking component used by \citet{Cathey_2003} has become more-or-less obsolete
 with advances in the vehicle tracking technologies
 (see \cref{sec:gtfs}).
 For the position filter, they used a \kf{} (\cref{sec:kf}),
@@ -204,7 +204,7 @@ From this they were able to estimate the instantaneous speed of a vehicle,
 as well as smooth noisy position observations.
 
 
-For the predictor step, \cite{Cathey_2003} provided several examples.
+For the predictor step, \citet{Cathey_2003} provided several examples.
 In one, they used the scheduled travel times,
 and therefore schedule-based speeds,
 to estimate the travel time, explicitely accounting for layover stops.
@@ -231,7 +231,7 @@ provided a significant gain in information.
 
 Another important component of transit modelling are the passengers themselves,
 which, thanks to new \gls{apc} technologies,
-\cite{Shalaby_2004} were able to incorporate into their predictive model.
+\citet{Shalaby_2004} were able to incorporate into their predictive model.
 In their test system,
 they had available to them vehicle location,
 the arrival and departure times at bus stops,
@@ -252,13 +252,13 @@ and therefore improve the dwell time predictions:
 a bus running late will encounter more waiting passengers,
 and the dwell time will be longer.
 A \kf{} algorithm based on another used for a similar model
-by \cite{Reinhoudt_1997},
+by \citet{Reinhoudt_1997},
 was used which predicted travel time using historical data
 along the next link,
 and travel time along the previous link.
 
 
-\cite{Shalaby_2004} compared their \kf{} results to other models
+\citet{Shalaby_2004} compared their \kf{} results to other models
 implemented on the same route,
 and found that it outperformed historical (only),
 regression, and neural network models in a variety of situations,
@@ -269,7 +269,7 @@ further to handle overlapping routes serving the same bus stops.
 
 
 The importance of \rt{} information on traffic conditions
-was mentioned by \cite{Jeong_2005},
+was mentioned by \citet{Jeong_2005},
 who compared several models, including \gls{ann},
 in a \rt{} application.
 Again, they stress the importance of dwell time in predictions,
@@ -283,7 +283,7 @@ retraining in \rt{}.
 
 
 
-\cite{Yu_2006} implemented an \gls{svm}, a variant of \gls{ann},
+\citet{Yu_2006} implemented an \gls{svm}, a variant of \gls{ann},
 to predict arrival time for a single route,
 and showed improved predictions but large computational requirements.
 
@@ -299,7 +299,7 @@ and showed improved predictions but large computational requirements.
     \end{itemize}
 }
 
-Later, \cite{Yu_2010} propose hybrid \gls{svm}/\kf{}.
+Later, \citet{Yu_2010} propose hybrid \gls{svm}/\kf{}.
 \textcolor{red}{
     \singlespacing
     \begin{itemize}
@@ -314,7 +314,7 @@ Later, \cite{Yu_2010} propose hybrid \gls{svm}/\kf{}.
     \end{itemize}
 }
 
-\cite{Chang_2010}
+\citet{Chang_2010}
 \textcolor{red}{
     \singlespacing
     \begin{itemize}
