@@ -52,7 +52,6 @@ headsepline, % Uncomment to get a line under the header
 \usepackage[backend=bibtex,style=authoryear-comp,natbib=true,giveninits]{biblatex} % Use the bibtex backend with the authoryear citation style (which resembles APA)
 \DeclareNameAlias{sortname}{family-given}
 
-
 \addbibresource{reflist.bib} % The filename of the bibliography
 
 \usepackage[autostyle=true]{csquotes} % Required to generate language-dependent quotes in the bibliography
