@@ -1,7 +1,7 @@
 \section{\Rt{} implementation in Rcpp}
 \label{sec:rt-implementation}
 
-In \cref{sec:gtfs} we introduced the R package \verb+transitr+, which loads a \GTFS{} database and connects to a \rt{} \gls{api}. The advantage of R \citep{rcore} was its superior ability for processing data of various forms through additional packages, and providing an easy-to-use interface for users. However, when it comes to computational efficiency, C++ is the better choice. Fortunately, R offers an interface to C++ through the 'Rcpp' package developed by \cite{Rcpp}. This gives us the speed and memory management capabilities of C++ from within R.
+In \cref{sec:gtfs} we introduced the R package \verb+transitr+, which loads a \GTFS{} database and connects to a \rt{} \gls{api}. The advantage of R \citep{rcore} was its superior ability for processing data of various forms through additional packages, and providing an easy-to-use interface for users. However, when it comes to computational efficiency, C++ is the better choice. Fortunately, R offers an interface to C++ through the 'Rcpp' package developed by \citet{Rcpp}. This gives us the speed and memory management capabilities of C++ from within R.
 
 The general structure of our program comes in two parts. The first handles data collection from a transit provider and creation of the transit network (\cref{sec:route-segments}), which are all stored in an SQLite database.  Users are able to connect a GTFS-realtime \gls{api}, as well as pass additional arguments, to the generated \verb+gtfs+ object, which are then forwarded onto the second part which runs purely within C++.
 

@@ -31,7 +31,7 @@ The first behaviour to consider is that of any vehicle travelling along a known 
 v_k \sim \TNormal{0}{\Vnoise}{-\Vspeed_{k-1}}{30 - \Vspeed_{k-1}}.
 \end{equation}
 In this case, the noise term is truncated to ensure the new speed is both positive and under 30~m/s, which is 108~km/h (the maximum road speed in Auckland is 100~km/h)
-The resulting transition function, $\Vtrans_{A1}$, can quite simply be implemented by simulating, for each particle, a new speed before calculating the final state using \cref{eq:vehicle_model_newton}. A similar model was used by \cite{Cathey_2003,cn}.
+The resulting transition function, $\Vtrans_{A1}$, can quite simply be implemented by simulating, for each particle, a new speed before calculating the final state using \cref{eq:vehicle_model_newton}. A similar model was used by \citet{Cathey_2003,cn}.
 
 % The variance of predicted distance travelled is
 % \begin{equation}
@@ -279,7 +279,7 @@ Only step 1b depends on the type of node.
 
 \paragraph{Bus stops}
 
-A bus' wait time at a bus stop is referred to as \emph{dwell time} and consists of three phases (as described by \cite{Hans_2015}):
+A bus' wait time at a bus stop is referred to as \emph{dwell time} and consists of three phases (as described by \citet{Hans_2015}):
 \begin{enumerate}[i.]
 \item doors open
 \item passengers board and alight

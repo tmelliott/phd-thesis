@@ -291,7 +291,7 @@ The total expected wait time can be conditioned on whether or not the bus was ca
   \Pr{A < a}\E{\text{headway} - a + A | A < a}
 \end{split}
 \end{equation}
-where $a$ is the estimated arrival time, and $A$ is the actual. For simplicity, we assume headway is maintained (which it is not, \cite{})---that is, if a bus has 20~minute frequency and you miss the bus by 5~minutes, your expected waiting time is 15~minutes.
+where $a$ is the estimated arrival time, and $A$ is the actual. For simplicity, we assume headway is maintained (which it is not, \citet{})---that is, if a bus has 20~minute frequency and you miss the bus by 5~minutes, your expected waiting time is 15~minutes.
 
 \Cref{fig:eta_headway_results} shows the values of $\Pcatch$, $\Ecatch$, $\Emiss$, and $\Ewait$ by headway (rounded down, in minutes). Capture probability is not so affected by headway, though it decreases slightly for longer headways. In contrast, expected wait times are very much affected. Most unexpectedly, $\Ecatch$ decreases with headway, which could be caused by a higher proportion of short headway at peak times when traffic is more congested, leading to more uncertainty (so the quantiles are more dispersed), or the buses take longer than expected. For $\Emiss$, the expected wait time is not unexpectedly strongly correlated with headway. Overall, the difference in $\Ewait$ between predictors is negligible for headways less than 10~minutes, after which time differences appear. Low frequency routes should prefer a low quantile to reduce the chance of missing the bus.
 
