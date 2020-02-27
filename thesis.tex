@@ -93,7 +93,8 @@ headsepline, % Uncomment to get a line under the header
 \usepackage[utf8]{inputenc} % Required for inputting international characters
 \usepackage[T1]{fontenc} % Output font encoding for international characters
 
-% \usepackage{mathpazo} % Use the Palatino font by default
+\usepackage{mathpazo} % Use the Palatino font by default
+%\usepackage{bookman}
 
 \usepackage{amssymb}
 \usepackage{enumerate}
@@ -167,10 +168,10 @@ headsepline, % Uncomment to get a line under the header
 \renewcommand{\showlabelfont}{\tiny}
 % \usepackage{showkeys}
 
-\usepackage{perpage} %the perpage package
-\MakePerPage{footnote}
+%\usepackage{perpage} %the perpage package
+%\MakePerPage{footnote}
 \usepackage[symbol]{footmisc}
-\renewcommand{\thefootnote}{\fnsymbol{footnote}}
+\renewcommand{\thefootnote}{\arabic{footnote}}
 \IfFileExists{upquote.sty}{\usepackage{upquote}}{}
 \begin{document}
 

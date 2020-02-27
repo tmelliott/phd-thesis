@@ -4,14 +4,17 @@
 
 So far, we have introduced the structure of transit data, the construction of a ``transit network'', and presented a real-time transit vehicle model to estimate road speeds. We next described how to summarise the real-time network state using the speed estimates from the vehicle model. The single goal of all of this is to predict the arrival time of transit vehicles at bus stops. Yet, while we may have all of the pieces, we still need to put them together, and the clock is still ticking---the \glspl{eta} still need to be estimated and distributed before our passengers can make use of them.
 
-In \cref{cha:vehicle_model} we estimated the state of a vehicle; in \cref{cha:network_model}, the state of a road. In this chapter, we shift our focus to estimate \emph{trip state}, which combines all of the information we have gained thus far. The trip state allows estimation of arrival times at stops by combining it with the network state and dwell time information, if available. The first step, therefore, is to estimate trip state (sec X) based on the \gls{gtfs} schedule and estimated vehicle states from \cref{cha:vehicle_model}.
+In \cref{cha:vehicle_model} we estimated the state of a vehicle; in \cref{cha:network_model}, the state of a road. In this chapter, we shift our focus to estimate \emph{trip state}, which combines all of the information we have gained thus far. The trip state allows estimation of arrival times at stops by combining it with the network state and dwell time information, if available. The first step, therefore, is to estimate trip state (\cref{sec:trip_state}) based on the \gls{gtfs} schedule and estimated vehicle states from \cref{cha:vehicle_model}.
 
-In the remainder of this chapter, we present a selection of models---two which use the real-time vehicle and network states, and two methods for comparison, one of which is the currently used method in Auckland. Having presented the four forecasting methods in \cref{sec:prediction_arrival_time}, we present the results for a full day of observations and compare the methods (\cref{sec:prediction_model_comparison}). Finally, we look at the real-time implementation and performance results in \cref{sec:prediction_performance} to assess the practicality of our proposed method. The estimates and results of this chapter are purely for statistical analysis and comparison; in \cref{cha:etas}, we examine various \gls{eta} estimates, their conveyance to passengers, and some practical examination of effectiveness.
+\begin{itemize}
+\item relate to \citet{Cathey_2003} and other approaches that use `\rt{} data + travel time information (+ dwell time information)'
+\end{itemize}
 
+In the remainder of this chapter, we present a selection of models---two which use the real-time vehicle and network states, and two methods for comparison, one of which is the currently used method in Auckland and some other locations using \gls{gtfs}-realtime. Having presented the four forecasting methods (\cref{sec:prediction_arrival_time}), we present the results of arrival time prediction for a full day of observations for which we know the actual arrival time and compare the methods (\cref{sec:prediction_model_comparison}). Finally, we look at the real-time implementation and performance results in \cref{sec:prediction_performance} to assess the practicality of our proposed method.
+This chapter focuses on the statistical performance of our proposed method. We examine the practical results in \cref{cha:etas}.
 
 
 \input{DIRNAME/trip_state.tex}
 \input{DIRNAME/arrival_time.tex}
 \input{DIRNAME/model_comparison.tex}
 \input{DIRNAME/performance.tex}
-

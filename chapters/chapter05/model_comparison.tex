@@ -1,17 +1,26 @@
-\section{Comparing models}
+\section{Assessing predictive performance}
 \label{sec:prediction_model_comparison}
 
 
+To compare the four prediction methods, we implemented the first two in the \textsf{transitr} application and, using a single day of data, run the program, storing all arrival time estimates, the uncertainty, as well as the 5\% and 90\% quantiles\footnote{Initially we used a symmetric 95\% prediction interval, but this was often highly skewed by a few very late particles.}. The actual (reported) arrival times are then used to compare the accuracy of each method. For the historical data, we compare the mean with the actual arrival time. For the schedule-delay method, the arrival time for all upcoming stops was predicted after each new observation, and the prediction error computed.
 
-We now have four models to evaluate, two of which use the road network state, one uses historical data, and one only the current delay, the last being the method currently used by \gls{at}\footnote{And many other public transport providers using \gls{gtfs}-realtime}. To compare them, we implemented the first two in the application and, using a single day of data, run the program, storing all arrival time estimates, the uncertainty, as well as the 5\% and 90\% quantiles\footnote{Initially we used a symmetric 95\% prediction interval, but this was often highly skewed by a few very late particles.}. We could then use the actual (reported) arrival times to compute the accuracy of each estimator. For the historical data, we compare the mean with the actual arrival time. For the schedule-delay method, the arrival time for all upcoming stops was predicted after each new observation, and the prediction error computed.
+\begin{itemize}
+\item yes, rewrite the above para to make more sense please.
+\item and, the below might need some more words about MAE/MAPE \ldots
+\end{itemize}
 
-The comparison criteria used is the \emph{\gls{rmse}}, as is commonly used for model checking \citep{cn}. \Gls{rmse} is the mean squared difference (in seconds) between the predicted and actual arrival times. Of course, since predictions change over time, we also compute \gls{rmse} by \emph{time until (actual) arrival}, allowing us to compare the models at different time points, as well as by stop sequence and time of day.
+We used \gls{rmse}, \gls{mae}, and \gls{mape} as comparison criteria (see \cref{app:error-functions}).
+\Gls{rmse} is the mean squared difference (in seconds) between the predicted and actual arrival times. Of course, since predictions change over time, we also compute \gls{rmse} by \emph{time until (actual) arrival}, allowing us to compare the models at different time points, as well as by stop sequence and time of day.
 
 
-Another criteria we are interested in is the \emph{coverage of the prediction interval}, which is only available for the three methods for which we can construct an 85\% \gls{ppi}: for the particle filter, this is achieved by sorting the particles in order of arrival time, and then taking the $\lfloor q_\text{lower} N^\star\rfloor^{\text{th}}$ particle as the lower bound, and the $\lceil q_{\text{upper}} N^\star\rceil^{\text{th}}$ particle as the upper bound. For the 85\% interval, we used $q_\text{lower} = 0.05$ and $q_\text{upper} = 0.9$. For the normal approximation and historical arrival methods, the inverse \gls{cdf} gives us the required quantiles. The results are displayed in \cref{tab:model_results_rmse} and \cref{fig:model_results_rmse_time,fig:model_results_rmse_stopn,fig:model_results_rmse_timeofday}, which are described in \cref{sec:prediction_model_comp_stats}.
+Another criteria we are interested in is the \gls{picp}, which is only available for the three methods for which we can construct an 85\% \gls{ppi}: for the particle filter, this is achieved by sorting the particles in order of arrival time, and then taking the $\lfloor q_\text{lower} N^\star\rfloor^{\text{th}}$ particle as the lower bound, and the $\lceil q_{\text{upper}} N^\star\rceil^{\text{th}}$ particle as the upper bound (more details in \cref{app:particle_summaries}). For the 85\% interval, we used $q_\text{lower} = 0.05$ and $q_\text{upper} = 0.9$. For the normal approximation and historical arrival methods, the inverse \gls{cdf} provides the required quantiles. The results are displayed in \cref{tab:model_results_rmse} and \cref{fig:model_results_rmse_time,fig:model_results_rmse_stopn,fig:model_results_rmse_timeofday} (described in \cref{sec:prediction_model_comp_stats}).
 
 
-Additionally, we also want to compare the predictive power of the various forecast methods, namely \emph{the probability of arriving before the bus}, and hence not missing it, as well as the expected waiting time given a passenger arrives at the stop by a certain time. In table \cref{tab:model_results_pr_miss} and \cref{fig:model_results_pr_gtfs,fig:model_results_pr_time,fig:model_results_pr_stop,fig:model_results_pr_timeofday}, we use the point estimate (mean or median, depending on the forecast method), as well as the 5\% quantile, and for each calculate the probability that the bus arrives after the specified time. We also compute the expected waiting time for a passenger arriving at a certain time \emph{and the bus arrives after the specified time} (i.e., the passenger catches the bus). \Cref{sec:prediction_model_comp_probs} discusses these results.
+\begin{itemize}
+\item predictive power, or `reliability'?
+\end{itemize}
+
+Additionally, we also want to compare the predictive power of the various forecast methods, namely \emph{the probability of arriving before the bus}, and hence not missing it, as well as the expected waiting time given a passenger arrives at the stop by a certain time. In table \cref{tab:model_results_pr_miss} and \cref{fig:model_results_pr_gtfs,fig:model_results_pr_time,fig:model_results_pr_stop,fig:model_results_pr_timeofday}, we use the point estimate (mean or median, depending on the forecast method), as well as the 5\% quantile, and for each calculate the probability that the bus arrives after the specified time. We also calculate the expected waiting time for a passenger arriving at a certain time \emph{and the bus arrives after the specified time} (i.e., the passenger catches the bus). \Cref{sec:prediction_model_comp_probs} discusses these results.
 
 
 
@@ -26,7 +35,7 @@ Additionally, we also want to compare the predictive power of the various foreca
 \fontsize{8}{10}\selectfont
 \begin{tabular}[t]{lrrrrrl}
 \toprule
-  & RMSE (s) & MAE (s) & MAPE (\%) & $\Pr{\Varr_m \in \text{PPI}}$ & \multicolumn{2}{c}{PPI width (m)} \\
+  & RMSE (s) & MAE (s) & MAPE (\%) & PICP & \multicolumn{2}{c}{PPI width (m)} \\
 \midrule
 $\mathcal{F}_1$: Particle filter & 232 & 146 & 19 & 0.77 & 7 & (0.6, 19.8)\\
 $\mathcal{F}_2$: Normal approximation & 489 & 349 & 38 & 0.91 & 30 & (0, 103.5)\\
