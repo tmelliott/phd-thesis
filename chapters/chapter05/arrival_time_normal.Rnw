@@ -194,7 +194,7 @@ For quantiles $q_\alpha$ we use an optimisation algorithm to solve
 \begin{equation}
 \label{eq:mixture_quadratic}
 \left[
-  p\left(\Tarr_m | \tilde\pi, \tilde\mu, \tilde\sigma^2, \RouteNWstate\right) - q_\alpha
+  p\left(\alpha \leq \Tarr_m | \tilde\pi, \tilde\mu, \tilde\sigma^2, \RouteNWstate\right) - q_\alpha
 \right]^2 = 0
 \end{equation}
 which is straightforward using Brent's Algorithm \citep{Brent_1971}, implemented in the Boost \textsf{C++} library.
