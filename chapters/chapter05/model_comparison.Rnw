@@ -699,12 +699,12 @@ pr_smry <- eta_results %>%
         pf_lower_catch = mean(pf_lower_catch),
         normal_lower_catch = mean(normal_lower_catch),
         hist_lower_catch = mean(hist_lower_catch, na.rm = TRUE),
-        pf_wait_lower = quantile(pf_wait, 0.025, na.rm = TRUE),
-        pf_wait_upper = quantile(pf_wait, 0.975, na.rm = TRUE),
-        normal_wait_lower = quantile(normal_wait, 0.025, na.rm = TRUE),
-        normal_wait_upper = quantile(normal_wait, 0.975, na.rm = TRUE),
-        hist_wait_lower = quantile(hist_wait, 0.025, na.rm = TRUE),
-        hist_wait_upper = quantile(hist_wait, 0.975, na.rm = TRUE),
+        pf_wait_lower = quantile(pf_wait, 0.05, na.rm = TRUE),
+        pf_wait_upper = quantile(pf_wait, 0.9, na.rm = TRUE),
+        normal_wait_lower = quantile(normal_wait, 0.05, na.rm = TRUE),
+        normal_wait_upper = quantile(normal_wait, 0.9, na.rm = TRUE),
+        hist_wait_lower = quantile(hist_wait, 0.05, na.rm = TRUE),
+        hist_wait_upper = quantile(hist_wait, 0.9, na.rm = TRUE),
         pf_wait = mean(pf_wait, na.rm = TRUE),
         normal_wait = mean(normal_wait, na.rm = TRUE),
         hist_wait = mean(hist_wait, na.rm = TRUE)
@@ -742,7 +742,7 @@ names(pr_mat) <- c(
     "$\\mathbb{P}_m$ (\\%)",
     "$\\mathbb{P}_\\ell$ (\\%)",
     "$\\mathbb{E}_\\ell$ (m)",
-    "95\\% CI"
+    "5--90\\% CI"
 )
 knitr::kable(
     pr_mat,
@@ -834,16 +834,10 @@ We could also examine this the opposite way, and match the expected waiting time
 
 \subsubsection{Time until arrival}
 
-\Cref{fig:model_results_pr_time} shows $\mathbb{P}_m$, $\mathbb{P}_\ell$, and $\mathbb{E}_\ell$ computed in one-minute intervals for each of the four models. We see that the probability that the vehicle arrives after the estimate is reasonably constant, with a slight decrease as the bus nears the stop; however, the four methods are distinct from each other, yielding the same conclusion as before \textcolor{red}{(be more specific)}.
-
-As for $\mathbb{P}_\ell$, displayed in \cref{fig:model_results_pr_time2}, we see a different trend: $\FM_1$ and $\FM_3$ increase the further out the vehicle is, while in $\FM_4$ the probability decreases. Clearly, this is because we have chosen a fixed lower bound. When the vehicle is less than 15 minutes out, arriving 6~minute before the schedule-delay estimate results in a higher probability of catching the bus than the particle filter because the width is greater.
+\Cref{fig:model_results_pr_time} shows $\mathbb{P}_m$, $\mathbb{P}_\ell$, and $\mathbb{E}_\ell$ computed for one-minute intervals for each of the four methods. For \Fsched{}, we used a lower bound of 6~minutes before the predicted arrival. For the expected wait time, we also computed the 5\% and 90\% quantiles, which are displayed as shaded regions. The dotted line in the expected waiting time graph represents the maximum possible waiting time; that is, when the bus is 10~minutes and you arrive immediately at the stop, you will wait 10~minutes.
 
 
-Finally, we look at the expected waiting time, given a passenger arrives at the lower bound \emph{and} the bus arrives sometime after, which is displayed in \cref{fig:model_results_pr_time}. The particle filter has a consistently shorter waiting time, though by about 30~minutes out the three methods excluding the normal approximation are approximately the same. We can see that the expected waiting time for $\FM_4$ is more or less independent of time until arrival.
-
-
-
-<<model_results_pr_time,echo=FALSE,message=FALSE,warning=FALSE,cache=TRUE,dependson=c("model_results_load","model_results_pr_miss"),cache.lazy=FALSE,fig.width=8,fig.height=4.5,out.width="\\textwidth",fig.cap="Summary values by time until arrival.">>=
+<<model_results_pr_time,echo=FALSE,message=FALSE,warning=FALSE,cache=TRUE,dependson=c("model_results_load","model_results_pr_miss"),cache.lazy=FALSE,fig.width=8,fig.height=4,out.width="\\textwidth",fig.cap="Summary values by time until arrival.">>=
 pr_smry_time <- eta_results %>%
     mutate(
         # bus arrives after point estimate
@@ -873,14 +867,14 @@ pr_smry_time <- eta_results %>%
         normal_lower_catch = mean(normal_lower_catch),
         hist_lower_catch = mean(hist_lower_catch, na.rm = TRUE),
         gtfs_lower_catch = mean(gtfs_lower_catch, na.rm = TRUE),
-        pf_wait_lower = quantile(pf_wait, 0.025, na.rm = TRUE),
-        pf_wait_upper = quantile(pf_wait, 0.975, na.rm = TRUE),
-        normal_wait_lower = quantile(normal_wait, 0.025, na.rm = TRUE),
-        normal_wait_upper = quantile(normal_wait, 0.975, na.rm = TRUE),
-        hist_wait_lower = quantile(hist_wait, 0.025, na.rm = TRUE),
-        hist_wait_upper = quantile(hist_wait, 0.975, na.rm = TRUE),
-        gtfs_wait_lower = quantile(gtfs_wait, 0.025, na.rm = TRUE),
-        gtfs_wait_upper = quantile(gtfs_wait, 0.975, na.rm = TRUE),
+        pf_wait_lower = quantile(pf_wait, 0.05, na.rm = TRUE),
+        pf_wait_upper = quantile(pf_wait, 0.9, na.rm = TRUE),
+        normal_wait_lower = quantile(normal_wait, 0.05, na.rm = TRUE),
+        normal_wait_upper = quantile(normal_wait, 0.9, na.rm = TRUE),
+        hist_wait_lower = quantile(hist_wait, 0.05, na.rm = TRUE),
+        hist_wait_upper = quantile(hist_wait, 0.9, na.rm = TRUE),
+        gtfs_wait_lower = quantile(gtfs_wait, 0.05, na.rm = TRUE),
+        gtfs_wait_upper = quantile(gtfs_wait, 0.9, na.rm = TRUE),
         pf_wait = mean(pf_wait, na.rm = TRUE),
         normal_wait = mean(normal_wait, na.rm = TRUE),
         hist_wait = mean(hist_wait, na.rm = TRUE),
@@ -895,6 +889,7 @@ plot_base <- ggplot(pr_smry_time, aes(min)) +
     xlab("Time until arrival (minutes)")
 
 plotA <- plot_base +
+    #geom_hline(yintercept = 0.5, lty = 2) +
     geom_path(aes(y = pf_catch, colour = "pf")) +
     geom_path(aes(y = normal_catch, colour = "normal")) +
     geom_path(aes(y = hist_catch, colour = "historical")) +
@@ -902,6 +897,7 @@ plotA <- plot_base +
     ylab("P[m]")
 
 plotB <- plot_base +
+    #geom_hline(yintercept = 0.975, lty = 2) +
     geom_path(aes(y = pf_lower_catch, colour = "pf")) +
     geom_path(aes(y = normal_lower_catch, colour = "normal")) +
     geom_path(aes(y = hist_lower_catch, colour = "historical")) +
@@ -909,28 +905,36 @@ plotB <- plot_base +
     ylab("P[l]")
 
 plotC <- plot_base +
-    geom_abline(lty = 3) +
+    #geom_abline(lty = 3) +
     geom_ribbon(
         aes(
-            ymin = pmin(20, pmin(min, pf_wait_lower / 60)),
-            ymax = pmin(20, pmin(min, pf_wait_upper / 60)),
+            ymin = pmin(30, pmin(min, pf_wait_lower / 60)),
+            ymax = pmin(30, pmin(min, pf_wait_upper / 60)),
             fill = "pf"
         ),
         alpha = 0.2
     ) +
     geom_ribbon(
         aes(
-            ymin = pmin(20, pmin(min, normal_wait_lower / 60)),
-            ymax = pmin(20, pmin(min, normal_wait_upper / 60)),
+            ymin = pmin(30, pmin(min, normal_wait_lower / 60)),
+            ymax = pmin(30, pmin(min, normal_wait_upper / 60)),
             fill = "normal"
         ),
         alpha = 0.2
     ) +
     geom_ribbon(
         aes(
-            ymin = pmin(20, pmin(min, hist_wait_lower / 60)),
-            ymax = pmin(20, pmin(min, hist_wait_upper / 60)),
+            ymin = pmin(30, pmin(min, hist_wait_lower / 60)),
+            ymax = pmin(30, pmin(min, hist_wait_upper / 60)),
             fill = "historical"
+        ),
+        alpha = 0.2
+    ) +
+    geom_ribbon(
+        aes(
+            ymin = pmin(30, pmin(min, gtfs_wait_lower / 60)),
+            ymax = pmin(30, pmin(min, gtfs_wait_upper / 60)),
+            fill = "gtfs"
         ),
         alpha = 0.2
     ) +
@@ -938,24 +942,44 @@ plotC <- plot_base +
     geom_path(aes(y = pmin(min, normal_wait / 60), colour = "normal")) +
     geom_path(aes(y = pmin(min, hist_wait / 60), colour = "historical")) +
     geom_path(aes(y = pmin(min, gtfs_wait / 60), colour = "gtfs")) +
-    ylab("E[l] (m)") + ylim(0, 20) +
+    scale_y_continuous(
+        "E[l] (m)",
+        limits = c(0, 30)
+    ) +
     theme(legend.position = "none") +
-    scale_fill_manual(values = pal, name = "model")
+    scale_fill_manual(values = pal, name = "model", guide = FALSE)
 
 library(patchwork)
 plotA + plotB + plotC + guide_area() +
-    plot_layout(ncol = 2, byrow = FALSE, guides = "collect")
+    plot_layout(
+        guides = "collect",
+        design = "
+            13
+            24
+        ",
+        heights = c(1, 1)
+    )
 @
+
+
+
+The probability that the bus arrives after the point estimate (mean or median), $\mathbb{P}_\ell$ is more or less constant with a slight decrease as the bus nears the stop. \Fpf{} and \Fnorm{} are above the expected value of 50\%, though the latter is significantly higher. \Fnorm{} performs reasonably well, though tends to underestimate arrival time the farther out the bus is, while \Fsched{} overestimates arrival time quite such that there is less than a 40\% chance of catching the bus if it is less than 20~minutes away.
+
+
+As for $\mathbb{P}_\ell$, we see a different trend: \Fpf{} and \Fhist{} increase the further out the vehicle is; on the other hand with \Fsched{}, the probability decreases, although this is because we have chosen a fixed lower bound. Once the bus is about 15~minutes away, the \gls{eta} provided by \Fsched{} minus 6~minutes is increasingly likely to result in a caught bus, while under \Fpf{} this probability is lower, indicating not enough uncertainty is accounted for over short distances (though the difference is only a few percent).
+
+
+Finally, we look at the expected waiting time, given a passenger arrives at the lower bound \emph{and} the bus arrives after it. \Fpf{} has a consistently shorter waiting time, though by about 30~minutes out the three methods (excluding \Fnorm{}) are approximately the same. We can see that the expected waiting time for \Fsched{} is more or less independent of time until arrival, which is to be expected since the width is fixed. The shaded reasons represent the 5\% and 90\% quantiles of waiting time, and we see that \Fpf{} results in shorter waits, on average, for 10~minutes before arrival. As for the normal approximation, it tends towards overestimation of arrival time uncertainty, so expected waiting time is very large if arriving at the lower estimate, indicating that \Fnorm{} is not a reliable choice of predictor.
+
 
 
 \subsubsection{Stop sequence}
 
-Next, we computed the same values by stop sequence, as is shown in \cref{fig:model_results_pr_stop}. For most stops, the particle filter has a higher probability of the bus arriving after the point estimate ($\mathbb{P}_m$), though for early stops this is not the case. However, this is simply because the particle filter \emph{does not make a prediction} until the vehicle has been observed\footnote{Yet! Future work will work to use historical data in this situation}, whereas the \gls{gtfs} approach assumes the delay is zero until the vehicle is observed. This assumption can be reasonably accurate, particularly for the first few stops when there has not been enough time for the bus to get behind or ahead of schedule.
-
-The trend for $\mathbb{P}_\ell$ is similar to what we saw with time until arrival. This time, however, the particle filter has much lower probabilities for the first few stops, again due to the reasons stated above. Even so, $\FM_4$ is consistently higher than $\FM_1$ until stop 40. The expected waiting time again shows better performance with the particle filter method until about stop 40, after which point the methods are more or less the same, given not many routes have over 40~stops. There is a trade-off here between waiting time and catch probability.
+The same values were computed by stop sequence, and displayed in \cref{fig:model_results_pr_stop}. Again, \Fhist{} achieves the target probability of 50\%, whilc \Fpf{} is slightly above at about 60\%. Most notable is the steady decline in the reliability of \Fsched{}, which after stop 40 drops to about a one in three chance of catching the bus (assuming you arrive at the predicted \gls{eta}).
 
 
-<<model_results_pr_stop,echo=FALSE,message=FALSE,warning=FALSE,cache=TRUE,dependson=c("model_results_load","model_results_pr_miss"),cache.lazy=FALSE,fig.width=8,fig.height=4.5,out.width="\\textwidth",fig.cap="Summary values by stop sequence.">>=
+
+<<model_results_pr_stop,echo=FALSE,message=FALSE,warning=FALSE,cache=TRUE,dependson=c("model_results_load","model_results_pr_miss"),cache.lazy=FALSE,fig.width=8,fig.height=4,out.width="\\textwidth",fig.cap="Summary values by stop sequence.">>=
 pr_smry_stop <- eta_results %>%
     mutate(
         # bus arrives after point estimate
@@ -985,14 +1009,14 @@ pr_smry_stop <- eta_results %>%
         normal_lower_catch = mean(normal_lower_catch),
         hist_lower_catch = mean(hist_lower_catch, na.rm = TRUE),
         gtfs_lower_catch = mean(gtfs_lower_catch, na.rm = TRUE),
-        pf_wait_lower = quantile(pf_wait, 0.025, na.rm = TRUE),
-        pf_wait_upper = quantile(pf_wait, 0.975, na.rm = TRUE),
-        normal_wait_lower = quantile(normal_wait, 0.025, na.rm = TRUE),
-        normal_wait_upper = quantile(normal_wait, 0.975, na.rm = TRUE),
-        hist_wait_lower = quantile(hist_wait, 0.025, na.rm = TRUE),
-        hist_wait_upper = quantile(hist_wait, 0.975, na.rm = TRUE),
-        gtfs_wait_lower = quantile(gtfs_wait, 0.025, na.rm = TRUE),
-        gtfs_wait_upper = quantile(gtfs_wait, 0.975, na.rm = TRUE),
+        pf_wait_lower = quantile(pf_wait, 0.05, na.rm = TRUE),
+        pf_wait_upper = quantile(pf_wait, 0.9, na.rm = TRUE),
+        normal_wait_lower = quantile(normal_wait, 0.05, na.rm = TRUE),
+        normal_wait_upper = quantile(normal_wait, 0.9, na.rm = TRUE),
+        hist_wait_lower = quantile(hist_wait, 0.05, na.rm = TRUE),
+        hist_wait_upper = quantile(hist_wait, 0.9, na.rm = TRUE),
+        gtfs_wait_lower = quantile(gtfs_wait, 0.05, na.rm = TRUE),
+        gtfs_wait_upper = quantile(gtfs_wait, 0.9, na.rm = TRUE),
         pf_wait = mean(pf_wait, na.rm = TRUE),
         normal_wait = mean(normal_wait, na.rm = TRUE),
         hist_wait = mean(hist_wait, na.rm = TRUE),
@@ -1024,25 +1048,33 @@ plotB <- plot_base +
 plotC <- plot_base +
     geom_ribbon(
         aes(
-            ymin = pmin(20, pf_wait_lower / 60),
-            ymax = pmin(20, pf_wait_upper / 60),
+            ymin = pmin(30, pf_wait_lower / 60),
+            ymax = pmin(30, pf_wait_upper / 60),
             fill = "pf"
         ),
         alpha = 0.2
     ) +
     geom_ribbon(
         aes(
-            ymin = pmin(20, normal_wait_lower / 60),
-            ymax = pmin(20, normal_wait_upper / 60),
+            ymin = pmin(30, normal_wait_lower / 60),
+            ymax = pmin(30, normal_wait_upper / 60),
             fill = "normal"
         ),
         alpha = 0.2
     ) +
     geom_ribbon(
         aes(
-            ymin = pmin(20, hist_wait_lower / 60),
-            ymax = pmin(20, hist_wait_upper / 60),
+            ymin = pmin(30, hist_wait_lower / 60),
+            ymax = pmin(30, hist_wait_upper / 60),
             fill = "historical"
+        ),
+        alpha = 0.2
+    ) +
+    geom_ribbon(
+        aes(
+            ymin = pmin(30, gtfs_wait_lower / 60),
+            ymax = pmin(30, gtfs_wait_upper / 60),
+            fill = "gtfs"
         ),
         alpha = 0.2
     ) +
@@ -1050,22 +1082,30 @@ plotC <- plot_base +
     geom_path(aes(y = normal_wait / 60, colour = "normal")) +
     geom_path(aes(y = hist_wait / 60, colour = "historical")) +
     geom_path(aes(y = gtfs_wait / 60, colour = "gtfs")) +
-    ylab("E[l] (m)") + ylim(0, 20) +
+    ylab("E[l] (m)") + ylim(0, 30) +
     theme(legend.position = "none") +
     scale_fill_manual(values = pal, name = "model")
 
 library(patchwork)
 plotA + plotB + plotC + guide_area() +
-    plot_layout(ncol = 2, byrow = FALSE, guides = "collect")
+    plot_layout(
+        guides = "collect",
+        design = "
+            13
+            24
+        ",
+        heights = c(1, 1)
+    )
 @
+
+
+Moving on to the lower 2.5\% quantile, $\mathbb{P}_\ell$, we expect 97.5\% probabiltiy of capture. We see that, as before, \Fpf{} overestimates arrival time slightly, at about 90\%, while \Fsched{} decreases (again) with stop sequence; but remember the lower bound was fixed at 6~minutes before the predicted \gls{eta}. The associated wait time, $\mathbb{E}_\ell$, increases for all methods with increasing stop sequence \emph{except} for \Fsched{}, which decreases (again, the width is fixed). \Fpf{} has the lowest expected wait time up until about stop 50, and again the upper 90\% interval is lower than the mean for \Fsched{} for the first 20~stops. However, many stops with low indices will be serviced within the first 5--10~minutes of the trip, thus inflating $\mathbb{P}_\ell$ under \Fsched{}.
+
 
 
 \subsubsection{Time of day}
 
-Calculating the probabilities and expected waiting time in 15~minute intervals for each of the models is shown in \cref{fig:model_results_pr_timeofday}, in which the peak hour effects are visible, associated with an increased probability of arriving before the bus does in the particle filter method for both the median and lower bound. The schedule-delay method is negatively affected by peak hour in the lower bound estimate. The historical data estimate shows little effect due to peak hour but performs better in the day time (versus early morning and late evening).
-
-
-For the expected waiting time, the particle filter is overall the lowest, even during peak where it shows a significant increase, seen in \cref{fig:model_results_pr_timeofday3}. The historical and schedule-delay methods both have similar expected waiting times of about 6--7 minutes.
+The probabilities and expected waiting time were calculated for 15~minute intervals over the day for each of the models, as is shown in \cref{fig:model_results_pr_timeofday}. The peak hour effects are again visible, associated with an increased probability of arriving before the bus does under \Fpf{} for both the median and lower 2.5\% quantile, while for \Fsched{} the probability of arriving before the bus does decreases slightly. In the evening we see the performance of \Fpf{} drops rapidly, which likely indicates that the probability of stopping is much reduced (many evening services have low occupancy, and as such are less likely to stop at each stop). Future work targetting more complicated dwell time models could help to correct this, however.
 
 
 <<model_results_pr_timeofday,echo=FALSE,message=FALSE,warning=FALSE,cache=TRUE,dependson=c("model_results_load","model_results_pr_miss"),cache.lazy=FALSE,fig.width=8,fig.height=4.5,out.width="\\textwidth",fig.cap="Summary values by time of day.">>=
@@ -1100,14 +1140,14 @@ pr_smry_timeofday <- eta_results %>%
         normal_lower_catch = mean(normal_lower_catch),
         hist_lower_catch = mean(hist_lower_catch, na.rm = TRUE),
         gtfs_lower_catch = mean(gtfs_lower_catch, na.rm = TRUE),
-        pf_wait_lower = quantile(pf_wait, 0.025, na.rm = TRUE),
-        pf_wait_upper = quantile(pf_wait, 0.975, na.rm = TRUE),
-        normal_wait_lower = quantile(normal_wait, 0.025, na.rm = TRUE),
-        normal_wait_upper = quantile(normal_wait, 0.975, na.rm = TRUE),
-        hist_wait_lower = quantile(hist_wait, 0.025, na.rm = TRUE),
-        hist_wait_upper = quantile(hist_wait, 0.975, na.rm = TRUE),
-        gtfs_wait_lower = quantile(gtfs_wait, 0.025, na.rm = TRUE),
-        gtfs_wait_upper = quantile(gtfs_wait, 0.975, na.rm = TRUE),
+        pf_wait_lower = quantile(pf_wait, 0.05, na.rm = TRUE),
+        pf_wait_upper = quantile(pf_wait, 0.9, na.rm = TRUE),
+        normal_wait_lower = quantile(normal_wait, 0.05, na.rm = TRUE),
+        normal_wait_upper = quantile(normal_wait, 0.9, na.rm = TRUE),
+        hist_wait_lower = quantile(hist_wait, 0.05, na.rm = TRUE),
+        hist_wait_upper = quantile(hist_wait, 0.9, na.rm = TRUE),
+        gtfs_wait_lower = quantile(gtfs_wait, 0.05, na.rm = TRUE),
+        gtfs_wait_upper = quantile(gtfs_wait, 0.9, na.rm = TRUE),
         pf_wait = mean(pf_wait, na.rm = TRUE),
         normal_wait = mean(normal_wait, na.rm = TRUE),
         hist_wait = mean(hist_wait, na.rm = TRUE),
@@ -1138,25 +1178,33 @@ plotB <- plot_base +
 plotC <- plot_base +
     geom_ribbon(
         aes(
-            ymin = pmin(20, pf_wait_lower / 60),
-            ymax = pmin(20, pf_wait_upper / 60),
+            ymin = pmin(30, pf_wait_lower / 60),
+            ymax = pmin(30, pf_wait_upper / 60),
             fill = "pf"
         ),
         alpha = 0.2
     ) +
     geom_ribbon(
         aes(
-            ymin = pmin(20, normal_wait_lower / 60),
-            ymax = pmin(20, normal_wait_upper / 60),
+            ymin = pmin(30, normal_wait_lower / 60),
+            ymax = pmin(30, normal_wait_upper / 60),
             fill = "normal"
         ),
         alpha = 0.2
     ) +
     geom_ribbon(
         aes(
-            ymin = pmin(20, hist_wait_lower / 60),
-            ymax = pmin(20, hist_wait_upper / 60),
+            ymin = pmin(30, hist_wait_lower / 60),
+            ymax = pmin(30, hist_wait_upper / 60),
             fill = "historical"
+        ),
+        alpha = 0.2
+    ) +
+    geom_ribbon(
+        aes(
+            ymin = pmin(30, gtfs_wait_lower / 60),
+            ymax = pmin(30, gtfs_wait_upper / 60),
+            fill = "gtfs"
         ),
         alpha = 0.2
     ) +
@@ -1164,15 +1212,25 @@ plotC <- plot_base +
     geom_path(aes(y = normal_wait / 60, colour = "normal")) +
     geom_path(aes(y = hist_wait / 60, colour = "historical")) +
     geom_path(aes(y = gtfs_wait / 60, colour = "gtfs")) +
-    ylab("E[l] (m)") + ylim(0, 20) +
+    ylab("E[l] (m)") + ylim(0, 30) +
     theme(legend.position = "none") +
     scale_fill_manual(values = pal, name = "model")
 
 library(patchwork)
 plotA + plotB + plotC + guide_area() +
-    plot_layout(ncol = 2, byrow = FALSE, guides = "collect")
+    plot_layout(
+        guides = "collect",
+        design = "
+            13
+            24
+        ",
+        heights = c(1, 1)
+    )
 @
 
+
+We see much the same pattern with the expected waiting time $\mathbb{E}_\ell$, in which wait times increase by a few minutes under \Fpf{}, while there is little noticable change for \Fsched{} and \Fhist{}. Even so, \Fpf{} consistently provides shorter expected wait times than \Fsched{}, and over most of the day (from about 7~am until 6~pm) the probability of the bus arriving after the lower estimate is above 90\%.
+]
 
 
 \subsection{Result summary}

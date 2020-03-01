@@ -162,11 +162,11 @@ The three statistics we compare across the methods are:
 \fontsize{8}{10}\selectfont
 \begin{tabular}[t]{lrrrl}
 \toprule
-  & $\mathbb{P}_m$ (\%) & $\mathbb{P}_\ell$ (\%) & $\mathbb{E}_\ell$ (m) & 95\% CI\\
+  & $\mathbb{P}_m$ (\%) & $\mathbb{P}_\ell$ (\%) & $\mathbb{E}_\ell$ (m) & 5--90\% CI\\
 \midrule
-\Fpf{}: Particle filter & 64 & 93 & 4.4 & 0.2--16.6\\
-\Fnorm{}: Normal approximation & 96 & 98 & 20.9 & 1.2--63.7\\
-\Fhist{}: Historical delays & 54 & 98 & 7.1 & 0.7--20.8\\
+\Fpf{}: Particle filter & 64 & 93 & 4.4 & 0.3--10.2\\
+\Fnorm{}: Normal approximation & 96 & 98 & 20.9 & 2.9--37.6\\
+\Fhist{}: Historical delays & 54 & 98 & 7.1 & 1.1--14.1\\
 \Fsched{}: Schedule-delay & 38 &  &  & \\
 \bottomrule
 \end{tabular}
@@ -213,13 +213,7 @@ We could also examine this the opposite way, and match the expected waiting time
 
 \subsubsection{Time until arrival}
 
-\Cref{fig:model_results_pr_time} shows $\mathbb{P}_m$, $\mathbb{P}_\ell$, and $\mathbb{E}_\ell$ computed in one-minute intervals for each of the four models. We see that the probability that the vehicle arrives after the estimate is reasonably constant, with a slight decrease as the bus nears the stop; however, the four methods are distinct from each other, yielding the same conclusion as before \textcolor{red}{(be more specific)}.
-
-As for $\mathbb{P}_\ell$, displayed in \cref{fig:model_results_pr_time2}, we see a different trend: $\FM_1$ and $\FM_3$ increase the further out the vehicle is, while in $\FM_4$ the probability decreases. Clearly, this is because we have chosen a fixed lower bound. When the vehicle is less than 15 minutes out, arriving 6~minute before the schedule-delay estimate results in a higher probability of catching the bus than the particle filter because the width is greater.
-
-
-Finally, we look at the expected waiting time, given a passenger arrives at the lower bound \emph{and} the bus arrives sometime after, which is displayed in \cref{fig:model_results_pr_time}. The particle filter has a consistently shorter waiting time, though by about 30~minutes out the three methods excluding the normal approximation are approximately the same. We can see that the expected waiting time for $\FM_4$ is more or less independent of time until arrival.
-
+\Cref{fig:model_results_pr_time} shows $\mathbb{P}_m$, $\mathbb{P}_\ell$, and $\mathbb{E}_\ell$ computed for one-minute intervals for each of the four methods. For \Fsched{}, we used a lower bound of 6~minutes before the predicted arrival. For the expected wait time, we also computed the 5\% and 90\% quantiles, which are displayed as shaded regions. The dotted line in the expected waiting time graph represents the maximum possible waiting time; that is, when the bus is 10~minutes and you arrive immediately at the stop, you will wait 10~minutes.
 
 
 \begin{knitrout}\small
@@ -231,11 +225,21 @@ Finally, we look at the expected waiting time, given a passenger arrives at the 
 \end{knitrout}
 
 
+
+The probability that the bus arrives after the point estimate (mean or median), $\mathbb{P}_\ell$ is more or less constant with a slight decrease as the bus nears the stop. \Fpf{} and \Fnorm{} are above the expected value of 50\%, though the latter is significantly higher. \Fnorm{} performs reasonably well, though tends to underestimate arrival time the farther out the bus is, while \Fsched{} overestimates arrival time quite such that there is less than a 40\% chance of catching the bus if it is less than 20~minutes away.
+
+
+As for $\mathbb{P}_\ell$, we see a different trend: \Fpf{} and \Fhist{} increase the further out the vehicle is; on the other hand with \Fsched{}, the probability decreases, although this is because we have chosen a fixed lower bound. Once the bus is about 15~minutes away, the \gls{eta} provided by \Fsched{} minus 6~minutes is increasingly likely to result in a caught bus, while under \Fpf{} this probability is lower, indicating not enough uncertainty is accounted for over short distances (though the difference is only a few percent).
+
+
+Finally, we look at the expected waiting time, given a passenger arrives at the lower bound \emph{and} the bus arrives after it. \Fpf{} has a consistently shorter waiting time, though by about 30~minutes out the three methods (excluding \Fnorm{}) are approximately the same. We can see that the expected waiting time for \Fsched{} is more or less independent of time until arrival, which is to be expected since the width is fixed. The shaded reasons represent the 5\% and 90\% quantiles of waiting time, and we see that \Fpf{} results in shorter waits, on average, for 10~minutes before arrival. As for the normal approximation, it tends towards overestimation of arrival time uncertainty, so expected waiting time is very large if arriving at the lower estimate, indicating that \Fnorm{} is not a reliable choice of predictor.
+
+
+
 \subsubsection{Stop sequence}
 
-Next, we computed the same values by stop sequence, as is shown in \cref{fig:model_results_pr_stop}. For most stops, the particle filter has a higher probability of the bus arriving after the point estimate ($\mathbb{P}_m$), though for early stops this is not the case. However, this is simply because the particle filter \emph{does not make a prediction} until the vehicle has been observed\footnote{Yet! Future work will work to use historical data in this situation}, whereas the \gls{gtfs} approach assumes the delay is zero until the vehicle is observed. This assumption can be reasonably accurate, particularly for the first few stops when there has not been enough time for the bus to get behind or ahead of schedule.
+The same values were computed by stop sequence, and displayed in \cref{fig:model_results_pr_stop}. Again, \Fhist{} achieves the target probability of 50\%, whilc \Fpf{} is slightly above at about 60\%. Most notable is the steady decline in the reliability of \Fsched{}, which after stop 40 drops to about a one in three chance of catching the bus (assuming you arrive at the predicted \gls{eta}).
 
-The trend for $\mathbb{P}_\ell$ is similar to what we saw with time until arrival. This time, however, the particle filter has much lower probabilities for the first few stops, again due to the reasons stated above. Even so, $\FM_4$ is consistently higher than $\FM_1$ until stop 40. The expected waiting time again shows better performance with the particle filter method until about stop 40, after which point the methods are more or less the same, given not many routes have over 40~stops. There is a trade-off here between waiting time and catch probability.
 
 
 \begin{knitrout}\small
@@ -247,12 +251,13 @@ The trend for $\mathbb{P}_\ell$ is similar to what we saw with time until arriva
 \end{knitrout}
 
 
+Moving on to the lower 2.5\% quantile, $\mathbb{P}_\ell$, we expect 97.5\% probabiltiy of capture. We see that, as before, \Fpf{} overestimates arrival time slightly, at about 90\%, while \Fsched{} decreases (again) with stop sequence; but remember the lower bound was fixed at 6~minutes before the predicted \gls{eta}. The associated wait time, $\mathbb{E}_\ell$, increases for all methods with increasing stop sequence \emph{except} for \Fsched{}, which decreases (again, the width is fixed). \Fpf{} has the lowest expected wait time up until about stop 50, and again the upper 90\% interval is lower than the mean for \Fsched{} for the first 20~stops. However, many stops with low indices will be serviced within the first 5--10~minutes of the trip, thus inflating $\mathbb{P}_\ell$ under \Fsched{}.
+
+
+
 \subsubsection{Time of day}
 
-Calculating the probabilities and expected waiting time in 15~minute intervals for each of the models is shown in \cref{fig:model_results_pr_timeofday}, in which the peak hour effects are visible, associated with an increased probability of arriving before the bus does in the particle filter method for both the median and lower bound. The schedule-delay method is negatively affected by peak hour in the lower bound estimate. The historical data estimate shows little effect due to peak hour but performs better in the day time (versus early morning and late evening).
-
-
-For the expected waiting time, the particle filter is overall the lowest, even during peak where it shows a significant increase, seen in \cref{fig:model_results_pr_timeofday3}. The historical and schedule-delay methods both have similar expected waiting times of about 6--7 minutes.
+The probabilities and expected waiting time were calculated for 15~minute intervals over the day for each of the models, as is shown in \cref{fig:model_results_pr_timeofday}. The peak hour effects are again visible, associated with an increased probability of arriving before the bus does under \Fpf{} for both the median and lower 2.5\% quantile, while for \Fsched{} the probability of arriving before the bus does decreases slightly. In the evening we see the performance of \Fpf{} drops rapidly, which likely indicates that the probability of stopping is much reduced (many evening services have low occupancy, and as such are less likely to stop at each stop). Future work targetting more complicated dwell time models could help to correct this, however.
 
 
 \begin{knitrout}\small
@@ -263,6 +268,10 @@ For the expected waiting time, the particle filter is overall the lowest, even d
 
 \end{knitrout}
 
+
+We see much the same pattern with the expected waiting time $\mathbb{E}_\ell$, in which wait times increase by a few minutes under \Fpf{}, while there is little noticable change for \Fsched{} and \Fhist{}. Even so, \Fpf{} consistently provides shorter expected wait times than \Fsched{}, and over most of the day (from about 7~am until 6~pm) the probability of the bus arriving after the lower estimate is above 90\%.
+
+For the expected waiting time, the particle filter is overall the lowest, even during peak where it shows a significant increase, seen in \cref{fig:model_results_pr_timeofday3}. The historical and schedule-delay methods both have similar expected waiting times of about 6--7 minutes.
 
 
 \subsection{Result summary}
