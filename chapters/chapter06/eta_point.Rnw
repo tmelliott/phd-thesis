@@ -73,124 +73,130 @@ if (file.exists(qfile)) {
 
 <<eta_overall_results,echo=FALSE,cache=TRUE,dependson="eta_load",fig.width=8,fig.height=5,out.width="\\textwidth",fig.align="center",fig.cap="Comparison of summary statistics for various quantiles of the predictive distribution, and the currently deployed GTFS method. Results are displayed for all day average, and off-peak (between 9h30 and 14h30).">>=
 
-get_smry <- function(data, expr, cond = TRUE) {
-  expr <- enquo(expr)
-  cond <- enquo(cond)
-
-  data %>% filter(!!cond) %>% summarise(x = !!expr) %>% pull(x)
-}
 offpeak_times <- paste(
   format(as.POSIXct(q90$timestamp[1], origin = "1970-01-01"), "%Y-%m-%d"),
   c("09:30:00", "14:30:00")
 ) %>% as.POSIXct() %>% as.integer()
 
-rmse_all <- c(
-  sapply(list(q90, q75, q60, q50, q40, q25, q05), get_smry,
-    expr = sqrt(mean((pf - actual)^2)),
-    cond = actual > 0
-  ),
-  get_smry(q50, sqrt(mean((gtfs - actual)^2)), cond = actual > 0)
-)
-rmse_offpeak <- c(
-  sapply(list(q90, q75, q60, q50, q40, q25, q05), get_smry,
-    expr = sqrt(mean((pf - actual)^2)),
-    cond = actual > 0 & between(timestamp, offpeak_times[1], offpeak_times[2])
-  ),
-  get_smry(q50, sqrt(mean((gtfs - actual)^2)),
-    cond = actual > 0 & between(timestamp, offpeak_times[1], offpeak_times[2])
-  )
-)
+d_file <- "data/d_quantiles.rda"
+if (file.exists(d_file)) {
+  load(d_file)
+} else {
+  get_smry <- function(data, expr, cond = TRUE) {
+    expr <- enquo(expr)
+    cond <- enquo(cond)
 
-mae_all <- c(
-  sapply(list(q90, q75, q60, q50, q40, q25, q05), get_smry,
-    expr = mean(abs(pf - actual)),
-    cond = actual > 0
-  ),
-  get_smry(q50, expr = mean(abs(gtfs - actual)), cond = actual > 0)
-)
-mae_offpeak <- c(
-  sapply(list(q90, q75, q60, q50, q40, q25, q05), get_smry,
-    expr = mean(abs(pf - actual)),
-    cond = actual > 0 & between(timestamp, offpeak_times[1], offpeak_times[2])
-  ),
-  get_smry(q50,
-    expr = mean(abs(gtfs - actual)),
-    cond = actual > 0 & between(timestamp, offpeak_times[1], offpeak_times[2])
+    data %>% filter(!!cond) %>% summarise(x = !!expr) %>% pull(x)
+  }
+  rmse_all <- c(
+    sapply(list(q90, q75, q60, q50, q40, q25, q05), get_smry,
+      expr = sqrt(mean((pf - actual)^2)),
+      cond = actual > 0
+    ),
+    get_smry(q50, sqrt(mean((gtfs - actual)^2)), cond = actual > 0)
   )
-)
+  rmse_offpeak <- c(
+    sapply(list(q90, q75, q60, q50, q40, q25, q05), get_smry,
+      expr = sqrt(mean((pf - actual)^2)),
+      cond = actual > 0 & between(timestamp, offpeak_times[1], offpeak_times[2])
+    ),
+    get_smry(q50, sqrt(mean((gtfs - actual)^2)),
+      cond = actual > 0 & between(timestamp, offpeak_times[1], offpeak_times[2])
+    )
+  )
 
-mape_all <- c(
-  sapply(list(q90, q75, q60, q50, q40, q25, q05), get_smry,
-    expr = mean(abs((pf - actual) / actual)),
-    cond = actual > 0
-  ),
-  get_smry(q50, expr = mean(abs((gtfs - actual) / actual)), cond = actual > 0)
-)
-mape_offpeak <- c(
-  sapply(list(q90, q75, q60, q50, q40, q25, q05), get_smry,
-    expr = mean(abs((pf - actual) / actual), na.rm = TRUE),
-    cond = actual > 0 & between(timestamp, offpeak_times[1], offpeak_times[2])
-  ),
-  get_smry(q50,
-    expr = mean(abs((gtfs - actual) / actual), na.rm = TRUE),
-    cond = actual > 0 & between(timestamp, offpeak_times[1], offpeak_times[2])
+  mae_all <- c(
+    sapply(list(q90, q75, q60, q50, q40, q25, q05), get_smry,
+      expr = mean(abs(pf - actual)),
+      cond = actual > 0
+    ),
+    get_smry(q50, expr = mean(abs(gtfs - actual)), cond = actual > 0)
   )
-)
+  mae_offpeak <- c(
+    sapply(list(q90, q75, q60, q50, q40, q25, q05), get_smry,
+      expr = mean(abs(pf - actual)),
+      cond = actual > 0 & between(timestamp, offpeak_times[1], offpeak_times[2])
+    ),
+    get_smry(q50,
+      expr = mean(abs(gtfs - actual)),
+      cond = actual > 0 & between(timestamp, offpeak_times[1], offpeak_times[2])
+    )
+  )
 
-pcatch_all <- c(
-  sapply(list(q90, q75, q60, q50, q40, q25, q05), get_smry,
-    expr = mean(pf < actual),
-    cond = actual > 0
-  ),
-  get_smry(q50, expr = mean(gtfs < actual), cond = actual > 0)
-)
-pcatch_offpeak <- c(
-  sapply(list(q90, q75, q60, q50, q40, q25, q05), get_smry,
-    expr = mean(pf < actual),
-    cond = actual > 0 & between(timestamp, offpeak_times[1], offpeak_times[2])
-  ),
-  get_smry(q50,
-    expr = mean(gtfs < actual),
-    cond = actual > 0 & between(timestamp, offpeak_times[1], offpeak_times[2])
+  mape_all <- c(
+    sapply(list(q90, q75, q60, q50, q40, q25, q05), get_smry,
+      expr = mean(abs((pf - actual) / actual)),
+      cond = actual > 0
+    ),
+    get_smry(q50, expr = mean(abs((gtfs - actual) / actual)), cond = actual > 0)
   )
-)
+  mape_offpeak <- c(
+    sapply(list(q90, q75, q60, q50, q40, q25, q05), get_smry,
+      expr = mean(abs((pf - actual) / actual), na.rm = TRUE),
+      cond = actual > 0 & between(timestamp, offpeak_times[1], offpeak_times[2])
+    ),
+    get_smry(q50,
+      expr = mean(abs((gtfs - actual) / actual), na.rm = TRUE),
+      cond = actual > 0 & between(timestamp, offpeak_times[1], offpeak_times[2])
+    )
+  )
 
-ewait_all <- c(
-  sapply(list(q90, q75, q60, q50, q40, q25, q05), get_smry,
-    expr = mean(actual - pf),
-    cond = actual > 0 & pf < actual
-  ),
-  get_smry(q50, expr = mean(actual - gtfs),
-    cond = actual > 0 & gtfs < actual
+  pcatch_all <- c(
+    sapply(list(q90, q75, q60, q50, q40, q25, q05), get_smry,
+      expr = mean(pf < actual),
+      cond = actual > 0
+    ),
+    get_smry(q50, expr = mean(gtfs < actual), cond = actual > 0)
   )
-)
-ewait_offpeak <- c(
-  sapply(list(q90, q75, q60, q50, q40, q25, q05), get_smry,
-    expr = mean(actual - pf),
-    cond = actual > 0 & pf < actual &
-      between(timestamp, offpeak_times[1], offpeak_times[2])
-  ),
-  get_smry(q50,
-    expr = mean(actual - gtfs),
-    cond = actual > 0 & gtfs < actual &
-      between(timestamp, offpeak_times[1], offpeak_times[2])
+  pcatch_offpeak <- c(
+    sapply(list(q90, q75, q60, q50, q40, q25, q05), get_smry,
+      expr = mean(pf < actual),
+      cond = actual > 0 & between(timestamp, offpeak_times[1], offpeak_times[2])
+    ),
+    get_smry(q50,
+      expr = mean(gtfs < actual),
+      cond = actual > 0 & between(timestamp, offpeak_times[1], offpeak_times[2])
+    )
   )
-)
 
-d <- tibble(
-  m = c("PF90", "PF75", "PF60", "PF50",
-    "PF40", "PF25", "PF05", "GTFS"),
-  rmse = rmse_all,
-  mae = mae_all,
-  mape = 100 * mape_all,
-  pcatch = 100 * pcatch_all,
-  ewait = ewait_all,
-  rmse_offpeak = rmse_offpeak,
-  mae_offpeak = mae_offpeak,
-  mape_offpeak = 100 * mape_offpeak,
-  pcatch_offpeak = 100 * pcatch_offpeak,
-  ewait_offpeak = ewait_offpeak
-)
+  ewait_all <- c(
+    sapply(list(q90, q75, q60, q50, q40, q25, q05), get_smry,
+      expr = mean(actual - pf),
+      cond = actual > 0 & pf < actual
+    ),
+    get_smry(q50, expr = mean(actual - gtfs),
+      cond = actual > 0 & gtfs < actual
+    )
+  )
+  ewait_offpeak <- c(
+    sapply(list(q90, q75, q60, q50, q40, q25, q05), get_smry,
+      expr = mean(actual - pf),
+      cond = actual > 0 & pf < actual &
+        between(timestamp, offpeak_times[1], offpeak_times[2])
+    ),
+    get_smry(q50,
+      expr = mean(actual - gtfs),
+      cond = actual > 0 & gtfs < actual &
+        between(timestamp, offpeak_times[1], offpeak_times[2])
+    )
+  )
+
+  d <- tibble(
+    m = c("PF90", "PF75", "PF60", "PF50",
+      "PF40", "PF25", "PF05", "GTFS"),
+    rmse = rmse_all,
+    mae = mae_all,
+    mape = 100 * mape_all,
+    pcatch = 100 * pcatch_all,
+    ewait = ewait_all,
+    rmse_offpeak = rmse_offpeak,
+    mae_offpeak = mae_offpeak,
+    mape_offpeak = 100 * mape_offpeak,
+    pcatch_offpeak = 100 * pcatch_offpeak,
+    ewait_offpeak = ewait_offpeak
+  )
+  save(d, file = d_file)
+}
 
 pres <- function(d, var, var2, lab) {
   var <- enquo(var)
@@ -199,12 +205,17 @@ pres <- function(d, var, var2, lab) {
     select(m, !!var, !!var2) %>%
     rename("allday" = !!var, "offpeak" = !!var2) %>%
     gather("time", "x", -1)
-  ggplot(d, aes(m, x, fill = time)) +
-    geom_col(position = "dodge") +
-    scale_y_continuous(lab) +
-    scale_fill_discrete("", labels = c("All day", "Off-peak only")) +
-    coord_flip() +
-    scale_x_discrete("")
+
+  ggplot(d %>% filter(time == "offpeak"), aes(x, m)) +
+    #geom_col(position = "dodge") +
+    geom_segment(
+      aes(xend = 0, yend = m)
+    ) +
+    geom_point() +
+    scale_x_continuous(lab) +
+    #scale_fill_discrete("", labels = c("All day", "Off-peak only")) +
+    #coord_flip() +
+    scale_y_discrete("")
 }
 
 p1 <- pres(d, rmse, rmse_offpeak, "RMSE (minutes)")
@@ -220,7 +231,7 @@ p1 + p2 + p3 + p4 + p5 + guide_area() +
 @
 
 
-We calculated, for all stops, trips, and times, a range of arrival times quantiles ($q \in \{0.05, 0.25, 0.5, 0.6, 0.6, 0.75, 0.9\}$), and for each computed the \gls{rmse}, the probability of catching the bus given you arrive at the stated \gls{eta}, $\Pcatch$, and the expected waiting time given you catch the bus, $\Ewait$. The results are displayed in \cref{fig:eta_overall_results}, along with the same values computed used the \gls{gtfs} arrival time estimates. For the particle filter, the lowest \gls{rmse} value is achieved when using the 60\% quantile, which obtains a \Sexpr{round(100*d$pcatch[3])}\% probability of the bus arriving after the \gls{eta} and an expected waiting time of \Sexpr{round(d$ewait[3], 1)}~minutes. The coverage of the quantiles are being overestimated---we would expect the 60\% quantile to have an approximately 40\% success rate---which indicates that the current implementation of the particle filter is underestimating arrival times.
+We calculated, for all stops, trips, and times, a range of arrival times quantiles ($q \in \{0.05, 0.25, 0.5, 0.6, 0.6, 0.75, 0.9\}$), and for each computed the \gls{rmse}, the probability of catching the bus given you arrive at the stated \gls{eta}, $\Pcatch$, and the expected waiting time given you catch the bus, $\Ewait$. The results are displayed in \cref{fig:eta_overall_results}, along with the same values computed used the \gls{gtfs} arrival time estimates. For the particle filter, the lowest \gls{rmse} value is achieved when using the 60\% quantile, which obtains a \Sexpr{round(d$pcatch[3])}\% probability of the bus arriving after the \gls{eta} and an expected waiting time of \Sexpr{round(d$ewait[3], 1)}~minutes. The coverage of the quantiles are being overestimated---we would expect the 60\% quantile to have an approximately 40\% success rate---which indicates that the current implementation of the particle filter is underestimating arrival times.
 
 
 <<eta_headway_results,echo=FALSE,cache=TRUE,dependson="eta_load",fig.width=8,fig.height=5,out.width="\\textwidth",fig.align="center",fig.cap="More ETA stuff">>=

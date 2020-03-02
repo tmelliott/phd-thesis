@@ -1,6 +1,10 @@
 \subsection{Interval estimate}
 \label{sec:etas-interval}
 
+\begin{itemize}
+\item emphasise that ETAs are symmetric on the probability scale, but not (necessarily) on the arrival time scale (due to lower bound)
+\item KF approach gives normal predictions, giving symmetric interval on arrival time scale also (which is probably wrong)
+\end{itemize}
 
 Deciding on a ``best'' single-value estimate of arrival time is exceedingly difficult given the amount of uncertainty involved. An alternative approach would be to provide \emph{two} estimates---a lower and upper bound---that is to say, a \emph{prediction interval}. To do so, we need to consult the following criteria:
 the probability of the bus arriving outside the interval versus the width of the interval; and

@@ -1,10 +1,8 @@
 \section{Real-time performance}
 \label{sec:prediction_performance}
 
-The real-time performance of the our application has always been the main bottleneck, in that it needs to run in real-time and provide arrival time predictions as soon as possible after the data is received. During the simulation run to obtain the results from \cref{sec:prediction_model_comparison}, we also recorded the timings of individual parts of the program, of which overall averages are displayed in \cref{tab:prediction_timing}. In it, we have two timers: wall clock and CPU clock. Wall clock is the real-world time passed, while the CPU clock is the time spent on the processor.  We ran the simulation using four~cores, which affects the vehicle update (V) and \gls{eta} prediction (P) steps, as these are run in parallel. The other steps are not parallelised, so the wall and CPU timings are approximately similar, with the exception of the Load data (L) step, which involves calling the \gls{gtfs} \gls{api} and waiting for the data to download.
+The main constraint on \rt{} applications is time, particularly when the goal is to make predictions that will be out of date when the next vehicle observations are available 30~seconds after the first. We recorded the timings of each component of our application during the simulation described in \cref{sec:prediction_model_comparison}. In \cref{tab:prediction_timing}, we present the mean timing results for each component using both \emph{wall clock} (the time passed as recorded by a clock on the wall), as well as the \emph{CPU clock} (the processing time). The latter represents the overall computational complexity of the problem, but since this is spread out over multiple (in this simulation we used 3) cores (multithreading, discussed in \cref{sec:rt-implementation}) the actual wall clock is up to 33\% faster in the vehicle update, network update, and \gls{eta} prediction steps. In some steps (such as while loading data) the wall clock time is longer than the CPU time: this is because the step involved downloading the data from the server, during which time the processor is mostly inactive while it waits for the file.
 
-
-On average, the program takes less than five~seconds, which is well below our original target of 30~seconds. The most intensive component is updating of vehicle states, which involves updating 10,000 particles for each operating vehicle. This is followed by the \gls{eta} prediction step, which involves far fewer particles (we used 200 per trip), but each particle is required to estimate more per iteration [better wording]. However, the main advantage is that, in the vehicle update step, we perform a full weighted resample of the particles, which involves a full copy of all $\Np$ particles, plus sorting (if applicable). In the \gls{eta} step, we are able to use a single pointer to iterate over sampled particles, which completely avoids any copying.
 
 
 <<prediction_timing,echo=FALSE,message=FALSE,warning=FALSE,cache=TRUE>>=
@@ -16,6 +14,32 @@ suppressPackageStartupMessages({
 options(scipen = 10)
 
 timings <- read_csv("data/timings.csv") %>% filter(iteration > 1)
+bad_iter <- timings %>%
+    filter(
+        (what == "writing ETAs to protobuf feed" & wall > 5000) |
+        (what == "updating vehicle states" & wall > 30000) |
+        (what == "predicting ETAs" & wall > 25000)
+    ) %>%
+    pull(iteration)
+# any bad iterations?
+timings <- timings %>%
+    filter(!iteration %in% bad_iter)
+    # %>%
+    #mutate(
+    #    t_group = as.integer(timestamp) %/% 300 # every 5 minutes
+    #) %>%
+    #group_by(t_group, what) %>%
+    #summarize(
+    #    timestamp = median(timestamp),
+    #    iteration = min(iteration),
+    #    nvehicles = median(nvehicles),
+    #    ntripupdates = median(ntripupdates),
+    #    wall = median(wall),
+    #    cpu = median(cpu)
+    #) %>%
+    #ungroup() %>%
+    #select(-t_group)
+
 tbl_times <- timings %>%
     group_by(what) %>%
     summarize(
@@ -47,6 +71,7 @@ tbl_times <- timings %>%
     )
 
 
+
 tbl_times <- tbl_times[c(1, 4, 5, 3, 2, 6, 7), ]
 tbl_times <- tbl_times %>%
     mutate(
@@ -76,14 +101,13 @@ kable(
 @
 
 
-However, there is a high level of variability in the number of buses operating at any given time (figure X), so in \cref{fig:prediction_timing_time} we have displayed the timings for each individual iteration over the course of the day. We again see the peak hour effect, where there are upwards of 1000~vehicles operating. This pushes the total iteration time to a between 10 and 15~seconds, which is still well within our target of 30~seconds. We could slightly increase the number of particles, although it is worth remembering that the \emph{resampling} step of the particle filter has a computational complexity of $\mathcal{O}(N\log N)$, so for example we cannot double the number of particles and expect to remain under the 30~second target.
-\textcolor{red}{Note to self: re-run simulations overnight, when you're not also using the CPU cores for other tasks, which should remove the oddity between about 9am and 2pm.}
+From the results in \cref{tab:prediction_timing} we see that the average iteration time is about 6~seconds, which is well below our original target of 30~seconds. The CPU time is about 14~seconds, so, on average, we see a 50\% reduction attributed to multithreading on three cores. The most computationally intensive step is the vehicle state update, which involves transitioning, reweighting, and occasionally resampling 5000~particles for each vehicle, which can be in excess of 1000 at peak time. Next is the arrival time prediction step, which also involves estimation with a subset of particles (in this simulation we used 200). The last significant step is writing the \glspl{eta} to file, which additionally (in this case) involved computing the median arrival time for each vehicle and stop combination (\cref{app:particle-summaries}). The remaining steps all had average times of less than 0.1~seconds.
+
 
 
 <<prediction_timing_time,warning=FALSE,echo=FALSE,cache=TRUE,dependson="prediction_timing",fig.width=8,fig.height=5,out.width="\\textwidth",fig.align="center",fig.cap="Number of vehicles and trip updates at different times ofthe day, along with the timing results over time for various stages of the program: (L) Load data, (O) Update vehicles information, (V) Vehicle state update, (N) Network state update, (P) Predict ETAs, (W) Write ETAs to protobuf feed, (T) Total iteration time.">>=
 # totals:
-if (is.null(timings$ntripupdates))
-    timings$ntripupdates <- timings$nvehicles * 1.1
+
 total_time <- timings %>%
     group_by(timestamp) %>%
     summarize(
@@ -115,17 +139,32 @@ total_time <- total_time %>%
     mutate(timestamp = as.POSIXct(timestamp, origin = "1970-01-01"))
 
 p1 <- p0 +
-    geom_path(aes(y = nvehicles, colour = "Vehicle Positions"),
-        data = total_time
+    geom_smooth(aes(y = nvehicles, colour = "Vehicle Positions"),
+        data = total_time,
+        se = FALSE,
+        method = "loess",
+        span = 0.05,
+        n = 1001
     ) +
-    geom_path(aes(y = ntripupdates, colour = "Trip Updates"),
-        data = total_time
+    geom_smooth(aes(y = ntripupdates, colour = "Trip Updates"),
+        data = total_time,
+        se = FALSE,
+        method = "loess",
+        span = 0.05,
+        n = 1001
     ) +
-    scale_y_continuous("Count") +
+    scale_y_continuous("Count",
+        limits = c(0, 1200)
+    ) +
     labs(colour = "")
 
 p2 <- p0 +
-    geom_path(aes(y = wall, colour = Stage, group = Stage)) +
+    geom_smooth(
+        aes(y = wall, colour = Stage, group = Stage),
+        se = FALSE,
+        method = "loess",
+        span = 0.1
+    ) +
     scale_y_continuous(
         "Iteration timing (ms, wall clock)"
     )
@@ -135,3 +174,7 @@ library(patchwork)
 p1 / p2
 
 @
+
+
+
+Since the number of vehicles changes throughout the day, as displayed in the top half of \cref{fig:prediction_timing_time}, we also display the application timings in the bottom half accordingly. We see the two peak periods: morning peak, which includes both school and workers at the same time, and the wider evening peak, since schools finish at about 3~pm while most workers finish about 5~pm. When the number of vehicles exceeds 1100, the total iteration time is around 9~seconds, but remains at around 6~seconds during daytime off-peak. Again, this is the wall clock iteration time, so deployment on a server with more cores would provide further reductions.
