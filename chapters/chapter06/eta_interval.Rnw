@@ -64,47 +64,74 @@ if (file.exists(qfile)) {
 
 <<eta_cis,echo=FALSE,cache=TRUE,dependson="eta_ci_load",fig.width=8,fig.height=2.5,out.width="\\textwidth",fig.align="center",fig.cap="ETA CIs">>=
 # coverage prob
-cov99 <- with(int99, mean(actual >= pf_lower & actual <= pf_upper))
-cov95 <- with(int95, mean(actual >= pf_lower & actual <= pf_upper))
-cov90 <- with(int90, mean(actual >= pf_lower & actual <= pf_upper))
-cov80 <- with(int80, mean(actual >= pf_lower & actual <= pf_upper))
-cov <- c(cov99, cov95, cov90, cov80)
+offpeak_times <- paste(
+  format(as.POSIXct(int99$timestamp[1], origin = "1970-01-01"), "%Y-%m-%d"),
+  c("09:30:00", "14:30:00")
+) %>% as.POSIXct() %>% as.integer()
 
-pbefore99 <- with(int99, mean(actual < pf_lower))
-pbefore95 <- with(int95, mean(actual < pf_lower))
-pbefore90 <- with(int90, mean(actual < pf_lower))
-pbefore80 <- with(int80, mean(actual < pf_lower))
-pbefore <- c(pbefore99, pbefore95, pbefore90, pbefore80)
+smry <- function(data, expr, cond = TRUE) {
+  expr <- enquo(expr)
+  cond <- enquo(cond)
+  data %>% filter(!!cond) %>% summarize(mean = !!expr) %>% pull(mean)
+}
 
-len99 <- with(int99, mean(pf_upper - pf_lower))
-len95 <- with(int95, mean(pf_upper - pf_lower))
-len90 <- with(int90, mean(pf_upper - pf_lower))
-len80 <- with(int80, mean(pf_upper - pf_lower))
-len <- c(len99, len95, len90, len80)
+cov_all <- sapply(list(int99, int95, int90, int80), smry,
+  expr = mean(actual >= pf_lower & actual <= pf_upper)
+)
+cov_offpeak <- sapply(list(int99, int95, int90, int80), smry,
+  expr = mean(actual >= pf_lower & actual <= pf_upper),
+  cond = between(timestamp, offpeak_times[1], offpeak_times[2])
+)
+
+pbefore_all <- sapply(list(int99, int95, int90, int80), smry,
+  expr = mean(actual < pf_lower)
+)
+pbefore_offpeak <- sapply(list(int99, int95, int90, int80), smry,
+  expr = mean(actual < pf_lower),
+  cond = between(timestamp, offpeak_times[1], offpeak_times[2])
+)
+
+len_all <- sapply(list(int99, int95, int90, int80), smry,
+  expr = mean(pf_upper - pf_lower)
+)
+len_offpeak <- sapply(list(int99, int95, int90, int80), smry,
+  expr = mean(pf_upper - pf_lower),
+  cond = between(timestamp, offpeak_times[1], offpeak_times[2])
+)
 
 d <- tibble(
   p = c(99, 95, 90, 80),
   alpha = 1 - (p / 100),
-  cov = cov, pbefore = pbefore, len = len
+  cov = cov_all,
+  pbefore = pbefore_all,
+  len = len_all,
+  cov_offpeak = cov_offpeak,
+  pbefore_offpeak = pbefore_offpeak,
+  len_offpeak = len_offpeak
 )
 
-p1 <- ggplot(d, aes(p, 100*cov)) +
-  geom_path() +
+p1 <- ggplot(d, aes(p, 100 * cov)) +
+  geom_path(aes(colour = "All day")) +
+  geom_path(aes(y = 100 * cov_offpeak, colour = "Off-peak only")) +
   geom_path(aes(y = p), lty = 3) +
   scale_y_continuous("Observed coverage (%)") +
   scale_x_continuous("Theoretical coverage (%)")
-p2 <- ggplot(d, aes(alpha / 2, pbefore)) +
-  geom_path() +
-  geom_path(aes(y = alpha / 2), lty = 3) +
-  scale_y_continuous("Observed P[l]") +
-  scale_x_continuous("Theoretical P[l]")
+p2 <- ggplot(d, aes(100 * alpha / 2, 100 * pbefore)) +
+  geom_path(aes(colour = "All day")) +
+  geom_path(aes(y = 100 * pbefore_offpeak, colour = "Off-peak only")) +
+  geom_path(aes(y = 100 * alpha / 2), lty = 3) +
+  scale_y_continuous("Observed Pr(miss) (%)") +
+  scale_x_continuous("Theoretical Pr(miss) (%)")
 p3 <- ggplot(d, aes(p, len)) +
-  geom_path() +
+  geom_path(aes(colour = "All day")) +
+  geom_path(aes(y = len_offpeak, colour = "Off-peak only")) +
   scale_y_continuous("Average width (minutes)") +
   scale_x_continuous("Theoretical coverage (%)")
 
-p1 + p2 + p3 &
-  theme_classic()
+p1 + p2 + p3 + plot_layout(guides = "collect") &
+  theme_classic() &
+  theme(legend.position = "bottom") &
+  labs(colour = "")
 
 @
 

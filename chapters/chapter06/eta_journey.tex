@@ -74,19 +74,19 @@ Based on the arrival results alone, it would likely make sense to walk to option
 \caption{\label{tab:eta_journey_results}Journey planning.}
 \centering
 \fontsize{8}{10}\selectfont
-\begin{tabular}[t]{lllrrrllll}
+\begin{tabular}[t]{lllrrllll}
 \toprule
-Option & Route & Trip & $P_\text{catch}$ & $E_\text{travel}$ & $P_\text{arrive}$ & GTFS1 & GTFS2 & Caught & Arrived on time\\
+\multicolumn{1}{c}{} & \multicolumn{1}{c}{} & \multicolumn{1}{c}{} & \multicolumn{2}{c}{Particle filter} & \multicolumn{2}{c}{GTFS} & \multicolumn{2}{c}{Outcome} \\
+\cmidrule(l{3pt}r{3pt}){4-5} \cmidrule(l{3pt}r{3pt}){6-7} \cmidrule(l{3pt}r{3pt}){8-9}
+Option & Route & Trip & $P_\text{catch}$ & $P_\text{arrive}$ & Catch & Arrive & Catch & Arrive\\
 \midrule
-A & 25B & 07:48 & 0.00 & 16.7 & 1.00 & N & Y & N & Y\\
-A & 25L & 07:50 & 0.15 & 16.1 & 0.99 & Y & Y & Y & Y\\
-A & 25B & 07:58 & 0.62 & 16.5 & 1.00 & Y & Y & Y & Y\\
-A & 25L & 08:00 & 1.00 & 16.3 & 0.98 & Y & Y & Y & Y\\
-A & 25B & 08:08 & 1.00 & 16.5 & 0.96 & Y & N & Y & N\\
+A & 25L & 13:00 & 0.02 & 0.99 & N & Y & N & Y\\
+ & 25B & 13:05 & 0.05 & 0.99 & N & Y & N & Y\\
+ & 25L & 13:10 & 0.98 & 0.94 & Y & Y & Y & Y\\
+ & 25B & 13:15 & 1.00 & 0.81 & Y & N & Y & Y\\
 \midrule
-B & 27W & 07:45 & 0.00 & 13.6 & 1.00 & N & Y & N & Y\\
-B & 27H & 07:55 & 0.23 & 13.7 & 1.00 & Y & Y & Y & Y\\
-B & 27W & 08:05 & 0.99 & 14.6 & 0.99 & Y & Y & Y & N\\
+B & 27W & 13:05 & 0.00 & 0.99 & N & Y & N & Y\\
+ & 27H & 13:15 & 0.90 & 0.86 & Y & Y & Y & Y\\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -114,14 +114,16 @@ It is worth noting at this point that, as mentioned in the previous chapter, the
 
 \begin{table}
 
-\caption{\label{tab:eta_journey_results_avg}GTFS prediction outcomes for arriving at stop before bus.}
+\caption{\label{tab:eta_journey_results_avg}GTFS prediction results over all journeys, with the displayed values representing the proportion of outcomes in each cell (rows are conditioned by the GTFS prediction of Yes of No. }
 \centering
 \fontsize{8}{10}\selectfont
-\begin{tabular}[t]{lrrrrr}
+\begin{tabular}[t]{llllll}
 \toprule
+\multicolumn{1}{c}{} & \multicolumn{5}{c}{Observed outcome} \\
+\cmidrule(l{3pt}r{3pt}){2-6}
 \multicolumn{1}{c}{ } & \multicolumn{2}{c}{Catch bus} & \multicolumn{1}{c}{} & \multicolumn{2}{c}{Arrive on time} \\
 \cmidrule(l{3pt}r{3pt}){2-3} \cmidrule(l{3pt}r{3pt}){5-6}
-  & No & Yes &  & No & Yes\\
+GTS Prediction & No & Yes &  & No & Yes\\
 \midrule
 No & 0.97 & 0.03 &  & 0.57 & 0.43\\
 Yes & 0.11 & 0.89 &  & 0.01 & 0.99\\
@@ -201,19 +203,19 @@ which we can easily compute given the \glspl{cdf} of the arrival time of each tr
 \fontsize{8}{10}\selectfont
 \begin{tabular}[t]{llrll}
 \toprule
-A & B & $\mathbb{P}_\text{catch} & GTFS & Outcome\\
+Leg 1 & Leg 2 & $\mathbb{P}_\text{transfer} & GTFS & Outcome\\
 \midrule
-A1 & B1 & 0.04 & N & N\\
-A1 & B2 & 0.71 & Y & Y\\
-A1 & B3 & 0.32 & Y & N\\
-A1 & B4 & 1.00 & Y & Y\\
-A1 & B5 & 0.99 & Y & Y\\
+1A & 2A & 0.04 & N & N\\
+ & 2B & 0.71 & Y & Y\\
+ & 2C & 0.32 & Y & N\\
+ & 2D & 1.00 & Y & Y\\
+ & 2E & 0.99 & Y & Y\\
 \midrule
-A2 & B1 & 0.00 & N & N\\
-A2 & B2 & 0.20 & N & N\\
-A2 & B3 & 0.05 & N & N\\
-A2 & B4 & 0.96 & Y & Y\\
-A2 & B5 & 0.93 & Y & Y\\
+1B & 2A & 0.00 & N & N\\
+ & 2B & 0.20 & N & N\\
+ & 2C & 0.05 & N & N\\
+ & 2D & 0.96 & Y & Y\\
+ & 2E & 0.93 & Y & Y\\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -235,36 +237,25 @@ As before, we proceed to repeat the procedure for multiple times (this time betw
 \caption[Results of performing the same transfer journey planning prediction with different starting times (from 6am to 8pm)]{Results of performing the same transfer journey planning prediction with different starting times (from 6am to 8pm). Observations are whether or not the first bus would arrive at the transfer stop before the second bus, jittered to better see each observation. The smoothed curve represents the mean, and indicates that on average our method is good at determining if the bus can be caught or not. Additionally, predictive probabilities of 0 and 1 have been removed since, after checking, none or these were invalid and only served to distort the figure.}\label{fig:eta_journey_transfer_many}
 \end{figure}
 
-\begin{table}
-
-\caption{\label{tab:eta_journey_transfer_many}GTFS prediction outcomes.}
-\centering
-\fontsize{8}{10}\selectfont
-\begin{tabular}[t]{lrr}
-\toprule
-  & No & Yes\\
-\midrule
-No & 0.97 & 0.03\\
-Yes & 0.16 & 0.84\\
-\bottomrule
-\end{tabular}
-\end{table}
-
 
 \end{knitrout}
 
 \begin{knitrout}\small
 \definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{table}
 
-\caption{\label{tab:eta_journey_transfer_many2}PF prediction outcomes using rule: P > 0.5}
+\caption{\label{tab:eta_journey_transfer_many2}Results of running the transfer prediction problem over the course of the day. Rows represent the predicted outcome (No, the transfer will be made, or Yes, it will) and the numbers represent the proportion of predictions with each observed outcome. The GTFS rule is binary, while the particle filter results are based on transfer probability of at least 0.5, 0.8, or 0.95 (as indicated).}
 \centering
 \fontsize{8}{10}\selectfont
-\begin{tabular}[t]{lrr}
+\begin{tabular}[t]{llllllllllll}
 \toprule
-  & No & Yes\\
+\multicolumn{1}{c}{} & \multicolumn{11}{c}{Outcome} \\
+\cmidrule(l{3pt}r{3pt}){2-12}
+\multicolumn{1}{c}{} & \multicolumn{2}{c}{GTFS} & \multicolumn{1}{c}{} & \multicolumn{2}{c}{PF (P > 0.5)} & \multicolumn{1}{c}{} & \multicolumn{2}{c}{PF (P > 0.8)} & \multicolumn{1}{c}{} & \multicolumn{2}{c}{PF (P > 0.95)} \\
+\cmidrule(l{3pt}r{3pt}){2-3} \cmidrule(l{3pt}r{3pt}){5-6} \cmidrule(l{3pt}r{3pt}){8-9} \cmidrule(l{3pt}r{3pt}){11-12}
+Prediction & No & Yes &  & No & Yes &  & No & Yes &  & No & Yes\\
 \midrule
-No & 0.93 & 0.07\\
-Yes & 0.08 & 0.92\\
+No & 0.97 & 0.03 &  & 0.93 & 0.07 &  & 0.84 & 0.16 &  & 0.7 & 0.3\\
+Yes & 0.16 & 0.84 &  & 0.08 & 0.92 &  & 0.03 & 0.97 &  & 0 & 1\\
 \bottomrule
 \end{tabular}
 \end{table}

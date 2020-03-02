@@ -14,14 +14,14 @@ In a perfect world, it would be possible to predict precisely how long it would 
 
 }
 
-\caption[ETA stuff]{ETA stuff}\label{fig:eta_overall_results}
+\caption[Comparison of summary statistics for various quantiles of the predictive distribution, and the currently deployed GTFS method]{Comparison of summary statistics for various quantiles of the predictive distribution, and the currently deployed GTFS method. Results are displayed for all day average, and off-peak (between 9h30 and 14h30).}\label{fig:eta_overall_results}
 \end{figure}
 
 
 \end{knitrout}
 
 
-We calculated, for all stops, trips, and times, a range of arrival times quantiles ($q \in \{0.05, 0.25, 0.5, 0.6, 0.6, 0.75, 0.9\}$), and for each computed the \gls{rmse}, the probability of catching the bus given you arrive at the stated \gls{eta}, $\Pcatch$, and the expected waiting time given you catch the bus, $\Ewait$. The results are displayed in \cref{fig:eta_overall_results}, along with the same values computed used the \gls{gtfs} arrival time estimates. For the particle filter, the lowest \gls{rmse} value is achieved when using the 60\% quantile, which obtains a 66\% probability of the bus arriving after the \gls{eta} and an expected waiting time of 2.7~minutes. The coverage of the quantiles are being overestimated---we would expect the 60\% quantile to have an approximately 40\% success rate---which indicates that the current implementation of the particle filter is underestimating arrival times.
+We calculated, for all stops, trips, and times, a range of arrival times quantiles ($q \in \{0.05, 0.25, 0.5, 0.6, 0.6, 0.75, 0.9\}$), and for each computed the \gls{rmse}, the probability of catching the bus given you arrive at the stated \gls{eta}, $\Pcatch$, and the expected waiting time given you catch the bus, $\Ewait$. The results are displayed in \cref{fig:eta_overall_results}, along with the same values computed used the \gls{gtfs} arrival time estimates. For the particle filter, the lowest \gls{rmse} value is achieved when using the 60\% quantile, which obtains a 6672\% probability of the bus arriving after the \gls{eta} and an expected waiting time of 2.7~minutes. The coverage of the quantiles are being overestimated---we would expect the 60\% quantile to have an approximately 40\% success rate---which indicates that the current implementation of the particle filter is underestimating arrival times.
 
 
 \begin{knitrout}\small

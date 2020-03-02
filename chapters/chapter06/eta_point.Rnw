@@ -71,97 +71,150 @@ if (file.exists(qfile)) {
 }
 @
 
-<<eta_overall_results,echo=FALSE,cache=TRUE,dependson="eta_load",fig.width=8,fig.height=5,out.width="\\textwidth",fig.align="center",fig.cap="ETA stuff">>=
-pf_rmse90 <- with(q90, sqrt(mean((pf - actual)^2)))
-pf_rmse75 <- with(q75, sqrt(mean((pf - actual)^2)))
-pf_rmse60 <- with(q60, sqrt(mean((pf - actual)^2)))
-pf_rmse50 <- with(q50, sqrt(mean((pf - actual)^2)))
-pf_rmse40 <- with(q40, sqrt(mean((pf - actual)^2)))
-pf_rmse25 <- with(q25, sqrt(mean((pf - actual)^2)))
-pf_rmse05 <- with(q05, sqrt(mean((pf - actual)^2)))
-gtfs_rmse <- with(q50, sqrt(mean((gtfs - actual)^2)))
-rmse <- c(pf_rmse90, pf_rmse75, pf_rmse60, pf_rmse50,
-  pf_rmse40, pf_rmse25, pf_rmse05, gtfs_rmse)
+<<eta_overall_results,echo=FALSE,cache=TRUE,dependson="eta_load",fig.width=8,fig.height=5,out.width="\\textwidth",fig.align="center",fig.cap="Comparison of summary statistics for various quantiles of the predictive distribution, and the currently deployed GTFS method. Results are displayed for all day average, and off-peak (between 9h30 and 14h30).">>=
 
-pf_mae90 <- with(q90, mean(abs(pf - actual)))
-pf_mae75 <- with(q75, mean(abs(pf - actual)))
-pf_mae60 <- with(q60, mean(abs(pf - actual)))
-pf_mae50 <- with(q50, mean(abs(pf - actual)))
-pf_mae40 <- with(q40, mean(abs(pf - actual)))
-pf_mae25 <- with(q25, mean(abs(pf - actual)))
-pf_mae05 <- with(q05, mean(abs(pf - actual)))
-gtfs_mae <- with(q50, mean(abs(gtfs - actual)))
-mae <- c(pf_mae90, pf_mae75, pf_mae60, pf_mae50,
-  pf_mae40, pf_mae25, pf_mae05, gtfs_mae)
+get_smry <- function(data, expr, cond = TRUE) {
+  expr <- enquo(expr)
+  cond <- enquo(cond)
 
-pf_mape90 <- with(q90 %>% filter(actual > 0),
-  mean(abs((pf - actual) / actual), na.rm = TRUE))
-pf_mape75 <- with(q75 %>% filter(actual > 0),
-  mean(abs((pf - actual) / actual), na.rm = TRUE))
-pf_mape60 <- with(q60 %>% filter(actual > 0),
-  mean(abs((pf - actual) / actual), na.rm = TRUE))
-pf_mape50 <- with(q50 %>% filter(actual > 0),
-  mean(abs((pf - actual) / actual), na.rm = TRUE))
-pf_mape40 <- with(q40 %>% filter(actual > 0),
-  mean(abs((pf - actual) / actual), na.rm = TRUE))
-pf_mape25 <- with(q25 %>% filter(actual > 0),
-  mean(abs((pf - actual) / actual), na.rm = TRUE))
-pf_mape05 <- with(q05 %>% filter(actual > 0),
-  mean(abs((pf - actual) / actual), na.rm = TRUE))
-gtfs_mape <- with(q50 %>% filter(actual > 0),
-  mean(abs((gtfs - actual) / actual), na.rm = TRUE))
-mape <- c(pf_mape90, pf_mape75, pf_mape60, pf_mape50,
-  pf_mape40, pf_mape25, pf_mape05, gtfs_mape)
+  data %>% filter(!!cond) %>% summarise(x = !!expr) %>% pull(x)
+}
+offpeak_times <- paste(
+  format(as.POSIXct(q90$timestamp[1], origin = "1970-01-01"), "%Y-%m-%d"),
+  c("09:30:00", "14:30:00")
+) %>% as.POSIXct() %>% as.integer()
 
-pf_pcatch90 <- with(q90, mean(pf < actual))
-pf_pcatch75 <- with(q75, mean(pf < actual))
-pf_pcatch60 <- with(q60, mean(pf < actual))
-pf_pcatch50 <- with(q50, mean(pf < actual))
-pf_pcatch40 <- with(q40, mean(pf < actual))
-pf_pcatch25 <- with(q25, mean(pf < actual))
-pf_pcatch05 <- with(q05, mean(pf < actual))
-gtfs_pcatch <- with(q50, mean(gtfs < actual))
-pcatch <- c(pf_pcatch90, pf_pcatch75, pf_pcatch60, pf_pcatch50,
-  pf_pcatch40, pf_pcatch25, pf_pcatch05, gtfs_pcatch)
+rmse_all <- c(
+  sapply(list(q90, q75, q60, q50, q40, q25, q05), get_smry,
+    expr = sqrt(mean((pf - actual)^2)),
+    cond = actual > 0
+  ),
+  get_smry(q50, sqrt(mean((gtfs - actual)^2)), cond = actual > 0)
+)
+rmse_offpeak <- c(
+  sapply(list(q90, q75, q60, q50, q40, q25, q05), get_smry,
+    expr = sqrt(mean((pf - actual)^2)),
+    cond = actual > 0 & between(timestamp, offpeak_times[1], offpeak_times[2])
+  ),
+  get_smry(q50, sqrt(mean((gtfs - actual)^2)),
+    cond = actual > 0 & between(timestamp, offpeak_times[1], offpeak_times[2])
+  )
+)
 
+mae_all <- c(
+  sapply(list(q90, q75, q60, q50, q40, q25, q05), get_smry,
+    expr = mean(abs(pf - actual)),
+    cond = actual > 0
+  ),
+  get_smry(q50, expr = mean(abs(gtfs - actual)), cond = actual > 0)
+)
+mae_offpeak <- c(
+  sapply(list(q90, q75, q60, q50, q40, q25, q05), get_smry,
+    expr = mean(abs(pf - actual)),
+    cond = actual > 0 & between(timestamp, offpeak_times[1], offpeak_times[2])
+  ),
+  get_smry(q50,
+    expr = mean(abs(gtfs - actual)),
+    cond = actual > 0 & between(timestamp, offpeak_times[1], offpeak_times[2])
+  )
+)
 
-pf_ewait90 <- with(q90 %>% filter(pf < actual), mean(actual - pf))
-pf_ewait75 <- with(q75 %>% filter(pf < actual), mean(actual - pf))
-pf_ewait60 <- with(q60 %>% filter(pf < actual), mean(actual - pf))
-pf_ewait50 <- with(q50 %>% filter(pf < actual), mean(actual - pf))
-pf_ewait40 <- with(q40 %>% filter(pf < actual), mean(actual - pf))
-pf_ewait25 <- with(q25 %>% filter(pf < actual), mean(actual - pf))
-pf_ewait05 <- with(q05 %>% filter(pf < actual), mean(actual - pf))
-gtfs_ewait <- with(q50 %>% filter(gtfs < actual), mean(actual - gtfs))
-ewait <- c(pf_ewait90, pf_ewait75, pf_ewait60, pf_ewait50,
-  pf_ewait40, pf_ewait25, pf_ewait05, gtfs_ewait)
+mape_all <- c(
+  sapply(list(q90, q75, q60, q50, q40, q25, q05), get_smry,
+    expr = mean(abs((pf - actual) / actual)),
+    cond = actual > 0
+  ),
+  get_smry(q50, expr = mean(abs((gtfs - actual) / actual)), cond = actual > 0)
+)
+mape_offpeak <- c(
+  sapply(list(q90, q75, q60, q50, q40, q25, q05), get_smry,
+    expr = mean(abs((pf - actual) / actual), na.rm = TRUE),
+    cond = actual > 0 & between(timestamp, offpeak_times[1], offpeak_times[2])
+  ),
+  get_smry(q50,
+    expr = mean(abs((gtfs - actual) / actual), na.rm = TRUE),
+    cond = actual > 0 & between(timestamp, offpeak_times[1], offpeak_times[2])
+  )
+)
+
+pcatch_all <- c(
+  sapply(list(q90, q75, q60, q50, q40, q25, q05), get_smry,
+    expr = mean(pf < actual),
+    cond = actual > 0
+  ),
+  get_smry(q50, expr = mean(gtfs < actual), cond = actual > 0)
+)
+pcatch_offpeak <- c(
+  sapply(list(q90, q75, q60, q50, q40, q25, q05), get_smry,
+    expr = mean(pf < actual),
+    cond = actual > 0 & between(timestamp, offpeak_times[1], offpeak_times[2])
+  ),
+  get_smry(q50,
+    expr = mean(gtfs < actual),
+    cond = actual > 0 & between(timestamp, offpeak_times[1], offpeak_times[2])
+  )
+)
+
+ewait_all <- c(
+  sapply(list(q90, q75, q60, q50, q40, q25, q05), get_smry,
+    expr = mean(actual - pf),
+    cond = actual > 0 & pf < actual
+  ),
+  get_smry(q50, expr = mean(actual - gtfs),
+    cond = actual > 0 & gtfs < actual
+  )
+)
+ewait_offpeak <- c(
+  sapply(list(q90, q75, q60, q50, q40, q25, q05), get_smry,
+    expr = mean(actual - pf),
+    cond = actual > 0 & pf < actual &
+      between(timestamp, offpeak_times[1], offpeak_times[2])
+  ),
+  get_smry(q50,
+    expr = mean(actual - gtfs),
+    cond = actual > 0 & gtfs < actual &
+      between(timestamp, offpeak_times[1], offpeak_times[2])
+  )
+)
 
 d <- tibble(
   m = c("PF90", "PF75", "PF60", "PF50",
     "PF40", "PF25", "PF05", "GTFS"),
-  rmse = rmse, mae = mae, mape = 100 * mape,
-  pcatch = pcatch, ewait = ewait
+  rmse = rmse_all,
+  mae = mae_all,
+  mape = 100 * mape_all,
+  pcatch = 100 * pcatch_all,
+  ewait = ewait_all,
+  rmse_offpeak = rmse_offpeak,
+  mae_offpeak = mae_offpeak,
+  mape_offpeak = 100 * mape_offpeak,
+  pcatch_offpeak = 100 * pcatch_offpeak,
+  ewait_offpeak = ewait_offpeak
 )
 
-p1 <- ggplot(d, aes(rmse, m)) +
-  geom_point() + geom_segment(aes(xend = 0, yend = m)) +
-  scale_x_continuous("RMSE (minutes)")
-p2 <- ggplot(d, aes(mae, m)) +
-  geom_point() + geom_segment(aes(xend = 0, yend = m)) +
-  scale_x_continuous("MAE (minutes)")
-p3 <- ggplot(d, aes(mape, m)) +
-  geom_point() + geom_segment(aes(xend = 0, yend = m)) +
-  scale_x_continuous("MAPE (%)")
-p4 <- ggplot(d, aes(pcatch, m)) +
-  geom_point() + geom_segment(aes(xend = 0, yend = m)) +
-  scale_x_continuous("P(bus arrives after ETA)")
-p5 <- ggplot(d, aes(ewait, m)) +
-  geom_point() + geom_segment(aes(xend = 0, yend = m)) +
-  scale_x_continuous("Expected wait time (minutes)")
+pres <- function(d, var, var2, lab) {
+  var <- enquo(var)
+  var2 <- enquo(var2)
+  d <- d %>%
+    select(m, !!var, !!var2) %>%
+    rename("allday" = !!var, "offpeak" = !!var2) %>%
+    gather("time", "x", -1)
+  ggplot(d, aes(m, x, fill = time)) +
+    geom_col(position = "dodge") +
+    scale_y_continuous(lab) +
+    scale_fill_discrete("", labels = c("All day", "Off-peak only")) +
+    coord_flip() +
+    scale_x_discrete("")
+}
 
-p1 + p2 + p3 + p4 + p5 +
-  plot_layout(nrow = 2) &
-  scale_y_discrete("Predictor") &
+p1 <- pres(d, rmse, rmse_offpeak, "RMSE (minutes)")
+p2 <- pres(d, mae, mae_offpeak, "MAE (minutes)")
+p3 <- pres(d, mape, mape_offpeak, "MAPE (%)")
+p4 <- pres(d, pcatch, pcatch_offpeak, "P(bus arrives after ETA) (%)")
+p5 <- pres(d, ewait, ewait_offpeak, "Expected wait time (minutes)")
+
+p1 + p2 + p3 + p4 + p5 + guide_area() +
+  plot_layout(nrow = 2, guides = "collect") &
   theme_classic()
 
 @

@@ -80,13 +80,23 @@ However, there is a high level of variability in the number of buses operating a
 \textcolor{red}{Note to self: re-run simulations overnight, when you're not also using the CPU cores for other tasks, which should remove the oddity between about 9am and 2pm.}
 
 
-<<prediction_timing_time,warning=FALSE,echo=FALSE,cache=TRUE,dependson="prediction_timing",fig.width=8*.8,fig.height=3,out.width=".8\\textwidth",fig.align="center",fig.cap="Timing results over time for various stages of the program: (L) Load data, (O) Update vehicles information, (V) Vehicle state update, (N) Network state update, (P) Predict ETAs, (W) Write ETAs to protobuf feed, (T) Total iteration time.">>=
+<<prediction_timing_time,warning=FALSE,echo=FALSE,cache=TRUE,dependson="prediction_timing",fig.width=8,fig.height=5,out.width="\\textwidth",fig.align="center",fig.cap="Number of vehicles and trip updates at different times ofthe day, along with the timing results over time for various stages of the program: (L) Load data, (O) Update vehicles information, (V) Vehicle state update, (N) Network state update, (P) Predict ETAs, (W) Write ETAs to protobuf feed, (T) Total iteration time.">>=
 # totals:
+if (is.null(timings$ntripupdates))
+    timings$ntripupdates <- timings$nvehicles * 1.1
 total_time <- timings %>%
     group_by(timestamp) %>%
-    summarize(wall = sum(wall), cpu = sum(cpu), what = "total")
-timings %>%
+    summarize(
+        wall = sum(wall),
+        cpu = sum(cpu),
+        what = "total",
+        nvehicles = first(nvehicles),
+        ntripupdates = first(ntripupdates)
+    )
+
+p0 <- timings %>%
     bind_rows(total_time) %>%
+    arrange(timestamp) %>%
     mutate(
         timestamp = as.POSIXct(timestamp, origin = "1970-01-01"),
         Stage = factor(what,
@@ -94,12 +104,34 @@ timings %>%
             labels = c("L", "U", "V", "N", "P", "W", "T")
         )
     ) %>%
-    arrange(timestamp) %>%
     ggplot(aes(timestamp)) +
-        geom_path(aes(y = wall, colour = Stage, group = Stage)) +
         theme_classic() +
-        xlab("Time") +
-        scale_y_continuous(
-            "Iteration timing (milliseconds, wall clock)"
+        scale_x_datetime(
+            "Time",
+            labels = function(x) format(x, "%l%P")
         )
+
+total_time <- total_time %>%
+    mutate(timestamp = as.POSIXct(timestamp, origin = "1970-01-01"))
+
+p1 <- p0 +
+    geom_path(aes(y = nvehicles, colour = "Vehicle Positions"),
+        data = total_time
+    ) +
+    geom_path(aes(y = ntripupdates, colour = "Trip Updates"),
+        data = total_time
+    ) +
+    scale_y_continuous("Count") +
+    labs(colour = "")
+
+p2 <- p0 +
+    geom_path(aes(y = wall, colour = Stage, group = Stage)) +
+    scale_y_continuous(
+        "Iteration timing (ms, wall clock)"
+    )
+
+library(patchwork)
+
+p1 / p2
+
 @

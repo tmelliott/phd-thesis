@@ -33,7 +33,7 @@ routeB <- c("27H", "27W")
 
 stops <- tibble(
   which = c("Start", "End", "Start", "End"),
-  option = c("A", "A", "B", "B"),
+  option = paste("Option", c("A", "A", "B", "B")),
   id = c("8417", "7089", "8517", "7147"),
   walk = c(9, 2, 11, 3)
 )
@@ -56,7 +56,7 @@ route_info <- con %>% tbl("routes") %>%
   ) %>%
   collect() %>%
   mutate(
-    option = ifelse(route_short_name %in% routeA, "A", "B")
+    option = paste("Option", ifelse(route_short_name %in% routeA, "A", "B"))
   )
 trip_info <- con %>% tbl("trips") %>%
   filter(route_id %in% !!route_info$route_id) %>%
@@ -111,7 +111,7 @@ ggmap(map) +
   ) +
   geom_path(
     aes(shape_pt_lon, shape_pt_lat, group = option, colour = option),
-    data = shapes %>% filter(option == "A"),
+    data = shapes %>% filter(option == "Option A"),
     lwd = 2,
     lty = 2
   ) +
@@ -135,7 +135,7 @@ ggmap(map) +
     stroke = 2
   ) +
   theme_void() +
-  labs(colour = "Route option")
+  labs(colour = "")
 
 @
 
@@ -177,8 +177,8 @@ trip_results <- lapply(seq_len(nrow(route_info)),
   left_join(trip_info, by = "trip_id")
 dbDisconnect(con)
 
-TSTART <- as.POSIXct("2019-08-29 8:10:00")
-TEND <- as.POSIXct("2019-08-29 9:00:00")
+TSTART <- as.POSIXct("2019-08-29 13:20:00")
+TEND <- as.POSIXct("2019-08-29 14:00:00")
 # commuter ready to leave at 7am
 trip_results_after_7 <- trip_results %>%
   group_by(trip_start_time) %>%
@@ -449,15 +449,17 @@ trip_eta_results_comb <- bind_rows(trip_eta_results, trip_eta_results2) %>%
       gtfs_arrive = gtfs_end <= TEND - 60 * walk_from,
       gtfs_start = format(gtfs_start, "%H:%M"),
       gtfs_end = format(gtfs_end, "%H:%M"),
+      actual_tt = as.integer(actual_end) - as.integer(actual_start),
       actual_start = format(actual_start, "%H:%M"),
-      actual_end = format(actual_end, "%H:%M"),
+      actual_end = format(actual_end, "%H:%M")
     )
 
 
 tab <- trip_eta_results_comb %>%
-  select(option, route_short_name, trip_start_time, p_catch, journey_length,
-    p_arrive, gtfs_catch, gtfs_arrive, did_catch, did_arrive) %>%
+  select(option, route_short_name, trip_start_time, p_catch, p_arrive,
+    gtfs_catch, gtfs_arrive, did_catch, did_arrive) %>%
   mutate(
+    option = gsub("Option ", "", option),
     gtfs_catch = ifelse(gtfs_catch, "Y", "N"),
     gtfs_arrive = ifelse(gtfs_arrive, "Y", "N"),
     did_catch = ifelse(did_catch, "Y", "N"),
@@ -468,16 +470,20 @@ tab <- trip_eta_results_comb %>%
     "Route" = route_short_name,
     "Trip" = trip_start_time,
     "$P_\\text{catch}$" = p_catch,
-    "$E_\\text{travel}$" = journey_length,
     "$P_\\text{arrive}$" = p_arrive,
-    "GTFS1" = gtfs_catch,
-    "GTFS2" = gtfs_arrive,
-    "Caught" = did_catch,
-    "Arrived on time" = did_arrive
+    "Catch" = gtfs_catch,
+    "Arrive" = gtfs_arrive,
+    "Catch" = did_catch,
+    "Arrive" = did_arrive
   )
 
 options(knitr.kable.NA = "")
 lineAfter <- max(which(tab$Option == "A"))
+
+tab$Option <- ifelse(
+  seq_len(nrow(tab)) %in% tapply(seq_len(nrow(tab)), tab$Option, min),
+  tab$Option, ""
+)
 knitr::kable(
     tab,
     format = "latex",
@@ -487,7 +493,11 @@ knitr::kable(
     linesep = ""
 ) %>%
   kableExtra::row_spec(lineAfter, extra_latex_after = "\\midrule") %>%
-  kableExtra::kable_styling(font_size = 8)
+  kableExtra::kable_styling(font_size = 8) %>%
+  kableExtra::add_header_above(
+    c("", "", "", "Particle filter" = 2,
+    "GTFS" = 2, "Outcome" = 2)
+  )
 @
 
 
@@ -704,15 +714,19 @@ gtfs_arrive_pc <-
 
 options(knitr.kable.NA = "")
 knitr::kable(
-  cbind(gtfs_catch_pc, NA, gtfs_arrive_pc),
+  cbind("GTS Prediction" = c("No", "Yes"), gtfs_catch_pc, NA, gtfs_arrive_pc),
+  row.names = FALSE,
   format = "latex",
   booktabs = TRUE,
-  caption = "GTFS prediction outcomes for arriving at stop before bus.",
+  caption = "GTFS prediction results over all journeys, with the displayed values representing the proportion of outcomes in each cell (rows are conditioned by the GTFS prediction of Yes of No. ",
   escape = FALSE,
   linesep = ""
 ) %>%
   kableExtra::add_header_above(
     c(" ", "Catch bus" = 2, "", "Arrive on time" = 2)
+  ) %>%
+  kableExtra::add_header_above(
+    c("", "Observed outcome" = 5)
   ) %>%
   kableExtra::kable_styling(font_size = 8)
 
@@ -783,7 +797,7 @@ route_info <- con %>% tbl("routes") %>%
   ) %>%
   collect() %>%
   mutate(
-    transfer = ifelse(route_short_name %in% c("27H", "27W"), "A", "B")
+    transfer = as.factor(ifelse(route_short_name %in% c("27H", "27W"), 1, 2))
   )
 trip_info <- con %>% tbl("trips") %>%
   filter(route_id %in% !!route_info$route_id) %>%
@@ -871,7 +885,7 @@ ggmap(map) +
   ) +
   theme_void() +
   theme(legend.position = "bottom") +
-  labs(colour = "Route group")
+  labs(colour = "Leg")
 
 @
 
@@ -919,12 +933,12 @@ all_stop_arrivals <- trip_etas %>%
 
 # now filter out irrelevant trips...
 trips_at_start <- all_stop_arrivals %>%
-  filter(which == "Start" & transfer == "A") %>%
+  filter(which == "Start" & transfer == 1) %>%
   pull(trip_id) %>% unique
 trips_at_transfer <- all_stop_arrivals %>%
   filter(
     which == "Transfer" &
-    transfer == "B"
+    transfer == 2
   ) %>%
   pull(trip_id) %>% unique
 
@@ -935,7 +949,7 @@ stop_arrivals <- all_stop_arrivals %>%
     .x %>% mutate(
       trip_start_time = paste0(
         .y$transfer,
-        as.integer(as.factor(trip_start_time))
+        LETTERS[as.integer(as.factor(trip_start_time))]
       )
     )
   }) %>%
@@ -958,7 +972,8 @@ ggplot(stop_arrivals, aes(timestamp + eta * 60, quantile)) +
   theme_classic() +
   theme(strip.background = element_blank()) +
   scale_x_datetime("Time") +
-  scale_y_continuous("P(A < a)", limits = c(-0.05, 1))
+  scale_y_continuous("P(A < a)", limits = c(-0.05, 1)) +
+  labs(colour = "Leg")
 
 @
 
@@ -987,11 +1002,11 @@ which we can easily compute given the \glspl{cdf} of the arrival time of each tr
 
 ## calculate probability bus A arrives BEFORE bus B at transfer:
 transfer_arrivals <- stop_arrivals %>%
-  filter(which == "Transfer" & transfer == "A") %>%
+  filter(which == "Transfer" & transfer == 1) %>%
   select(trip_id, trip_start_time, timestamp, eta, quantile,
     gtfs_eta, actual_arrival)
 transfer_departures <- stop_arrivals %>%
-  filter(which == "Transfer" & transfer == "B") %>%
+  filter(which == "Transfer" & transfer == 2) %>%
   select(trip_id, trip_start_time, timestamp, eta, quantile,
     gtfs_eta, actual_arrival)
 
@@ -1032,25 +1047,31 @@ f <- Vectorize(
 )
 
 tab <- tibble(
-  A = rep(
+  L1 = rep(
     sort(unique(transfer_arrivals$trip_start_time)),
     each = length(unique(transfer_departures$trip_start_time))
   ),
-  B = rep(
+  L2 = rep(
     sort(unique(transfer_departures$trip_start_time)),
     length(unique(transfer_arrivals$trip_start_time))
   ),
-  p_catch = round(f(A, B, 1, transfer_arrivals, transfer_departures), 2),
-  gtfs_eta = f(A, B, 2, transfer_arrivals, transfer_departures),
-  did_catch = f(A, B, 3, transfer_arrivals, transfer_departures)
+  p_catch = round(f(L1, L2, 1, transfer_arrivals, transfer_departures), 2),
+  gtfs_eta = f(L1, L2, 2, transfer_arrivals, transfer_departures),
+  did_catch = f(L1, L2, 3, transfer_arrivals, transfer_departures)
 ) %>%
   rename(
-    "$\\mathbb{P}_\\text{catch}" = p_catch,
+    "$\\mathbb{P}_\\text{transfer}" = p_catch,
     "GTFS" = gtfs_eta,
-    "Outcome" = did_catch
+    "Outcome" = did_catch,
+    "Leg 1" = L1,
+    "Leg 2" = L2
   )
 
 nn <- length(unique(transfer_departures$trip_start_time))
+tab[["Leg 1"]] <- ifelse(
+  seq_len(nrow(tab)) %in% tapply(seq_len(nrow(tab)), tab[["Leg 1"]], min),
+  tab[["Leg 1"]], ""
+)
 knitr::kable(tab,
   format = "latex",
   booktabs = TRUE,
@@ -1198,7 +1219,8 @@ mdata %>%
     scale_y_continuous("Observed transfer outcome",
       breaks = 0:1,
       labels = c("No", "Yes")
-    )
+    ) +
+    labs(colour = "GTFS prediction")
 
 gtfs_tab <- table(
   gtfs = ifelse(mdata$gtfs_eta == "Y", "Yes", "No"),
@@ -1206,14 +1228,17 @@ gtfs_tab <- table(
 )
 gtfs_pc <- round(sweep(gtfs_tab, 1, rowSums(gtfs_tab), "/"), 2)
 
-knitr::kable(gtfs_pc,
-  format = "latex",
-  booktabs = TRUE,
-  caption = "GTFS prediction outcomes.",
-  escape = FALSE,
-  linesep = ""
-) %>%
-  kableExtra::kable_styling(font_size = 8)
+if (FALSE)
+  knitr::kable(
+    cbind("Prediction" = c("No", "Yes"), gtfs_pc),
+    format = "latex",
+    row.names = FALSE,
+    booktabs = TRUE,
+    caption = "GTFS prediction outcomes.",
+    escape = FALSE,
+    linesep = ""
+  ) %>%
+    kableExtra::kable_styling(font_size = 8)
 
 
 @
@@ -1225,14 +1250,37 @@ pf_tab <- table(
   outcome = ifelse(mdata$did_catch == "Y", "Yes", "No")
 )
 pf_pc <- round(sweep(pf_tab, 1, rowSums(pf_tab), "/"), 2)
-knitr::kable(pf_pc,
+
+pf_tab <- table(
+  pred = ifelse(mdata$p_catch > 0.8, "Yes", "No"),
+  outcome = ifelse(mdata$did_catch == "Y", "Yes", "No")
+)
+pf_pc2 <- round(sweep(pf_tab, 1, rowSums(pf_tab), "/"), 2)
+
+pf_tab <- table(
+  pred = ifelse(mdata$p_catch > 0.95, "Yes", "No"),
+  outcome = ifelse(mdata$did_catch == "Y", "Yes", "No")
+)
+pf_pc3 <- round(sweep(pf_tab, 1, rowSums(pf_tab), "/"), 2)
+
+
+options(knitr.kable.NA = "")
+knitr::kable(
+  cbind("Prediction" = c("No", "Yes"),
+    gtfs_pc, NA, pf_pc, NA, pf_pc2, NA, pf_pc3),
+  row.names = FALSE,
   format = "latex",
   booktabs = TRUE,
-  caption = "PF prediction outcomes using rule: P > 0.5",
+  caption = "Results of running the transfer prediction problem over the course of the day. Rows represent the predicted outcome (No, the transfer will be made, or Yes, it will) and the numbers represent the proportion of predictions with each observed outcome. The GTFS rule is binary, while the particle filter results are based on transfer probability of at least 0.5, 0.8, or 0.95 (as indicated).",
   escape = FALSE,
   linesep = ""
 ) %>%
-  kableExtra::kable_styling(font_size = 8)
+  kableExtra::kable_styling(font_size = 8) %>%
+  kableExtra::add_header_above(
+    c("", "GTFS" = 2, "", "PF (P > 0.5)" = 2, "", "PF (P > 0.8)" = 2,
+      "", "PF (P > 0.95)" = 2)
+  ) %>%
+  kableExtra::add_header_above(c("", "Outcome" = 11))
 
 
 
