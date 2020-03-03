@@ -305,17 +305,16 @@ q_cost <- function(q) {
 
 if (file.exists("data/eta_q_cost.rda")) {
   load("data/eta_q_cost.rda")
+} else {
+  if (!exists("c05")) c05 <- q_cost(q05)
+  if (!exists("c25")) c25 <- q_cost(q25)
+  if (!exists("c40")) c40 <- q_cost(q40)
+  if (!exists("c50")) c50 <- q_cost(q50)
+  if (!exists("c60")) c60 <- q_cost(q60)
+  if (!exists("c75")) c75 <- q_cost(q75)
+  if (!exists("c90")) c90 <- q_cost(q90)
+  save(c25, c40, c50, c60, c75, c90, file = "data/eta_q_cost.rda")
 }
-
-if (!requireNamespace("transitr", silent=T)) c05 <- c25
-if (!exists("c05")) c05 <- q_cost(q05)
-if (!exists("c25")) c25 <- q_cost(q25)
-if (!exists("c40")) c40 <- q_cost(q40)
-if (!exists("c50")) c50 <- q_cost(q50)
-if (!exists("c60")) c60 <- q_cost(q60)
-if (!exists("c75")) c75 <- q_cost(q75)
-if (!exists("c90")) c90 <- q_cost(q90)
-save(c25, c40, c50, c60, c75, c90, file = "data/eta_q_cost.rda")
 
 p1 <- ggplot(NULL, aes(headway_min, p_catch)) +
   scale_y_continuous("P(catch)")

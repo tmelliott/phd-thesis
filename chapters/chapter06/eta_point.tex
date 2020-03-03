@@ -28,16 +28,7 @@ We calculated, for all stops, trips, and times, a range of arrival times quantil
 \definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
 
 
-{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error: no such table: stop\_times}}\end{kframe}\begin{figure}
-
-{\centering \includegraphics[width=\textwidth]{figure/eta_headway_results-1} 
-
-}
-
-\caption[More ETA stuff]{More ETA stuff}\label{fig:eta_headway_results}
-\end{figure}
-
-
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in eval(lhs, parent, parent): object 'c05' not found}}\end{kframe}
 \end{knitrout}
 
 An important consideration is the cost of missing the bus. For each trip, we computed the scheduled time between the current trip and the subsequent one (which is termed \emph{headway}) to compute the expected waiting time if the bus arrives \emph{before} the predicted time. That is, if a bus is predicted to arrive in 5~minutes, but actually arrives in 3, and the time until the next bus (servicing the same trip) is 10~minutes, then the expected waiting time will be $10-5=5$~minutes (assuming the passenger arrives in 5~minutes). This \emph{headway} is an essential component to prediction cost.
