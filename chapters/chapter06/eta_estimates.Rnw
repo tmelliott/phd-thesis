@@ -1,14 +1,14 @@
 \section{Estimates of arrival time}
 \label{sec:eta_estimates}
 
-As previously discussed, there is considerable uncertainty in the posterior predictive distribution of arrival time. This uncertainty makes point estimates challenging to provide since there is a strong negative correlation between \emph{accuracy}---how far the estimates are from the actual value---and \emph{reliability}---how \emph{useful} the estimate is. Take for example the median, which has, on average, the highest accuracy, but 50\% of the time the bus arrives earlier than the estimate, which could lead to a passenger missing their bus. To overcome this, we also explore using \emph{prediction intervals} to balance accuracy and reliability.
+As previously discussed, there is considerable uncertainty in the posterior predictive distribution of arrival time. This uncertainty makes point estimates challenging to provide since there is a strong negative correlation between \emph{accuracy}---how far the estimates are from the actual value---and \emph{reliability}---how \emph{useful} the estimate is. Take, for example, the median, which has, on average, the greatest accuracy, but 50\% of the time the bus arrives earlier than it predicts, which could result in a passenger missing their bus were they to arrive at the predicted time. An alternative to point estimates that allows conveyance of uncertainty is \emph{prediction intervals}.
 
-The method for obtaining estimates from the \glspl{cdf} from \cref{sec:etas_cdfs} uses quantiles, such that the $q$-quantile, $q\in(0,1)$, is found by
+The method for obtaining estimates from the \glspl{cdf} from \cref{eq:pf_pdf_arrivaltime} uses quantiles, such that the $q$-quantile, $q\in(0,1)$, is found by
 \begin{equation}
 \label{eq:eta_calc_quantile}
-\max\{a : \Pr{A < a} \geq q\}
+\hat\Teta_q = \max_a\{\Pr{A < a} \geq q\}
 \end{equation}
-\Cref{fig:eta_calc_quantile} shows a single \gls{cdf} with a horizontal line at $q$, and the largest ETA with its quantile below this line is the desired value; in this case, $\hat A_{0.5} = 11$.
+\Cref{fig:eta_calc_quantile} shows a single \gls{cdf} with a horizontal line at $q = 0.5$, where the solution to \cref{eq:eta_calc_quantile} is the maximum values below this line (the red points) which is, in this case, $\hat\Teta_{0.5} = 11$.
 
 
 <<eta_calc_quantile,echo=FALSE,fig.width=8*.6,fig.height=2.5,out.width=".6\\textwidth",fig.cap="Quantile estimation from a CDF. ETA values with quantiles below the desired threshold are coloured red; the maximum of these is the quantile value.",fig.align="center">>=
@@ -26,13 +26,7 @@ ggplot(d, aes(t, q)) +
   theme_classic() +
   scale_x_continuous("Arrival time, a (minutes)") +
   scale_y_continuous("CDF") +
-  geom_hline(yintercept = 0.5, lty = 2) +
-  geom_segment(
-    aes(x = t, xend = t, y = 0, yend = q),
-    data = d[max(which(d$q < 0.5)), ],
-    lty = 2
-  )
-
+  geom_hline(yintercept = 0.5, lty = 2)
 
 @
 

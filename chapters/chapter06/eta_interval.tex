@@ -1,20 +1,30 @@
 \subsection{Interval estimate}
 \label{sec:etas-interval}
 
-\begin{itemize}
-\item emphasise that ETAs are symmetric on the probability scale, but not (necessarily) on the arrival time scale (due to lower bound)
-\item KF approach gives normal predictions, giving symmetric interval on arrival time scale also (which is probably wrong)
-\end{itemize}
 
-Deciding on a ``best'' single-value estimate of arrival time is exceedingly difficult given the amount of uncertainty involved. An alternative approach would be to provide \emph{two} estimates---a lower and upper bound---that is to say, a \emph{prediction interval}. To do so, we need to consult the following criteria:
-the probability of the bus arriving outside the interval versus the width of the interval; and
-the probability of the bus arriving before the lower bound versus the expected waiting time (given arrival at the lower bound).
-The first point corresponds to how useful---from a commuter's point of view---the prediction is: a narrow interval is favourable, but we must balance that with covering a reasonable range of plausible values. The second point again relates to \emph{cost}, which we can most easily express as expected waiting time; there are, of course, other costs (such as being late for work), which we examine more closely in \cref{sec:etas-journey-planning}.
+Deciding on a ``best'' single-value estimate of arrival time is exceedingly difficult given the amount of uncertainty involved. The best approach above is to use a small quantile, but this then results in a large expected wait time given catching the bus (top-right of \cref{fig:eta_headway_results}). An alternative approach is to provide \emph{two} estimates---a lower and upper bound---that is to say, a \emph{prediction interval}. Such an interval should be both \emph{reliable} and \emph{useful} for commuters. Reliability means that, if one arrives by the \emph{lower estimate}, there is only a small probability of missing the bus. Additionally, the bus should also have a low chance of arriving after the \emph{upper estimate}, for example when using the prediction to decide which bus to catch to get to a destination on time (more of this in \cref{sec:etas-journey-planning}). Usefulness corresponds to the width and expected wait time: these should both be minimised where possible, so for example if a bus is 5~minutes away, providing a 30~minute interval should only be done if there is very good reason to do so. If the stop before is a layover, the time range could very well be that large since, as we discussed in \cref{cha:prediction}, drivers do not always wait, so there is a trade-off between reliability and usefulness.
 
 
 
 
 
+
+
+In this section, we consider symmetric prediction intervals of the form $(\Teta_{\alpha/2}, \Teta_{1-\alpha/2})$ where $\alpha \in (0,1)$ gives a $100(1-\alpha)$\% interval. It should be noted that although these intervals are symmetric in probability, they are most often asymmetric on the arrival time scale since, particularly when the bus is near and the distribution is right-skewed, as shown in \cref{fig:eta_dist_skew}. In contrast, a \Kf{} implementation assumes Gaussian errors, so the interval would be symmetric around the mean, which will often lead to incorrect intervals (potentially even an \gls{eta} below zero).
+
+
+\begin{knitrout}\small
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{figure}
+
+{\centering \includegraphics[width=\textwidth]{figure/eta_dist_skew-1} 
+
+}
+
+\caption[Symmetry of arrival time intervals]{Symmetry of arrival time intervals. Symmetric intervals on the probabilty scale map to asymmetric under the particle filter (left), and symmetric intervals under the Kalman filter (right).}\label{fig:eta_dist_skew}
+\end{figure}
+
+
+\end{knitrout}
 
 
 \begin{knitrout}\small
@@ -31,6 +41,9 @@ The first point corresponds to how useful---from a commuter's point of view---th
 \end{knitrout}
 
 
-The most straightforward intervals to compute are \emph{symmetric}\footnote{They are not perfectly symmetric, however, due to integer rounding}. That is, for a \mbox{$100(1-\alpha)$\%} interval we use $A_{\alpha/2}$ and $A_{1-\alpha/2} + 1$ (the plus one on the upper bound is so the upper bound is effectively rounded up). We computed intervals for $\alpha \in \{0.1, 0.05, 0.1, 0.2\}$, and for each evaluated the observed coverage, the probability that the bus arrived before the lower bound, and the average width (in minutes). The graphs in \cref{fig:eta_cis} show that for smaller values of $\alpha$ (larger coverage) the coverage probability and average width increase, which is to be expected. Similarly, the probability that the bus arrives before the lower bound (resulting in missing the bus) increases with $\alpha$.
 
-An alternative to using symmetric intervals is to use asymmetric ones: in this scenario, the lower and upper bounds could be estimated using different criteria. For example, the lower bound might be chosen to minimise the chance of missing the bus, while the upper bound is chosen to balance excessive width while still covering as greater plausible range as possible. Again, we might also wish to vary the criteria depending on the proximity of the bus, the stop sequence, or headway. \textcolor{red}{[to do, I suppose]}
+
+We computed intervals for $\alpha \in \{0.1, 0.05, 0.1, 0.2\}$, and for each evaluated the observed coverage, the proportion of times that the bus arrived before the lower bound, and the average interval width (in minutes). \Cref{fig:eta_cis} shows that the observed coverage drops slightly as the interval width increases (smaller $\alpha$), and that the probability of the bus arriving before the lower bound is higher than expected, which could indicate that not enough uncertainty is being incorporated. Interval width increases rapidly with interval width, demonstrating the trade-off between reliability and usefulness.
+
+
+We do not consider other variables---time until arrival, time of day, or stop sequence---as we did in the previous chapter, as the results will be much the same. However, if desired, such relationships could be explored in order to choose the best point or interval estimate under each situation.
