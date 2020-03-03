@@ -20,6 +20,7 @@ suppressPackageStartupMessages({
   library(patchwork)
 })
 
+
 qfile <- "data/eta_ints_symmetric.rda"
 if (file.exists(qfile)) {
   load(qfile)
@@ -73,46 +74,52 @@ offpeak_times <- paste(
   c("09:30:00", "14:30:00")
 ) %>% as.POSIXct() %>% as.integer()
 
-smry <- function(data, expr, cond = TRUE) {
-  expr <- enquo(expr)
-  cond <- enquo(cond)
-  data %>% filter(!!cond) %>% summarize(mean = !!expr) %>% pull(mean)
+d_file <- "data/d_cis.rda"
+if (file.exists(d_file)) {
+  load(d_file)
+} else {
+  smry <- function(data, expr, cond = TRUE) {
+    expr <- enquo(expr)
+    cond <- enquo(cond)
+    data %>% filter(!!cond) %>% summarize(mean = !!expr) %>% pull(mean)
+  }
+
+  cov_all <- sapply(list(int99, int95, int90, int80), smry,
+    expr = mean(actual >= pf_lower & actual <= pf_upper)
+  )
+  cov_offpeak <- sapply(list(int99, int95, int90, int80), smry,
+    expr = mean(actual >= pf_lower & actual <= pf_upper),
+    cond = between(timestamp, offpeak_times[1], offpeak_times[2])
+  )
+
+  pbefore_all <- sapply(list(int99, int95, int90, int80), smry,
+    expr = mean(actual < pf_lower)
+  )
+  pbefore_offpeak <- sapply(list(int99, int95, int90, int80), smry,
+    expr = mean(actual < pf_lower),
+    cond = between(timestamp, offpeak_times[1], offpeak_times[2])
+  )
+
+  len_all <- sapply(list(int99, int95, int90, int80), smry,
+    expr = mean(pf_upper - pf_lower)
+  )
+  len_offpeak <- sapply(list(int99, int95, int90, int80), smry,
+    expr = mean(pf_upper - pf_lower),
+    cond = between(timestamp, offpeak_times[1], offpeak_times[2])
+  )
+
+  d <- tibble(
+    p = c(99, 95, 90, 80),
+    alpha = 1 - (p / 100),
+    cov = cov_all,
+    pbefore = pbefore_all,
+    len = len_all,
+    cov_offpeak = cov_offpeak,
+    pbefore_offpeak = pbefore_offpeak,
+    len_offpeak = len_offpeak
+  )
+  save(d, file = d_file)
 }
-
-cov_all <- sapply(list(int99, int95, int90, int80), smry,
-  expr = mean(actual >= pf_lower & actual <= pf_upper)
-)
-cov_offpeak <- sapply(list(int99, int95, int90, int80), smry,
-  expr = mean(actual >= pf_lower & actual <= pf_upper),
-  cond = between(timestamp, offpeak_times[1], offpeak_times[2])
-)
-
-pbefore_all <- sapply(list(int99, int95, int90, int80), smry,
-  expr = mean(actual < pf_lower)
-)
-pbefore_offpeak <- sapply(list(int99, int95, int90, int80), smry,
-  expr = mean(actual < pf_lower),
-  cond = between(timestamp, offpeak_times[1], offpeak_times[2])
-)
-
-len_all <- sapply(list(int99, int95, int90, int80), smry,
-  expr = mean(pf_upper - pf_lower)
-)
-len_offpeak <- sapply(list(int99, int95, int90, int80), smry,
-  expr = mean(pf_upper - pf_lower),
-  cond = between(timestamp, offpeak_times[1], offpeak_times[2])
-)
-
-d <- tibble(
-  p = c(99, 95, 90, 80),
-  alpha = 1 - (p / 100),
-  cov = cov_all,
-  pbefore = pbefore_all,
-  len = len_all,
-  cov_offpeak = cov_offpeak,
-  pbefore_offpeak = pbefore_offpeak,
-  len_offpeak = len_offpeak
-)
 
 p1 <- ggplot(d, aes(p, 100 * cov)) +
   geom_path(aes(colour = "All day")) +
@@ -131,6 +138,7 @@ p3 <- ggplot(d, aes(p, len)) +
   geom_path(aes(y = len_offpeak, colour = "Off-peak only")) +
   scale_y_continuous("Average width (minutes)") +
   scale_x_continuous("Theoretical coverage (%)")
+
 
 p1 + p2 + p3 + plot_layout(guides = "collect") &
   theme_classic() &
