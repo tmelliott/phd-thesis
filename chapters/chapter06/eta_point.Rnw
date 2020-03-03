@@ -234,7 +234,7 @@ p1 + p2 + p3 + p4 + p5 + guide_area() +
 We calculated, for all stops, trips, and times, a range of arrival times quantiles ($q \in \{0.05, 0.25, 0.5, 0.6, 0.6, 0.75, 0.9\}$), and for each computed the \gls{rmse}, the probability of catching the bus given you arrive at the stated \gls{eta}, $\Pcatch$, and the expected waiting time given you catch the bus, $\Ewait$. The results are displayed in \cref{fig:eta_overall_results}, along with the same values computed used the \gls{gtfs} arrival time estimates. For the particle filter, the lowest \gls{rmse} value is achieved when using the 60\% quantile, which obtains a \Sexpr{round(d$pcatch[3])}\% probability of the bus arriving after the \gls{eta} and an expected waiting time of \Sexpr{round(d$ewait[3], 1)}~minutes. The coverage of the quantiles are being overestimated---we would expect the 60\% quantile to have an approximately 40\% success rate---which indicates that the current implementation of the particle filter is underestimating arrival times.
 
 
-<<eta_headway_results,message=FALSE,warning=FALSE,echo=FALSE,cache=TRUE,dependson="eta_load",fig.width=8,fig.height=5,out.width="\\textwidth",fig.align="center",fig.cap="More ETA stuff">>=
+<<eta_headway_results,message=FALSE,warning=FALSE,echo=FALSE,cache=TRUE,dependson="eta_load",fig.width=8,fig.height=5,out.width="\\textwidth",fig.align="center",fig.cap="Capture probabilities and expected wait times by trip headway (time until the next trip) by using varying quantiles as point estimates of arrival time, and assuming the passenger arrives at the specified time. The dashed black line represents the same values using the schedule-delay prediction.">>=
 
 # Use headway to estimate cost of missing the bus
 # (just simple start-of-route headway, nothing too complex)
@@ -313,7 +313,32 @@ if (file.exists("data/eta_q_cost.rda")) {
   if (!exists("c60")) c60 <- q_cost(q60)
   if (!exists("c75")) c75 <- q_cost(q75)
   if (!exists("c90")) c90 <- q_cost(q90)
-  save(c25, c40, c50, c60, c75, c90, file = "data/eta_q_cost.rda")
+
+  cGTFS <- q50 %>%
+    left_join(trip_headway, by = "trip_id") %>%
+    filter(headway >= 60) %>%
+    mutate(
+      headway_min = floor(headway / 60),
+      catch = as.integer(gtfs < actual),
+      wait = ifelse(catch,
+        actual - gtfs,
+        headway_min - (gtfs - actual) %% headway_min
+      ),
+    ) %>%
+    group_by(headway_min) %>%
+    summarize(
+      p_catch = mean(catch),
+      wait_catch = mean(ifelse(catch, wait, NA), na.rm = TRUE),
+      wait_catch_low = quantile(ifelse(catch, wait, NA), 0.025, na.rm = TRUE),
+      wait_catch_upp = quantile(ifelse(catch, wait, NA), 0.975, na.rm = TRUE),
+      wait_miss = mean(ifelse(catch, NA, wait), na.rm = TRUE),
+      wait_miss_low = quantile(ifelse(catch, NA, wait), 0.025, na.rm = TRUE),
+      wait_miss_upp = quantile(ifelse(catch, NA, wait), 0.975, na.rm = TRUE),
+      cost = mean(wait, na.rm = TRUE)
+    )
+
+
+  save(c05, c25, c40, c50, c60, c75, c90, cGTFS, file = "data/eta_q_cost.rda")
 }
 
 p1 <- ggplot(NULL, aes(headway_min, p_catch)) +
@@ -329,14 +354,65 @@ p4 <- ggplot(NULL, aes(headway_min, cost)) +
   scale_y_continuous("E(wait time) (min)")
 
 
+smoothness <- 0.3
 p1 + p2 + p3 + p4 + plot_layout(nrow = 2, guides = "collect") &
-  geom_path(aes(colour = "05"), data = c05 %>% filter(headway_min <= 60)) &
-  geom_path(aes(colour = "25"), data = c25 %>% filter(headway_min <= 60)) &
-  geom_path(aes(colour = "40"), data = c40 %>% filter(headway_min <= 60)) &
-  geom_path(aes(colour = "50"), data = c50 %>% filter(headway_min <= 60)) &
-  geom_path(aes(colour = "60"), data = c60 %>% filter(headway_min <= 60)) &
-  geom_path(aes(colour = "75"), data = c75 %>% filter(headway_min <= 60)) &
-  geom_path(aes(colour = "90"), data = c90 %>% filter(headway_min <= 60)) &
+  geom_smooth(
+    aes(colour = "5"),
+    data = c05 %>% filter(headway_min <= 60),
+    method = "loess",
+    span = smoothness,
+    se = FALSE
+  ) &
+  geom_smooth(
+    aes(colour = "25"),
+    data = c25 %>% filter(headway_min <= 60),
+    method = "loess",
+    span = smoothness,
+    se = FALSE
+  ) &
+  geom_smooth(
+    aes(colour = "40"),
+    data = c40 %>% filter(headway_min <= 60),
+    method = "loess",
+    span = smoothness,
+    se = FALSE
+  ) &
+  geom_smooth(
+    aes(colour = "50"),
+    data = c50 %>% filter(headway_min <= 60),
+    method = "loess",
+    span = smoothness,
+    se = FALSE
+  ) &
+  geom_smooth(
+    aes(colour = "60"),
+    data = c60 %>% filter(headway_min <= 60),
+    method = "loess",
+    span = smoothness,
+    se = FALSE
+  ) &
+  geom_smooth(
+    aes(colour = "75"),
+    data = c75 %>% filter(headway_min <= 60),
+    method = "loess",
+    span = smoothness,
+    se = FALSE
+  ) &
+  geom_smooth(
+    aes(colour = "90"),
+    data = c90 %>% filter(headway_min <= 60),
+    method = "loess",
+    span = smoothness,
+    se = FALSE
+  ) &
+  geom_smooth(
+    colour = "black",
+    data = cGTFS %>% filter(headway_min <= 60),
+    lty = 2,
+    method = "loess",
+    span = smoothness,
+    se = FALSE,
+  ) &
   theme_classic() &
   theme(legend.position = "bottom") &
   scale_x_continuous("Trip headway (minutes)") &
