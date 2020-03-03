@@ -21,7 +21,7 @@ d <- tibble(
 )
 
 ggplot(d, aes(t, q)) +
-  geom_path() +
+  geom_step() +
   geom_point(colour = ifelse(d$q < 0.5, "orangered", "black")) +
   theme_classic() +
   scale_x_continuous("Arrival time, a (minutes)") +
