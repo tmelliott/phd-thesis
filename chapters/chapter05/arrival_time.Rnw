@@ -28,36 +28,37 @@ ggplot(layoverdat, aes(current_delay / 60)) +
     geom_vline(xintercept = 0, lty = 2)
 @
 
-We now have estimates of the state of the trip (and any associated vehicle) and the road network. These are combined to forecast the time taken for the vehicle to reach all remaining stops along the route. Dwell times can also affect arrival time uncertainty, particularly at major stops. Additionally, the bus may have a layover at a stop---these are common at major points of interest, such as at a mall, or stations where many routes connect so passengers can transfer between services. Layovers are identified in the GTFS \emph{stop times} table by departure times which are later than the associated arrival time (usually one second, as discussed in \cref{sec:gtfs}). In theory, drivers wait at these stops until the scheduled departure time before continuing the trip; however, in \Sexpr{100 * (1 - pr_wait)}\% of cases we looked at over two weeks, the driver left before the scheduled departure time, as is demonstrated in \cref{fig:layover_observance}, and \Sexpr{100 * pr_onemin}\% departed more than one minute early.
+The estimated trip state (and any associated vehicle) and the road network can now be combined to forecast how long it will take for the vehicle to reach all remaining stops along the route. Dwell times can also affect arrival time uncertainty. Some trips have the added complexity of layovers at specific stops---these are common at major points of interest, such as at a mall, or stations where many routes connect so passengers can transfer between services (see \cref{sec:gtfs}). In theory, drivers wait at these stops until the scheduled departure time before continuing the trip; however, in \Sexpr{100 * (1 - pr_wait)}\% of cases over two weeks, the driver left before the scheduled departure time, as is demonstrated in \cref{fig:layover_observance}, and \Sexpr{100 * pr_onemin}\% departed more than one minute early.
 
 
-There are various ways to forecast arrival times, each with associated drawbacks and advantages. In this section, we present four arrival time prediction methods:
+There are various ways to forecast arrival times, each with associated drawbacks and advantages. This section presents four arrival time prediction methods:
 \begin{itemize}
 \item \Fpf{} uses the particle filter estimate of vehicle state and the network state to obtain arrival time distributions;
 \item \Fnorm{} uses a normal approximation of the vehicle's state, along with the network state and dwell-time distributions;
 \item \Fhist{} uses only historical delay data; and
 \item \Fsched{} uses the schedule and current real-time delay, as is currently used by \AT{}.
 \end{itemize}
-
-
-The network state is subset to the segments for the particular route, such that
+The first two use the network state, which is simplified for each route by including only the segments (in order) used by route $r$ with mean and variance
 \begin{equation}
 \label{eq:route_nw_state}
-\RouteNWstate =
+\RouteNWstate^r =
 \begin{bmatrix}
-\RouteNWstateseg_{1} & \RouteNWstatecor_{1,2} & \cdots &\RouteNWstatecor_{1,L} \\
-\RouteNWstatecor_{2,1} & \RouteNWstateseg_{2} & \ddots &\RouteNWstatecor_{2,L} \\
+\RouteNWstateseg^r_1 \\
+\RouteNWstateseg^r_2 \\
+\vdots \\
+\RouteNWstateseg^r_L
+\end{bmatrix}\quad\text{and}\quad
+\RouteNWstatevar^r =
+\begin{bmatrix}
+\RouteNWstatevarseg^r_{1} & \RouteNWstatecor^r_{1,2} & \cdots &\RouteNWstatecor^r_{1,L} \\
+\RouteNWstatecor^r_{2,1} & \RouteNWstatevarseg^r_{2} & \ddots &\RouteNWstatecor^r_{2,L} \\
 \vdots & \ddots & \ddots & \vdots \\
-\RouteNWstatecor_{L,1} & \RouteNWstatecor_{L,2} & \cdots & \RouteNWstateseg_L
-\end{bmatrix}
+\RouteNWstatecor^r_{L,1} & \RouteNWstatecor^r_{L,2} & \cdots & \RouteNWstatevarseg^r_L
+\end{bmatrix},
 \end{equation}
-where $\RouteNWstateseg_{i}$ is the average vehicle speed along the $i$th segment, and $\RouteNWstatecor_{i,j}$ is the covariance between segments $i$ and $j$. Note that in the current framework, we do not calculate segment covariances, but the above setup demonstrates that the model can include covariances, if available.
+respectively, where $\RouteNWstateseg^r_{i}$ is the average vehicle speed along the $i$th segment of route $r$, $\RouteNWstatevarseg^r_{i}$ is the variance for the segment, and $\RouteNWstatecor^r_{i,j}$ is the covariance between segments $i$ and $j$. Note that the current implementation does not include segment covariances, but the above setup demonstrates that the model can include them, if available. To simplify notation, I have dropped the $r$ superscript for the remainder of this chapter since only one route is dealt with at any one time.
 
-For bus stop dwell times, we collected two weeks' of data (as was used in \cref{sec:nw_par_est}) and calculated the mean and variance of dwell time for all stops along each trip. We can determine if a bus \emph{did} stop (there is an arrival and a departure time), but not that a bus \emph{did not} stop: if we see only an arrival or a departure time (or neither), it is impossible to differentiate between the bus truly not stoping, or deficiencies with the data. The bus may not have reported both observations, or, more likely, our polling interval (30 seconds) did not see both of them, since the real-time feed only includes the most recent observation. Therefore, we cannot calculate stopping probabilities from the data, so the same value as was used in \cref{cha:vehicle_model} is used for $\Prstop_j$.
-
-\begin{itemize}
-\item Is this repeated from Ch 2?
-\end{itemize}
+For bus stop dwell times, we collected two weeks' of data (as was used in \cref{sec:nw_par_est}) and calculated the mean and variance of dwell time for all stops along each trip. It is possible to determine if a bus \emph{did} stop (there is both an arrival and a departure time), but not that a bus \emph{did not} stop. For example, if the bus reports only an arrival time, it is unclear whether this is because the bus truly did not stop, or if it is a deficiency with the data. The bus may not have reported both observations, or, more likely, the polling interval (30 seconds) did not see both of them (Auckland Transport's real-time feed only includes the most recent observation). Therefore, stopping probabilities cannot be estimated from the data, so the same value of $\Prstop_j=0.5$ is used as in \cref{cha:vehicle_model}.
 
 
 \input{DIRNAME/arrival_time_pf.tex}

@@ -1,17 +1,17 @@
 \section{Trip state}
 \label{sec:trip_state}
 
+At any one time, there are numerous scheduled trips within the transit network we want to obtain the \emph{state} of, which can then be updated with any real-time vehicle or network information, if available. Occasionally there is no vehicle associated with a given trip, so having a trip state makes it possible to combine schedule data with real-time network information to obtain \glspl{eta}. That is, it enables real-time arrival time prediction in the absence of vehicle location data.
 
-At any one time, there are a number of scheduled trips within the transit network we want to obtain the \emph{state} of, which can then be updated with \rt{} vehicle and network information, if available. The idea behind having yet another sate is that, in some cases, there is no vehicle associated with a trip, in which case we want to use a combination of schedule data and real-time transit network information to obtain \glspl{eta}. That is, we can still make \rt{} predictions without location data.
 
-At any time $t$, we obtain a list of scheduled trips such that the trip's start time $T_\text{start}$ is less than 30~minutes before $t$, and the trip's end time (arrival at last stop) is less than 60~minutes after $t$. The state of each trip within this window is represented by the time of the last vehicle observation associated with it (if there is one), $\Tript$, the current stop index $\TripStop$, an indicator of whether or not the vehicle has departed from that stop, $\TripDep$, the current segment index $\TripSeg$, and progress (as a proportion) along that segment $\SegProg$,
+At any time $t$, we obtain a list of scheduled trips such that the trip's start time $T_\text{start}$ is less than 30~minutes before $t$, and the trip's end time (arrival at last stop) is less than 60~minutes after $t$. The state of each trip within this window is represented by the time of the last vehicle observation associated with it (if there is one), $\Tript_k$, the current stop index $\TripStop_k$, an indicator of whether or not the vehicle has departed from that stop, $\TripDep_k$, the current segment index $\TripSeg_k$, and progress (as a proportion) along that segment $\SegProg_k$,
 \begin{equation}
 \label{eq:trip_state}
-\Tripr = \tvec{\Tript, \TripStop, \TripDep, \TripSeg, \SegProg}.
+\Tripr_k = \tvec{\Tript_k, \TripStop_k, \TripDep_k, \TripSeg_k, \SegProg_k}.
 \end{equation}
-The initial state is $\Tripr_0 = \tvec{T_\text{start},0,0,0,0}$.
+The initial state is $\Tripr_0 = \tvec{T_\text{start},0,0,0,0}$. Trips use the same time subscript $k$ as vehicle locations since they are initialized based on the schedule, and then only updated when vehicle data is recieved.
 
-Estimation of the various state components depends on the type of the most recent observation associated with the trip. Estimation of these state parmaeters is made depending on one of these scenarios:
+Estimation of the various state components depends on the type of the most recent observation associated with the trip. The three possible scenarios are:
 \begin{enumerate}
 \item the last observation was a \emph{trip update} for stop $\TripStop$,
 \item the last observation was a \emph{GPS position}, or
@@ -20,10 +20,10 @@ Estimation of the various state components depends on the type of the most recen
 
 
 \paragraph{Scenario 1:}
-On arrival at stop $\TripStop$, the trip's state is
+On arrival at stop $\TripStop$ at time $\Tript_k$, the trip's state is
 \begin{equation}
 \label{eq:trip_state_tu}
-\Tripr =
+\Tripr_k =
 \begin{cases}
 \tvec{\Vtime_k, \TripStop, 0, \TripSeg(s), 0} & \text{if arrival}, \\
 \tvec{\Vtime_k, \TripStop, 1, \TripSeg(s), 0} & \text{if departure}.
@@ -31,32 +31,34 @@ On arrival at stop $\TripStop$, the trip's state is
 \end{equation}
 where $\TripSeg(s)$ is the segment index of stop $\TripStop$.
 
+
 \paragraph{Scenario 2:}
-We need to account for the fact that the vehicle has already travelled along part of the segment, so we compute the \emph{remaining distance} along the current segment. From the \pf{} in \cref{cha:vehicle_model}, we can identify the segment along which the vehicle is currently travelling, $\TripSeg$. We can use either the vehicle's current speed to estimate the remaining travel time, or use the speed from the network state.
-
-The distance travelled along a segment is always available given the vehicle's current state at time $\Vtime_k$. The vehicle has travelled $\Vdist_k$~meters, and the segment begins $\Tsegd_\TripSeg$~meters into the trip and has a length of $\Tseglen_\TripSeg$~meters. Therefore, the distance remaining is simply $\Vdist_k - \Tsegd_\TripSeg$. Using the vehicle's current speed leads to a remaining travel time of
+In this scenario, the vehicle has completed travel along part of the segment, so the \emph{remaining distance} is needed. From the \pf{} in \cref{cha:vehicle_model}, the segment along which the vehicle is travelling at time $\Tript_k$ is identified as $\TripSeg_k$, and the most recently visited stop is $\TripStop_k$. The proportion of the segment travelled is easily calculated using the vehicles current distance $\Vdist_k$ and the segments start distance $\Tsegd_{\TripSeg_k}$ and length $\Tseglen_{\TripSeg_k}$:
 \begin{equation}
-\label{eq:trip_seg_time_remaining}
-\tilde B = \frac{\Vdist_k - \Tsegd_\TripSeg}{\Vspeed_k}.
+\label{eq:trip_seg_completed_prop}
+\SegProg_k = \frac{\Vdist_k - \Tsegd_{\TripSeg_k}}{\Tseglen_{\TripSeg_k}}.
 \end{equation}
-However, this is only likely to be valid on short segments, or when there is only a short length of road left on the segment. Alternatively, we use the network state to estimate the current speed along the segment by replacing $\Vspeed_k$ with $\NWstate_c$ in \cref{eq:trip_seg_time_remaining}.
-We used a threshold of 100~m.
 
-\begin{itemize}
-\item Details on this decision?
-\end{itemize}
+% The distance travelled along a segment is always available given the vehicle's current state at time $\Vtime_k$. The vehicle has travelled $\Vdist_k$~meters, and the segment begins $\Tsegd_\TripSeg$~meters into the trip and has a length of $\Tseglen_\TripSeg$~meters. Therefore, the distance remaining is simply $\Vdist_k - \Tsegd_\TripSeg$. Using the vehicle's current speed leads to a remaining travel time of
+% \begin{equation}
+% \label{eq:trip_seg_time_remaining}
+% \tilde B = \frac{\Vdist_k - \Tsegd_\TripSeg}{\Vspeed_k}.
+% \end{equation}
+% However, this is only likely to be valid on short segments, or when there is only a short length of road left on the segment. Alternatively, we use the network state to estimate the current speed along the segment by replacing $\Vspeed_k$ with $\NWstate_c$ in \cref{eq:trip_seg_time_remaining}.
+% We used a threshold of 100~m.
+
 
 \paragraph{Scenario 3:}
-There are three main reasons for there being on observations associated with a scheduled trip:
+There are three main reasons for there being no observations associated with a scheduled trip:
 \begin{enumerate}
 \item the trip has been cancelled, so no vehicle is servicing the trip, but the cancellation has not been entered into the real-time system;
 \item the vehicle is late and hasn't started the trip (yet); or
-\item there is a vehicle servicing the trip, but its \gls{avl} system is either not working or is registered with the wrong trip\footnote{which actually happens a lot}.
+\item a vehicle servicing the trip but its \gls{avl} system is either not working or is registered with the wrong trip\footnote{This happens a lot.}.
 \end{enumerate}
-There is no way to differentiate these three situations without physically investigating, so we always assume there is a bus travelling the route. However, if no bus has been observed, it is important to display a warning to passengers so that they are aware and can decide to catch an alternative bus instead.
+There is no way to differentiate these three situations without physical investigation, so we always assume there is a bus travelling the route. However, if no bus has been observed, it is important to display a warning to passengers so that they are aware and can decide to catch an alternative bus instead.
 
-It is a common occurrence at the beginning of trips for the bus not to be seen until a few minutes before it arrives since the bus does not register with the server until its begins a trip, or it may start late if delayed on a previous route. Passengers waiting at any upstream stops see the scheduled arrival time for the bus until it finally begins the trip and checks in with the \gls{gtfs} system. Thus, we need to display to passengers that the bus hasn't been heard from, so it may be running late,  or have been cancelled. Next, we use historical data to obtain a distribution of departure times from the first stop for this trip, allowing us to estimate $\Tdwell_{1}$, the ``dwell'' time at the first stop. Since the vehicle's location is unknown, we make one single estimate of arrival times at the beginning of the trip and leave them until we hear from the bus, or until the trip has been scheduled to end. The goal here is not to predict arrival times for unobserved vehicles accurately, but instead to smooth the arrival time estimates at the beginning of a trip's schedule for those situations where the vehicle does finally start its route.
 
-\begin{itemize}
-\item Rewrite the above paragraph.
-\end{itemize}
+It is common for passengers waiting at some of the first stops along a route to have no available \gls{rti} until the bus is a few minutes away. This is because the bus does not register with the server until it has begun the trip. Until this happens, the \gls{dms} displays the default scheduled time, which can be problematic if the bus is late to start the route. In extreme cases, once the scheduled time has passed the service disappears from the \gls{dms}, leaving passengers wondering whether or not the bus will eventually come. It is therefore important to display to commuters if no \gls{rti} is available for a trip.
+
+
+Additionally, historical data of arrival times can be used in conjunction with the real-time network state to provide a prior estimate of arrival time, which is particularly useful for trips prone to starting late. In these situations, a single prediction is made when first initialising the trip based on historical information. Once the trip is observed (or cancelled) the prediction can be updated. The goal here is not to predict arrival times for unobserved vehicles accurately, but instead to smooth the arrival time estimates at the beginning of a trip's schedule for those situations where the vehicle does finally start its route.
