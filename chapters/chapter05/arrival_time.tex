@@ -57,10 +57,10 @@ For bus stop dwell times, we collected two weeks' of data (as was used in \cref{
 \subsection{Historical arrival delays (\Fhist{})}
 \label{eq:prediction_arrival_historical}
 
-Another way to make predictions is to use historical data in place of real-time. We collected two weeks of data and recorded arrival times by stop and trip to obtain a distribution which can then be used to make predictions. The arrival time at stop $j$ along trip $\Tripr$ has mean $\hat\alpha_{rj}$ and variance $\hat\zeta_{rj}^2$, so the predicted arrival time is simply
+Another way to make predictions is to use historical data instead of real-time. We collected two weeks of data and recorded arrival time delays by stop and route to obtain a distribution which can then be used to make predictions. The arrival time at stop $j$ along route $r$ has an average delay of $\bar d_{rj}$ seconds with variance $D_{rj}^2$, so the predicted arrival time at stop $j$ on route $r$ with scheduled arrival time $S_{rj}$ is
 \begin{equation}
 \label{eq:arrival_pred_historical}
-\Tarr_{\Tripr j} \sim \Normal{\hat\alpha_{\Tripr j}}{\hat\zeta_{\Tripr j}^2}.
+\hat\Tarr_{j} \sim \Normal{S_{rj} + \bar d_{rj}}{D_{rj}^2}.
 \end{equation}
 
 
@@ -71,11 +71,11 @@ Another way to make predictions is to use historical data in place of real-time.
 The currently deployed prediction method uses the scheduled arrival time at stop $j$ along route $r$, $S_{rj}$, along with the arrival or departure time at the most recently visited stop, $T_{rm}$, giving a current delay, in seconds, of
 \begin{equation}
 \label{eq:sched_cur_delay}
-\bar\delta_{r} = T_{rm} - S_{rm}.
+d_{r} = T_{rm} - S_{rm}.
 \end{equation}
-Then, the predicted arrival time is simply
+The arrival time is then predicted as
 \begin{equation}
 \label{eq:sched_pred_arr}
-\hat\Tarr_{rj} = S_{rj} + \bar\delta_r.
+\hat\Tarr_{rj} = S_{rj} + d_r.
 \end{equation}
-Note, however, that if a given trip has no associated observations, the default delay is $\bar\delta_r = 0$, regardless of whether or not there is a vehicle servicing it, the vehicle is running late, or the trip has been cancelled altogether.
+Note, however, that if a trip has not yet been observed, the default delay is $d_r = 0$, regardless of whether or not there is a vehicle servicing it, the vehicle is running late, or the trip has been cancelled altogether.
