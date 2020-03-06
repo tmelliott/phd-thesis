@@ -1,27 +1,13 @@
 \section{Assessing predictive performance}
 \label{sec:prediction_model_comparison}
 
-
-To compare the four prediction methods, we implemented the first two in the \textsf{transitr} application and, using a single day of data, run the program, storing all arrival time estimates, the uncertainty, as well as the 5\% and 90\% quantiles\footnote{Initially we used a symmetric 95\% prediction interval, but this was often highly skewed by a few very late particles.}. The actual (reported) arrival times are then used to compare the accuracy of each method. For the historical data, we compare the mean with the actual arrival time. For the schedule-delay method, the arrival time for all upcoming stops was predicted after each new observation, and the prediction error computed.
-
-\begin{itemize}
-\item yes, rewrite the above para to make more sense please.
-\item and, the below might need some more words about MAE/MAPE \ldots
-\end{itemize}
-
-We used \gls{rmse}, \gls{mae}, and \gls{mape} as comparison criteria (see \cref{app:error-functions}).
-\Gls{rmse} is the mean squared difference (in seconds) between the predicted and actual arrival times. Of course, since predictions change over time, we also compute \gls{rmse} by \emph{time until (actual) arrival}, allowing us to compare the models at different time points, as well as by stop sequence and time of day.
+To compare the four prediction methods, we implemented the first two in the \textsf{transitr} application. The program estimated and saved all arrival time estimates over a full day of data, along with uncertainty and the 5\% and 90\% quantiles. The accuracy of each method is assessed by comparison with the reported arrival times using \gls{rmse}, \gls{mae}, and \gls{mape} (details in \cref{app:error-functions}). Since predictions change over time, we also computed the summary values by \emph{time until (actual) arrival}, allowing the comparison of models at different time points, as well as by stop sequence and time of day.
 
 
-Another criteria we are interested in is the \gls{picp}, which is only available for the three methods for which we can construct an 85\% \gls{ppi}: for the particle filter, this is achieved by sorting the particles in order of arrival time, and then taking the $\lfloor q_\text{lower} N^\star\rfloor^{\text{th}}$ particle as the lower bound, and the $\lceil q_{\text{upper}} N^\star\rceil^{\text{th}}$ particle as the upper bound (more details in \cref{app:particle_summaries}). For the 85\% interval, we used $q_\text{lower} = 0.05$ and $q_\text{upper} = 0.9$. For the normal approximation and historical arrival methods, the inverse \gls{cdf} provides the required quantiles. The results are displayed in \cref{tab:model_results_rmse} and \cref{fig:model_results_rmse_time,fig:model_results_rmse_stopn,fig:model_results_rmse_timeofday} (described in \cref{sec:prediction_model_comp_stats}).
+Another useful criteria is the \gls{picp}, which is only available for the three methods which can provide an 85\% \gls{ppi}: for the particle filter, this is achieved by sorting the particles in order of arrival time and taking the $\lfloor 0.05 N^\star\rfloor^{\text{th}}$ particle as the lower bound, and the $\lceil 0.9 N^\star\rceil^{\text{th}}$ particle as the upper bound (more details in \cref{app:particle-summaries}). For the normal approximation and historical arrival methods, the inverse \gls{cdf} provides the required quantiles. The results are displayed in \cref{tab:model_results_rmse} and \cref{fig:model_results_rmse_time,fig:model_results_rmse_stopn,fig:model_results_rmse_timeofday} (described in \cref{sec:prediction_model_comp_stats}).
 
 
-\begin{itemize}
-\item predictive power, or `reliability'?
-\end{itemize}
-
-Additionally, we also want to compare the predictive power of the various forecast methods, namely \emph{the probability of arriving before the bus}, and hence not missing it, as well as the expected waiting time given a passenger arrives at the stop by a certain time. In table \cref{tab:model_results_pr_miss} and \cref{fig:model_results_pr_gtfs,fig:model_results_pr_time,fig:model_results_pr_stop,fig:model_results_pr_timeofday}, we use the point estimate (mean or median, depending on the forecast method), as well as the 5\% quantile, and for each calculate the probability that the bus arrives after the specified time. We also calculate the expected waiting time for a passenger arriving at a certain time \emph{and the bus arrives after the specified time} (i.e., the passenger catches the bus). \Cref{sec:prediction_model_comp_probs} discusses these results.
-
+Additionally, we want to compare the reliability of the various forecast methods, namely \emph{the probability of arriving before the bus}, and hence not missing it, as well as the expected waiting time given a passenger arrives at the stop by a certain time. Table \cref{tab:model_results_pr_miss} and \cref{fig:model_results_pr_gtfs,fig:model_results_pr_time,fig:model_results_pr_stop,fig:model_results_pr_timeofday} use the point estimate (mean or median, depending on the forecast method) and the 5\% quantile to calculate the probability that the bus arrives after each estimate. \Cref{sec:prediction_model_comp_probs} discusses these results.
 
 <<model_colours,echo=FALSE,cache=TRUE>>=
 pal <- RColorBrewer::brewer.pal(4, "Set1")
@@ -154,21 +140,18 @@ tbl %>% kableExtra::kable_styling(font_size = 8)
 
 \subsection{Comparing the accuracy of arrival time prediction}
 \label{sec:prediction_model_comp_stats}
-
-The accuracy measurements (\gls{rmse}, \gls{mae}, and \gls{mape}) shown in \cref{tab:model_results_rmse} immediately show that the normal approximation (\Fnorm{}) estimates are, on average, about half as accurate as the other methods. Overall, the \pf{} (\Fpf{}) demonstrates the greatest accuracy by all criteria, indicating that its estimates are (on average) closer to the true value in both absolute and relative terms. The historical delays approach (\Fhist{}) has similar accuracy to the schedule-delay approach (\Fsched{}) in absolute terms (\gls{rmse} and \gls{mae}), but the least accurate over all in realtive terms (\gls{mape}), indicating that it has poorer accuracy for short-term forecasts; this is not surprising as it uses purely historical data, so \rt{} information about vehicle location and network state are ignored.
-
-
-As for the \gls{picp}, the theoretical coverage is 85\%. \Fpf{} seems to underestimate arrival time uncertainty, which indicates that not enough uncertainty is being captured by the model: this could be any combination of dwell time, travel time, or the unknown. Conversely, \Fnorm{} overestimates uncertainty by about 5\%. \Fhist{} has close to the desired \gls{picp}, which demonstrates that arrival time delays at each stop show a certain level of consistency.
+The accuracy measurements (\gls{rmse}, \gls{mae}, and \gls{mape}) shown in \cref{tab:model_results_rmse} immediately show that the normal approximation (\Fnorm{}) estimates are, on average, about half as accurate as the other methods. Overall, the \pf{} (\Fpf{}) demonstrates the greatest accuracy by all criteria, indicating that its estimates are (on average) closer to the true value in both absolute and relative terms. The historical delays approach (\Fhist{}) has similar accuracy to the schedule-delay approach (\Fsched{}) in absolute terms (\gls{rmse} and \gls{mae}), but the least accurate overall in relative terms (\gls{mape}). This indicates that \Fhist{} has poorer accuracy for short-term forecasts, which is not surprising as it uses only historical data, ignoring \rt{} information about vehicle location and network state.
 
 
+As for the \gls{picp}, the theoretical coverage is 85\%. \Fpf{} seems to underestimate arrival time uncertainty, indicating that the model is not capturing enough uncertainty: this could be any combination of dwell time, travel time, or the unknown. Conversely, \Fnorm{} overestimates uncertainty by about 5\%. \Fhist{} has close to the desired \gls{picp}, which demonstrates that arrival time delays at each stop show a certain level of consistency.
 
-From the simple, overall summary in \cref{tab:model_results_rmse}, it is difficult to comment on the relative performance of the methods, except that the normal approximation seems to be ill-suited to the task. However, this was not unexpected: throughout the previous chapters, we have commented on the non-Gaussian nature of transit vehicle state. We now explore the effects of time until arrival, stop sequence, and time of day on prediction accuracy.
+
+The main finding of \cref{tab:model_results_rmse} is that the normal approximation is inadequate for this problem. However, this was not unexpected: in previous chapters, we discussed the non-Gaussian nature of a vehicle's state. We now explore the effects of time-until-arrival, stop sequence, and time-of-day on prediction accuracy to more closely inspect the relative performance of the methods.
 
 
 \subsubsection{Time until actual arrival}
 
-We would expect arrival time predictions for a given stop to become more accurate as the bus approaches it. To assess this, arrival time estimates for binned into one-minute intervals, and for each interval the same summary statistics were estimated and displayed in \cref{fig:model_results_rmse_time}. Note the use of log scales for \gls{rmse}, \gls{mae}, and \gls{mape}.
-
+We would expect arrival time predictions for a given stop to become more accurate as the bus approaches. Arrival time estimates were binned into one-minute intervals, and for each interval, the summary statistics were estimated, which are displayed in \cref{fig:model_results_rmse_time}. Note the use of log scales for \gls{rmse}, \gls{mae}, and \gls{mape}.
 
 
 <<model_results_rmse_time,warning=FALSE,echo=FALSE,cache=TRUE,dependson=c("model_results_load","model_colours"),cache.lazy=FALSE,fig.width=8,fig.height=4,out.width="\\textwidth",fig.cap="Model comparative statistics as a function of time until arrival. Note the log-scale for RMSE, MAE, and MAPE.">>=
@@ -311,8 +294,7 @@ plot_rmse + plot_mae +
 
 @
 
-
-The \gls{rmse} and \gls{mae} for all methods increase with time until arrival as expected, but the rate at which this occurs varies. The three methods that use \rt{} information (\Fpf{}, \Fnorm{}, and \Fsched{}) demonstrate small absolute error when the bus is near, which increases the farther out the bus gets, while \Fhist{} shows a more constant error and far poorer accuracy when the bus is less than 50--10~minutes away. \Fpf{} has the lowest error up until 20~minutes before arrival, and has greater accuracy than \Fsched{} up until 25--30~minutes. This indicates that the current delay is only a useful predictor when the bus has almost arrived, and that accounting for \rt{} traffic conditions \emph{does} improve the accuracy of arrival time prediction. \Fnorm{} quickly shows large prediction errors for all but the nearest buses.
+The \gls{rmse} and \gls{mae} for all methods increase with time until arrival as expected. The rate of this increase, however, varies between them. The three methods that use \rt{} information (\Fpf{}, \Fnorm{}, and \Fsched{}) demonstrate small absolute error when the bus is near, which increases the farther out the bus gets, while \Fhist{} shows a more constant error and far poorer accuracy when the bus is less than 5--10~minutes away. \Fpf{} has the lowest error up until 20~minutes before arrival and has greater accuracy than \Fsched{} up until 25--30~minutes. This indicates that the current delay is only a useful predictor when the bus has almost arrived, and that accounting for \rt{} traffic conditions can improve the accuracy of arrival time prediction. \Fnorm{} quickly shows large prediction errors for all but the nearest buses.
 
 
 <<route_length_times,echo=FALSE,message=FALSE,warning=FALSE,cache=TRUE>>=
@@ -347,18 +329,15 @@ trip_lengths <- con %>% tbl("stop_times") %>%
 dbDisconnect(con)
 
 @
-
-The \gls{mape} for all methods decreases with time until arrival, with \Fhist{} showing the highest relative error when the bus is less than about 5~minutes away. \Fnorm{} remains fairly constant with a large relative error (about 50\%).Again for the first 20~minutes, \Fpf{} has the smallest relative error, and is better than \Fsched{} up until the bus is 25--30~minutes away. After 30~minutes, \Fpf{} seems to converge with slightly lower accuracy than \Fhist{} and \Fsched{}, which appear to be continue improving accuracy after the 40~minute cut-off; however, \Sexpr{round(100*mean(trip_lengths$length < 60*60))}\% of routes in Auckland are less than one hour, so the number of arrival time predictions being made that are greater than 40~minutes becomes small (predictions are only made once the trip starts).
-
-
-The \gls{picp} is not available for \Fsched{} since that method only provides point estimates. The coverage for the three remaining methods is reasonably constant across time until arrival \cref{fig:model_results_rmse_time}. As we saw earlier, \Fpf{} underestimates uncertainty, resuling in lower than expected coverage, and \Fnorm{} overestimates uncertainty for all times greater than a few minutes. \Fhist{} shows good coverage, although this drops off slightly as time until arrival increases, which could indicate that arrival times for later stops along long routes (since these are the only ones with times until arrival this large) are prone to more variability.
+The \gls{mape} for all methods decreases with time until arrival, with \Fhist{} showing the highest relative error when the bus is less than about 5~minutes away. \Fnorm{} remains somewhat constant with a relative error of about 50\%. Again, for the first 20~minutes, \Fpf{} has the smallest relative error, and outperforms \Fsched{} up until the bus is 25--30~minutes away. After 30~minutes, \Fpf{} converges with slightly lower accuracy than \Fhist{} and \Fsched{}, which may continue to decrease beyond 40~minutes. However, \Sexpr{round(100*mean(trip_lengths$length < 60*60))}\% of routes in Auckland are less than one hour, so the number of arrival time predictions made when the bus is more than 40~minutes away is small.
 
 
+The \gls{picp} is not available for \Fsched{} since that method only provides point estimates. The coverage for the three remaining methods is reasonably constant across time until arrival (\cref{fig:model_results_rmse_time}). As seen earlier, \Fpf{} underestimates arrival time uncertainty, resulting in lower than expected coverage, and \Fnorm{} overestimates the uncertainty when the bus is more than a few minutes away. \Fhist{} exhibits good coverage, although this drops slightly as time-until-arrival increases.
 
 
 \subsubsection{Stop sequence}
 
-Similarly to time until arrival, we grouped results by stop sequence---skipping the first stop since arrival times are only predicted once the bus begins the trip---and computed the familiar summary statistics, which are displayed in \cref{fig:model_results_rmse_stopn}. Note that stop sequence and time until arrival are correlated, since early stops along a route seldom have long until the bus arrives (once it has begun), and that only \Sexpr{round(100 * mean(trip_lengths$n_stop > 50))}\% of ~trips have more than 50~stops.
+\Cref{fig:model_results_rmse_stopn} shows the \gls{rmse}, \gls{mae}, \gls{mape}, and \gls{picp} grouped by stop sequence. The first stop is excluded since arrival times are only predicted once the bus begins the trip. Early stops along a route seldom have long until the bus arrives since \glspl{eta} are only made once the trip begins. Stop sequence is truncated to 50 since  \Sexpr{round(100 * mean(trip_lengths$n_stop <= 50))}\% of trips have fewer than that many stops.
 
 
 <<model_results_rmse_stopn,warning=FALSE,echo=FALSE,cache=TRUE,dependson=c("model_results_load","model_colours"),cache.lazy=FALSE,fig.width=8,fig.height=4,out.width="\\textwidth",fig.cap="Model comparative statistics as a function of stop sequence.">>=
@@ -396,7 +375,7 @@ res_stop <- eta_results %>%
         gtfs_mae = mean(abs(gtfs_error)),
         gtfs_mape = mean(abs(gtfs_error / time_until_arrival))
     ) %>%
-    filter(stop_sequence <= 60) %>%
+    filter(stop_sequence <= 50) %>%
     arrange(stop_sequence)
 
 plot_base <- ggplot(res_stop, aes(stop_sequence)) +
@@ -498,16 +477,15 @@ plot_rmse + plot_mae +
 
 @
 
-The \gls{rmse} and \gls{mae} increase for all models up until stop 50, after which point only few routes have that many stops, so there is increased variability between consecutive stops. As before, \Fnorm{} shows much higher errors than the other three methods, and \Fpf{} shows slightly better prediction accuracy than \Fhist{} and \Fsched{} up until about stop 30, at which point there is no clear difference between these three methods. However, in terms of relative error (\gls{mape}), \Fpf{} outperforms all the others over all stops, while \Fhist{} shows the poorest accuracy particularly for early stops.
+The \gls{rmse} and \gls{mae} increase with stop sequence for all models. \Fnorm{} shows much higher errors than the other three methods, and \Fpf{} exhibits higher prediction accuracy than \Fhist{} and \Fsched{} up until about stop 30, at which point there is no clear difference between these three methods. However, in terms of relative error (\gls{mape}), \Fpf{} outperforms the others for all stops, while \Fhist{} shows the poorest accuracy, particularly for early stops.
 
 
-The \gls{picp} show much the same trend as before, again not unexpected due to the relationship between stop sequence and time until arrival. \Fpf{} underestimates uncertainty at all stops, while \Fnorm{} overestimates for all but the first few stops---it performs quite poorly for those. \Fhist{} has the desired coverage for all stops.
-
+The \gls{picp} show much the same trend as before with \Fpf{} underestimating arrival time uncertainty at all stops, while \Fnorm{} overestimates for all but the first few stops---it performs quite poorly for those. \Fhist{} has the desired coverage for all stops.
 
 
 \subsubsection{Time of day}
 
-We grouped observations into 15~minute intervals over the day and calculated the summary statistics for each prediction method. The results, displayed in \cref{fig:model_results_rmse_timeofday}, differ quite significantly from those seen previously, as we now see a strong peak-hour effect: in the morning there is a single peak (school and work begin at about the same time) at around 8~am, whereas in the evening there are two smaller peaks: one for schools at about 3~pm, and another for workers at around 5~pm.
+Observations were binned into 15~minute intervals and summary statistics calculated for each. The results, displayed in \cref{fig:model_results_rmse_timeofday}, differ from those seen previously, now revealing the peak-hour traffic effect. There is a single morning peak at around 8~am (school and work begin at about the same time) and two evening peaks: one for schools at about 3~pm, and another for workers at around 5~pm.
 
 
 <<model_results_rmse_timeofday,warning=FALSE,echo=FALSE,cache=TRUE,dependson=c("model_results_load","model_colours"),cache.lazy=FALSE,fig.width=8,fig.height=4,out.width="\\textwidth",fig.cap="Model comparative statistics as a function of time of day.">>=
@@ -645,12 +623,12 @@ plot_rmse + plot_mae +
     )
 @
 
-During off-peak (that is, between about 9:30~am and 2:30~pm) \Fpf{} shows the smallest absolute error (\gls{rmse} and \gls{mae}), with \Fhist{} and \Fsched{} showing slightly larger errors. Again, \Fnorm{} shows much poorer accuracy (again, note the log scale). During peak times, all methods show an increase in prediction error as traffic conditions worsen and become more unreliable. \Fsched{} is least affected by this effect since the schedules take, to some extent, peak congestion into account, while the current implementation of our method only uses the \emph{current} traffic state; however, as discussed in \cref{sec:nw_hist_model}, improvements should be possible once a better forecasting method has been implemented.
+During off-peak (about 9:30~am until 2:30~pm) \Fpf{} shows the smallest absolute error (\gls{rmse} and \gls{mae}), with \Fhist{} and \Fsched{} exhibiting slightly larger errors. \Fnorm{} again has much poorer accuracy\footnote{Remember to note the log scale.}. During peak times, all methods show an increase in prediction error as traffic conditions worsen and become more unreliable. \Fsched{} is least affected by the peak effect since the schedules do account for peak congestion, while the current implementation of our method only uses the \emph{current} traffic state; however, as discussed in \cref{sec:nw_hist_model}, improvements should be possible after the implementation of a better forecasting method.
 
-In terms of relative error (\gls{mape}), we still see the peak effect, but it is much less accentuated, and now \Fpf{} demonstrates the best accuracy throughout the day. This would indicate that much of the absolute error comes from longer-term predictions (when the bus is far away), when traffic has more opportunity to get better or worse: all commuters will be all too familar with how quickly congestion can build. \gls{mape} for \Fsced{} and \Fhist{} show little effect at all of peak hour.
+In terms of relative error (\gls{mape}), we see a less accentuated peak effect, and now \Fpf{} demonstrates the best accuracy throughout the day. During peak time, traffic can quickly become more or less congested, so long-term predictions are prone to inaccuracy as we saw in \cref{fig:model_results_rmse_time}. Therefore, peak traffic has a noticeable effect on the absolute measures of accuracy (\gls{rmse} and \gls{mae}), and less so on \gls{mape}. \gls{mape} for \Fsched{} and \Fhist{} show little effect at all of peak hour.
 
 
-Finally, we look to \gls{picp}, where we can truly see the effect of peak traffic on arrival time predictions, particularly those made using our particle filter. During off-peak, \Fpf{} has very close to the desired coverage of 85\%; during peak time, however, coverage drops quite significantly. This will be due to travel times increasing quickly as congestion builds, meaning initial predictions are too early, and then travel times decreasing again once peak time has passed, and predictions made will be too late. This indicates that, while our \pf{} seems to be able to accurately estimate travel times, it would benefit from the forecasting improvement\footnote{Which we were, unfortunately, unable to complete at this time.}.
+Finally, we look to \gls{picp}, where we can truly see the effect of peak traffic on the predicted arrival time distributions, particularly when obtained using \Fpf{}. During off-peak, \Fpf{} has very close to the desired coverage of 85\%; during peak time, however, coverage drops quite significantly. This drop is likely caused by travel times quickly increasing as congestion builds, meaning initial predictions are too early, and then as travel times decrease again once peak time has passed, the predictions are too late. Our \pf{} appears to be able to estimate travel times accurately, but it would benefit from the forecasting improvement described in \cref{sec:nw_hist_model}\footnote{Which we were, unfortunately, unable to complete at this time.}.
 
 
 
