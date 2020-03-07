@@ -40,7 +40,7 @@ Travel time so far is incremented by $b\vi_j$. This setup allows forecasts for s
 
 
 \paragraph{Step 3: compute stop dwell time}
-Once the particle arrives at the next stop, its dwell time is sampled from the dwell time distribution (\cref{sec:vehicle_model_nodes}).
+Once the particle arrives at the next stop, its dwell time is sampled from the dwell time distribution (\cref{sec:vehicle_model_nodes}). If the stop is a \emph{layover}, and the particle arrives before the scheduled departure time, then with probability 0.6 (\cref{fig:layover_observance}) the particle waits to depart, otherwise it departs after the sampled wait time.
 
 \paragraph{Step 4: repeat steps 2--3}
 This occurs until the particle reaches the end of the route.

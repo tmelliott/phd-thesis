@@ -1,10 +1,14 @@
 \section{Journey planning}
 \label{sec:etas-journey-planning}
 
-So far we have been concerned with the arrival time of a bus at a single stop with no consideration of the passenger's commute as a whole. The simplest journey consists of a single route choice, so the only decision is which trip to catch; a slightly more complex journey may offer two alternative routes (\cref{sec:journey_simple}) which the passenger may choose between. Finally, there may be no single route which goes from the passenger's start location to their destination, in which case a transfer between two (or more) different routes, or \emph{legs}, is necessary (\cref{sec:journey_transfer}).
+<<formatting,echo=FALSE>>=
+TIME_FMT <- "%l:%M~%P"
+@
+
+So far we have been concerned with the arrival time for a bus at a single stop with no consideration of the passenger's commute as a whole. The most straightforward journey consists of a single route choice, so the only decision is which trip to catch; a slightly more complex journey may offer two alternative routes (\cref{sec:journey_simple}) between which the passenger may choose. Finally, there may be no single route which goes from the passenger's start location to their destination, in which case a transfer between two (or more) different routes, or \emph{legs}, is necessary (\cref{sec:journey_transfer}).
 
 
-Since dynamic routing---the selection of candidate trips and \rt{} assessment of which is \emph{optimal}---is in itself a difficult problem to solve \citep{Hame_2013a,Hame_2013b,Zheng_2016}, and there exists implementaions which can take a probabilistic model of arrival time (such as we can obtain by \glspl{cdf}) as input to determine the optimal route (including selecting candidate routes), such as proposed by \citet{Berczi_2017}. Therefore, for this section we only consider choosing between prespecified candidate journey options using the arrival time \glspl{cdf} obtained using our \pf{} model. These are compared to the results one might obtain using the currently deployed schedule-delay method, which can only provide a binary (`Yes' or `No') prediction.
+Dynamic routing---the selection of candidate trips and real-time assessment of which is \emph{optimal}---is in itself a difficult problem to solve \citep{Hame_2013a,Hame_2013b,Zheng_2016}. There also exist implementations which can take a probabilistic model of arrival time (such as we can obtain by \glspl{cdf}) as input to determine the optimal route (including the selection of candidate routes), such as proposed by \citet{Berczi_2017}. Therefore, for this section we only consider choosing between pre-selected candidate journey options using the arrival time \glspl{cdf} obtained using our \pf{} model. These are compared to the results one might obtain using the currently deployed schedule-delay predictions, which only provide a binary (`Yes' or `No') prediction.
 
 
 <<eta_journey_arrival_prep,echo=FALSE,cache=TRUE,message=FALSE,fig.height=5,out.width="\\textwidth",fig.cap="Route options",fig.align="center">>=
@@ -146,17 +150,17 @@ ggmap(map) +
 \subsection{Choosing between two alternative routes}
 \label{sec:journey_simple}
 
-In this scenario, a passenger lives within walking distance of two major roads, along which various routes travel into the central city, as displayed in \cref{fig:eta_journey_arrival_prep}. The passenger needs to decide which route option to take before leaving home, and let's say they have an appointment in town at \Sexpr{format(TEND, "%Hh%M")}. At \Sexpr{format(TSTART, "%Hh%M")}, they consult the real-time app on their phone before deciding whether they will walk to route option A or B. Factors that could influence their decision include:
+In this scenario, a passenger lives within walking distance of two major roads, along which various routes travel into the central city, as displayed in \cref{fig:eta_journey_arrival_prep}. The passenger needs to decide which route option to take before leaving home and let's say they have an appointment in town at \Sexpr{format(TEND, TIME_FMT)}. At \Sexpr{format(TSTART, TIME_FMT)}, they consult the real-time app on their phone before deciding whether to walk to route option A or B. Factors that could influence their decision include:
 \begin{itemize}
-\item How long will I have to wait until the next bus?
-\item What is the probability I will arrive in time for the next bus? And how long until the bus after it?
-\item What is the probability that I will arrive at my destination on-time? And how early will I be?
-\item How long will I be on the bus?
+\item how long they will have to wait for the next bus;
+\item the probability that they will arrive in time for the next bus, and how long until the bus after it;
+\item the probability of arriving at their destination on-time, and how early they will be; and
+\item the overall length of the journey.
 \end{itemize}
-We can answer these questions using the \glspl{cdf} of arrival time at the start and end stops. Walking times at either end of the journey can also be accounted for.
+We can provide information relating to these questions using the \glspl{cdf} of arrival time at the start and end stops. Walking times at either end of the journey can also be accounted for.
 
 
-<<eta_journey_arrival,echo=FALSE,cache=TRUE,dependson="eta_journey_arrival_prep",message=FALSE,fig.width=8,fig.height=5,out.width="\\textwidth",fig.cap="ETA predictions for two route options. The coloured curves represent the CDF of arrival time for individual trips made at 7am. The vertical black lines indicate the estimated walking time (according to Google Maps) from the Start location to each stop.",fig.align="center">>=
+<<eta_journey_arrival,echo=FALSE,cache=TRUE,dependson="eta_journey_arrival_prep",message=FALSE,fig.width=8,fig.height=5,out.width="\\textwidth",fig.cap="ETA predictions for two route options. The coloured curves represent the CDF of arrival time for individual trips made at 7~am. The vertical black lines indicate the estimated walking time (according to Google Maps) from the Start location to each stop.",fig.align="center">>=
 
 con <- dbConnect(SQLite(), "data/eta_quantiles.sqlite")
 trip_etas <- con %>% tbl("etas")
@@ -262,6 +266,7 @@ ggplot(trip_eta_results, aes(timestamp + eta * 60, quantile,
   ) +
   labs(colour = "Route")
 
+
 @
 
 <<cond_section,echo=FALSE,results="asis">>=
@@ -270,11 +275,10 @@ if (format(TSTART, "%H:%M") != "13:20") {
 }
 @
 
+\Cref{fig:eta_journey_arrival} displays the \glspl{cdf} of all active trips\footnote{Our application currently only estimates arrival times for active trips.} along the two route options at \Sexpr{format(TSTART, TIME_FMT)} when the passenger is about to leave home (solid line), with dashed lines representing the passenger's arrival time at the stops (accounting for walking time). Below each \gls{cdf}, which are coloured by route number, is a label indicating the trip's start time, which is the simplest method of identifying trips. For option A, there appears to be a minimal chance of catching the 1:05~pm 25B, but a good chance of catching the 1:10~pm 25L, with the additional safety of another 25B not long after. As for option B, there is a slightly smaller chance of catching the 1:15~pm 27H, but if missed, it is unclear how long the wait for the next but will be.
 
-\Cref{fig:eta_journey_arrival} displays the \glspl{cdf} of all active trips\footnote{Our application currently only estimates arrival times for active trips.} along the two route options at \Sexpr{format(TSTART, "%Hh%M")} when the passenger is about to leave home (solid line), and includes dashed lines representing the passengers arrival time at the stops (accounting for walking time). At the lower end of each \gls{cdf} is a label indicating the trip's start time, which is the simplest method of identifying trips, and the curves are coloured by the route number. For option A, there appears to be a very small chance of catching the 13:05 25B, but a good chance of catching the 13:10 25L, with the additional safety of another 25B not long after. As for option B, there is a slightly smaller chance of catching the 13:15 27H, but if missed it is unclear how long the wait for the next one will be.
 
-
-<<eta_journey_arriveby,echo=FALSE,cache=TRUE,dependson="eta_journey_arrival",message=FALSE,fig.width=8,fig.height=5,out.width="\\textwidth",fig.cap="ETA predictions for two route options. The coloured curves represent the CDF of arrival time for individual trips made at 7am. The vertical black lines indicate the estimated walking time (according to Google Maps) from the Start location to each stop.",fig.align="center">>=
+<<eta_journey_arriveby,echo=FALSE,cache=TRUE,dependson="eta_journey_arrival",message=FALSE,fig.width=8,fig.height=5,out.width="\\textwidth",fig.cap="ETA predictions for two route options. The coloured curves represent the CDF of arrival time for individual trips made at 7~am. The vertical black lines indicate the estimated walking time (according to Google Maps) from the Start location to each stop.",fig.align="center">>=
 
 
 # commuter ready to leave at 7am
@@ -339,10 +343,9 @@ ggplot(trip_eta_results2, aes(timestamp + eta * 60, quantile,
   labs(colour = "Route")
 
 
-
 @
 
-Based on the arrival results alone, it would likely make sense to walk to option A (a shorter walk) which has a decent chance of a short wait time; however, the passenger also need to consider their appointment at 9~am. \Cref{fig:eta_journey_arriveby} provides \glspl{cdf} of each trip's arrival time at the final stop, as well as vertical lines representing the appointment time (solid) and necessary arrival time to account for walking time (dotted). None of the trips show definitive signs of being late, although the passenger would likely hope to catch the 13:10 25L to maximise their chances of arriving on-time, thus confirming the passenger's choice of walking to option A\footnote{At least, that would be my decision.}.
+Based on the arrival results alone, I would choose to walk to option A as it has a good chance of a short wait time; however, the passenger also needs to consider their appointment at 9~am. \Cref{fig:eta_journey_arriveby} provides \glspl{cdf} of each trip's arrival time at the final stop, as well as vertical lines representing the appointment time (solid) and necessary arrival time to allow for walking time (dotted). None of the trips show definitive signs of being late, although the passenger would likely hope to catch the 1:10~pm 25L to maximise their chances of arriving on-time.
 
 
 <<eta_journey_results,echo=FALSE,cache=TRUE,dependson="eta_journey_arriveby",message=FALSE,fig.width=8,fig.height=5,out.width="\\textwidth",fig.cap="Results of the journey planning application, including actual arrival times.">>=
@@ -516,15 +519,10 @@ knitr::kable(
 @
 
 
-The predicted probability of success in each scenario can easily be calculated from the \glspl{cdf}, and are displayed in \cref{tab:eta_journey_results}. Additionally, the binary (`Yes' or `No') predictions according to the schedule-delay method are also displayed for comparison, as well as the eventual outcome (that is, would the passenger have caught the bus and did the bus arrive on time?). All of the predictions based on the \pf{} arrival time \glspl{cdf} are valid: small probabilites had a negative outcome, while large probabilities (>0.8) had a positive one. However, the schedule-delay predictions had one incorrect prediction for the arrival of the 13:15 25B at the destination on time; our method predicted an 81\% chance of success for this route.
+The \glspl{cdf} allow easy calculation of the predicted probability of success in each scenario, displayed in \cref{tab:eta_journey_results}. Additionally, the binary (`Yes' or `No') predictions made using the schedule-delay method are displayed for comparison, as well as the eventual outcome. That is, would the passenger have caught the bus and did it arrive on time? All of the predictions based on the \pf{} arrival time \glspl{cdf} are valid: small probabilities correspond to negative outcomes, and large probabilities ($>0.8$) to positive ones. The schedule-delay predictions, however, had one incorrect prediction for the arrival of the 1:15~pm 25B at the destination on time: it predicted `No', while our method predicted an 81\% chance of success ()
 
 
-
-
-
-
-
-<<eta_journey_results_avg,echo=FALSE,cache=TRUE,dependson=-1,message=FALSE,fig.width=8,fig.height=2.5,out.width="\\textwidth",fig.cap=sprintf("Results of performing the same journey planning prediction with different starting times (from %s to %s), using the same start and end locations. Observations are whether or not the passenger would have arrived at the stop before the bus, jittered to better see each observation. Predictive probabilities of 0 and 1 that were correctly estimated have been removed.", format(min(tstart), "%kh%M"), format(max(tstart), "%kh%M")),fig.align="center">>=
+<<eta_journey_results_avg,echo=FALSE,cache=TRUE,dependson=-1,message=FALSE,fig.width=8,fig.height=2.5,out.width="\\textwidth",fig.cap=sprintf("Results of performing the same journey planning prediction with different starting times (from %s to %s), using the same start and end locations. Observations are whether or not the passenger would have arrived at the stop before the bus, jittered to better see each observation. Predictive probabilities of 0 and 1 that were correctly estimated have been removed.", format(min(tstart), TIME_FMT), format(max(tstart), TIME_FMT)),fig.align="center">>=
 
 # 5-minute intervals from 6am--6pm:
 tstart <-

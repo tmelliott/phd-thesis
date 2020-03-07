@@ -2,7 +2,11 @@
 \label{sec:etas-interval}
 
 
-Deciding on a ``best'' single-value estimate of arrival time is exceedingly difficult given the amount of uncertainty involved. The best approach above is to use a small quantile, but this then results in a large expected wait time given catching the bus (top-right of \cref{fig:eta_headway_results}). An alternative approach is to provide \emph{two} estimates---a lower and upper bound---that is to say, a \emph{prediction interval}. Such an interval should be both \emph{reliable} and \emph{useful} for commuters. Reliability means that, if one arrives by the \emph{lower estimate}, there is only a small probability of missing the bus. Additionally, the bus should also have a low chance of arriving after the \emph{upper estimate}, for example when using the prediction to decide which bus to catch to get to a destination on time (more of this in \cref{sec:etas-journey-planning}). Usefulness corresponds to the width and expected wait time: these should both be minimised where possible, so for example if a bus is 5~minutes away, providing a 30~minute interval should only be done if there is very good reason to do so. If the stop before is a layover, the time range could very well be that large since, as we discussed in \cref{cha:prediction}, drivers do not always wait, so there is a trade-off between reliability and usefulness.
+Deciding on a ``best'' single-value estimate of arrival time is exceedingly difficult given the amount of uncertainty involved. The best approach above is to use a small quantile, but this increases expected wait time given catching the bus (top-right of \cref{fig:eta_headway_results}). An alternative approach is to provide \emph{two} estimates---a lower and upper bound---that is to say, a \emph{prediction interval}. Such an interval should be both \emph{reliable} and \emph{useful} for commuters.
+
+Reliability means that, if one arrives by the \emph{lower estimate}, there is only a small probability of missing the bus. The bus should also have a low chance of arriving after the \emph{upper estimate}, for example when using the prediction to decide which bus to catch to get to a destination on time (more of this in \cref{sec:etas-journey-planning}).
+
+Usefulness corresponds to the width and expected wait time: these should both be minimised where possible, so for example, if a bus is 5~minutes away, providing a 30~minute interval should only be done if there is a good reason to do so. If there is a layover between the bus and the stop, for example, the time range could very well be that large since the particles implement the layover behaviour discussed in \cref{sec:prediction_arrival_time}.
 
 
 
@@ -60,7 +64,7 @@ if (file.exists(qfile)) {
 @
 
 
-In this section, we consider symmetric prediction intervals of the form $(\Teta_{\alpha/2}, \Teta_{1-\alpha/2})$ where $\alpha \in (0,1)$ gives a $100(1-\alpha)$\% interval. It should be noted that although these intervals are symmetric in probability, they are most often asymmetric on the arrival time scale since, particularly when the bus is near and the distribution is right-skewed, as shown in \cref{fig:eta_dist_skew}. In contrast, a \Kf{} implementation assumes Gaussian errors, so the interval would be symmetric around the mean, which will often lead to incorrect intervals (potentially even an \gls{eta} below zero).
+In this section, we consider symmetric prediction intervals of the form $(\Teta_{\alpha/2}, \Teta_{1-\alpha/2})$ where $\alpha \in (0,1)$ gives a $100(1-\alpha)$\% interval. Note that although these intervals are symmetric in probability, they are most often asymmetric on the arrival time scale, particularly when the bus is near, and the distribution is right-skewed, as shown in \cref{fig:eta_dist_skew}. In contrast, a Kalman filter implementation assumes Gaussian errors, so a symmetric interval is also symmetric around the mean, as shown in \cref{fig:eta_dist_skew}, often leading to incorrect intervals (potentially even an \gls{eta} below zero).
 
 
 <<eta_dist_skew,echo=FALSE,cache=TRUE,fig.width=8,fig.height=3,out.width="\\textwidth",fig.align="center",fig.cap="Symmetry of arrival time intervals. Symmetric intervals on the probabilty scale map to asymmetric under the particle filter (left), and symmetric intervals under the Kalman filter (right).">>=
@@ -82,16 +86,39 @@ pbase <- tibble(x = seq(0, 30, by = 1)) %>%
     ylim(0, 1)
 
 library(patchwork)
-PF1 <- qlnorm(0.1, log(mean), log_sd)
-PF5 <- qlnorm(0.5, log(mean), log_sd)
-PF9 <- qlnorm(0.9, log(mean), log_sd)
+PF1 <- floor(qlnorm(0.1, log(mean), log_sd))
+PF1x <- plnorm(PF1, log(mean), log_sd)
+PF5 <- 10
+PF9 <- floor(qlnorm(0.9, log(mean), log_sd))
+PF9x <- plnorm(PF9, log(mean), log_sd)
+
 p_pf <- pbase +
-  geom_path(aes(y = pf)) +
-  geom_segment(aes(x = PF1, xend = PF1, y = 0, yend = 0.1), lty = 3, lwd = 0.5) +
-  geom_segment(aes(x = PF5, xend = PF5, y = 0, yend = 0.5), lty = 2, lwd = 0.5) +
-  geom_segment(aes(x = PF9, xend = PF9, y = 0, yend = 0.9), lty = 3, lwd = 0.5) +
-  geom_segment(aes(x = 0, xend = PF1, y = 0.1, yend = 0.1), lty = 2, lwd = 0.5) +
-  geom_segment(aes(x = 0, xend = PF9, y = 0.9, yend = 0.9), lty = 2, lwd = 0.5) +
+  geom_step(aes(y = pf)) +
+  geom_segment(
+    aes(x = PF1, xend = PF1, y = 0, yend = PF1x),
+    lty = 3,
+    lwd = 0.5
+  ) +
+  geom_segment(
+    aes(x = PF5, xend = PF5, y = 0, yend = 0.5),
+    lty = 2,
+    lwd = 0.5
+  ) +
+  geom_segment(
+    aes(x = PF9, xend = PF9, y = 0, yend = PF9x),
+    lty = 3,
+    lwd = 0.5
+  ) +
+  geom_segment(
+    aes(x = 0, xend = PF1, y = PF1x, yend = PF1x),
+    lty = 2,
+    lwd = 0.5
+  ) +
+  geom_segment(
+    aes(x = 0, xend = PF9, y = PF9x, yend = 0.9),
+    lty = 2,
+    lwd = 0.5
+  ) +
   ylab("Particle filter CDF")
 KF1 <- qnorm(0.1, mean, sd)
 KF5 <- qnorm(0.5, mean, sd)
@@ -190,8 +217,11 @@ p1 + p2 + p3 + plot_layout(guides = "collect") &
 
 
 
+We computed intervals for $\alpha \in \{0.01, 0.05, 0.1, 0.2\}$, and for each evaluated the observed coverage, the proportion of times that the bus arrived before the lower bound, and the average interval width (in minutes). \Cref{fig:eta_cis} shows that the observed coverage drops slightly as the interval width increases (smaller $\alpha$) and that the probability of the bus arriving before the lower bound is higher than expected, which could indicate that not enough uncertainty is being incorporated. Interval width increases rapidly with coverage probability, demonstrating the trade-off between reliability and usefulness.
 
-We computed intervals for $\alpha \in \{0.1, 0.05, 0.1, 0.2\}$, and for each evaluated the observed coverage, the proportion of times that the bus arrived before the lower bound, and the average interval width (in minutes). \Cref{fig:eta_cis} shows that the observed coverage drops slightly as the interval width increases (smaller $\alpha$), and that the probability of the bus arriving before the lower bound is higher than expected, which could indicate that not enough uncertainty is being incorporated. Interval width increases rapidly with interval width, demonstrating the trade-off between reliability and usefulness.
 
+Other variables---time until arrival, time of day, or stop sequence---are not considered as we did in the previous chapter, as the results are much the same. However, if desired, such relationships could be explored to choose the best point or interval estimate under any given situation. The goal of this section was to demonstrate that reliability and usefulness can be improved upon by using prediction intervals.
 
-We do not consider other variables---time until arrival, time of day, or stop sequence---as we did in the previous chapter, as the results will be much the same. However, if desired, such relationships could be explored in order to choose the best point or interval estimate under each situation.
+\begin{itemize}
+\item I think I might need more discussion here ...
+\end{itemize}

@@ -121,7 +121,7 @@ Finally, we look to \gls{picp}, where we can truly see the effect of peak traffi
 \item the wait time at the bus stop, and
 \item the probability of missing the target bus.
 \end{enumerate}
-In most cases, the latter incurs a much greater cost, but depends entirely on time until the \emph{next} bus arrival: for high-frequency routes, this will be small; for low-frequency ones, however, it can become quite high\footnote{Some routes only run hourly!}. In this section, we do not differentiate between high and low-frequency routes (we do in \cref{sec:eta_estimates}, however).
+In most cases, the latter incurs a much greater cost, but depends entirely on time until the \emph{next} bus arrival: for high-frequency routes, this is small; for low-frequency ones, however, it can become quite high\footnote{Some routes only run hourly!}. In this section, we do not differentiate between high and low-frequency routes (we do in \cref{sec:eta_estimates}, however).
 
 
 The three statistics we compare across the methods are:
@@ -153,18 +153,13 @@ The three statistics we compare across the methods are:
 
 \end{knitrout}
 
+The overall results are displayed in \cref{tab:model_results_pr_miss}. If a passenger, at any time, looks at the \gls{eta} of their bus \emph{once} and arrives at the stop by the indicated time, then using \Fpf{} the probability of catching the bus is almost double that of using \Fsched{}. For \Fhist{}, $\mathbb{P}_m$ is about 50\%, while for \Fnorm{} it is over 95\%, indicating that the normal approximation is underestimating arrival times.
 
 
-The overall results are displayed in \cref{tab:model_results_pr_miss}. If a passenger, at any time, looks at the \gls{eta} of their bus \emph{once} and arrives at the stop by the indicated time, then using \Fpf{} their probability of catching the bus is almost double that of using \Fsched{}. Using \Fhist{}, then (not surprisingly) $\mathbb{P}_m$ is about 50\%; \Fnorm{} is over 95\% which indicates that it is underestimating arrival times.
+The concept behind examining the accuracy of the lower quantile, $\mathbb{P}_\ell$, is that this value should give passengers the best chance of catching the bus. We used the 2.5\% quantile for the lower estimate, so we would expect the bus to arrive after the predicted time 97.5\% of the time. This is the case for \Fnorm{} and \Fhist{}, but \Fpf{} has a slightly lower probability that expected. Associated with the lower bound is the expected wait time until the bus arrives, conditional on not having missed it ($\mathbb{E}_\ell$). \Fpf{} has the shortest expected wait followed closely by \Fhist{}, while the wait time using \Fnorm{} is about four times as long as that of \Fpf{}.
 
 
-
-The concept behind examining the accuracy of the lower quantile, $\mathbb{P}_\ell$, is that this value should give passengers the best chance of catching the bus. We used the 2.5\% quantile for the lower estimate, so we would expect the bus to arrive after the predicted time 97.5\% of the time. This is the case for \Fnorm{} and \Fhist{}, but \Fpf{} has a slightly lower probability that expected. Associated with the lower bound is the expected wait time until the bus actually arrives, conditional on not having missed it ($\mathbb{E}_\ell$). \Fpf{} has the shortest expected wait followed closly by \Fhist{}, while the wait time using \Fnorm{} is about four times as long as with \Fpf{}.
-
-
-
-Since \Fsched{} provides only a point estimate, we cannot compare it directly to the other methods, in particular \Fpf{}. To do so, we can \emph{indirectly} compare these methods by proposing a passenger arrives $x$~minutes before the stated arrival time (by \Fsched{}) and calculating the probability of capture and expected wait time. The resulting curves are shown for a range of times (arriving 4--12~minutes before the stated arrival) in \cref{fig:model_results_pr_gtfs}, with the values for the other three methods overlaid with dashed lines.
-
+Since \Fsched{} provides only a point estimate, we cannot compare it directly to the other methods, in particular, \Fpf{}. To do so, we can \emph{indirectly} compare these methods by proposing that a passenger arrives $x$~minutes before the stated arrival time (by \Fsched{}) and calculating the probability of capture and expected wait time. The resulting curves for arriving 4--12~minutes before the stated arrival are shown in \cref{fig:model_results_pr_gtfs}, with the values for the other three methods overlaid as dashed lines.
 
 
 \begin{knitrout}\small
@@ -182,16 +177,16 @@ Since \Fsched{} provides only a point estimate, we cannot compare it directly to
 
 
 
-First let us consider the probability of the bus arriving after the estimated arrival time, $\mathbb{P}_\ell$. Based on the data collected, a passenger would need to arrive at least 10~minutes before the stated \gls{eta} (by \Fsched{}) to have a 97.5\% probability of catching the bus. To obtain the same probability as \Fpf{}, this would be 6~minutes before arrival. Now we can compare the expected waiting time: to achieve the targetted 97.5\% chance of catching the bus, the passenger would arrive 10 minutes before the stated \gls{eta}, which has an expected waiting time of about 9~minutes. Or, arriving 6~minutes before, the expected wait time drops to almost 6~minutes, which is greater than the expected wait time under \Fpf{} of just over 4~minutes.
+First, let us consider the probability of the bus arriving after the estimated arrival time, $\mathbb{P}_\ell$. Based on the data collected, a passenger would need to arrive at least 10~minutes before the stated \gls{eta} (by \Fsched{}) to have a 97.5\% probability of catching the bus. To obtain the same probability as \Fpf{}, this would be a little more than 6~minutes before arrival. Now for the expected waiting time: to achieve the targetted 97.5\% chance of catching the bus, the passenger would arrive 10 minutes before the stated \gls{eta} which, from the figure on the right, has an expected waiting time of about 9~minutes. Arriving 6~minutes before yields an expected wait time of about 6~minutes, which is greater than the expected wait time under \Fpf{} (a little over 4~minutes).
 
 
-We could also examine this the opposite way, and match the expected waiting time with that of \Fpf{}. In this case, a passenger would need to arrive no more than 4~minutes before the stated arrival time, which would give them an 85\% chance of catching the bus. For the remainder of this section, we use 6~minutes before the specified \gls{eta} to obtain a lower bound for \Fsched{}, and compare the probabilities as a function of time until arrival, stop sequence, and time of day.
+We can also consider the reverse: a passenger would need to arrive no more than 4~minutes before the stated arrival time to have the same expected wait as \Fpf{}, giving them an 85\% chance of catching the bus compared to 93\% for \Fpf{}. For the remainder of this section, we use 6~minutes before the specified \gls{eta} to obtain a lower bound for \Fsched{}, and compare the probabilities as a function of time until arrival, stop sequence, and time of day.
 
 
 
 \subsubsection{Time until arrival}
 
-\Cref{fig:model_results_pr_time} shows $\mathbb{P}_m$, $\mathbb{P}_\ell$, and $\mathbb{E}_\ell$ computed for one-minute intervals for each of the four methods. For \Fsched{}, we used a lower bound of 6~minutes before the predicted arrival. For the expected wait time, we also computed the 5\% and 90\% quantiles, which are displayed as shaded regions. The dotted line in the expected waiting time graph represents the maximum possible waiting time; that is, when the bus is 10~minutes and you arrive immediately at the stop, you will wait 10~minutes.
+\Cref{fig:model_results_pr_time} shows $\mathbb{P}_m$, $\mathbb{P}_\ell$, and $\mathbb{E}_\ell$ computed at one-minute intervals for each of the four methods. \Fsched{} used a lower bound of $\hat\Tarr - 300$ (6~minutes before the point estimate). For the expected wait time, 5\% and 90\% quantiles are displayed as shaded regions. The dotted line in the expected waiting time graph represents the maximum possible waiting time; that is, the expected waiting time for a passenger already at the stop, given the bus is 10~minutes away, is 10~minutes.
 
 
 \begin{knitrout}\small
@@ -203,21 +198,18 @@ We could also examine this the opposite way, and match the expected waiting time
 \end{knitrout}
 
 
-
-The probability that the bus arrives after the point estimate (mean or median), $\mathbb{P}_\ell$ is more or less constant with a slight decrease as the bus nears the stop. \Fpf{} and \Fnorm{} are above the expected value of 50\%, though the latter is significantly higher. \Fnorm{} performs reasonably well, though tends to underestimate arrival time the farther out the bus is, while \Fsched{} overestimates arrival time quite such that there is less than a 40\% chance of catching the bus if it is less than 20~minutes away.
-
-
-As for $\mathbb{P}_\ell$, we see a different trend: \Fpf{} and \Fhist{} increase the further out the vehicle is; on the other hand with \Fsched{}, the probability decreases, although this is because we have chosen a fixed lower bound. Once the bus is about 15~minutes away, the \gls{eta} provided by \Fsched{} minus 6~minutes is increasingly likely to result in a caught bus, while under \Fpf{} this probability is lower, indicating not enough uncertainty is accounted for over short distances (though the difference is only a few percent).
+The probability that the bus arrives after the point estimate (mean or median), $\mathbb{P}_\ell$ is more or less constant with a slight decrease as the bus nears the stop. \Fpf{} and \Fnorm{} are above the expected value of 50\%, though the latter is significantly higher. \Fnorm{} performs reasonably well, though tends to underestimate arrival time the farther out the bus is, while \Fsched{} overestimates arrival time such that there is less than a 40\% chance of catching the bus if it is less than 20~minutes away.
 
 
-Finally, we look at the expected waiting time, given a passenger arrives at the lower bound \emph{and} the bus arrives after it. \Fpf{} has a consistently shorter waiting time, though by about 30~minutes out the three methods (excluding \Fnorm{}) are approximately the same. We can see that the expected waiting time for \Fsched{} is more or less independent of time until arrival, which is to be expected since the width is fixed. The shaded reasons represent the 5\% and 90\% quantiles of waiting time, and we see that \Fpf{} results in shorter waits, on average, for 10~minutes before arrival. As for the normal approximation, it tends towards overestimation of arrival time uncertainty, so expected waiting time is very large if arriving at the lower estimate, indicating that \Fnorm{} is not a reliable choice of predictor.
+For $\mathbb{P}_\ell$, we observe a different trend: \Fpf{} and \Fhist{} increase the further out the vehicle is; on the other hand with \Fsched{}, the probability decreases, an artefact of using a fixed lower bound. Once the bus is about 15~minutes away, the lower bound of $\hat\Tarr - 300$ provided by \Fsched{} minus 6~minutes is increasingly likely to result in a caught bus, while under \Fpf{} this probability is lower since the width of the interval decreases as fewer sources of variability remain.
 
+
+Finally, we look at the expected waiting time, given a passenger arrives at the lower bound \emph{and} the bus arrives after it. \Fpf{} has a consistently shorter waiting time, though by about 30~minutes until arrival the three methods (excluding \Fnorm{}) are approximately the same. We see that the expected waiting time for \Fsched{} is more or less independent of time until arrival, which is to be expected since the width is fixed. The shaded reasons represent 5\% and 90\% quantiles of waiting time, revealing that \Fpf{} results in shorter waits, on average, when the bus is less than 10~minutes away. The normal approximation tends towards overestimation of arrival time uncertainty, so expected waiting time is considerable if arriving at the lower estimate, indicating that \Fnorm{} is not a reliable choice for arrival time prediction.
 
 
 \subsubsection{Stop sequence}
 
-The same values were computed by stop sequence, and displayed in \cref{fig:model_results_pr_stop}. Again, \Fhist{} achieves the target probability of 50\%, whilc \Fpf{} is slightly above at about 60\%. Most notable is the steady decline in the reliability of \Fsched{}, which after stop 40 drops to about a one in three chance of catching the bus (assuming you arrive at the predicted \gls{eta}).
-
+The same values were computed by stop sequence and displayed in \cref{fig:model_results_pr_stop}. \Fhist{} achieves the target probability of 50\%, while \Fpf{} is slightly above at about 60\%. Most notable is the steady decline in the reliability of \Fsched{}, dropping to about a one in three chance of catching the bus after stop 40 (assuming you arrive at the predicted \gls{eta}).
 
 
 \begin{knitrout}\small
@@ -228,14 +220,12 @@ The same values were computed by stop sequence, and displayed in \cref{fig:model
 
 \end{knitrout}
 
-
-Moving on to the lower 2.5\% quantile, $\mathbb{P}_\ell$, we expect 97.5\% probabiltiy of capture. We see that, as before, \Fpf{} overestimates arrival time slightly, at about 90\%, while \Fsched{} decreases (again) with stop sequence; but remember the lower bound was fixed at 6~minutes before the predicted \gls{eta}. The associated wait time, $\mathbb{E}_\ell$, increases for all methods with increasing stop sequence \emph{except} for \Fsched{}, which decreases (again, the width is fixed). \Fpf{} has the lowest expected wait time up until about stop 50, and again the upper 90\% interval is lower than the mean for \Fsched{} for the first 20~stops. However, many stops with low indices will be serviced within the first 5--10~minutes of the trip, thus inflating $\mathbb{P}_\ell$ under \Fsched{}.
-
+Moving on to the lower 2.5\% quantile, $\mathbb{P}_\ell$, we expect 97.5\% probability of capture. We see that, as before, \Fpf{} overestimates arrival time slightly, with $\mathbb{P}_\ell$ of about 90\%, while for \Fsched{} it decreases with stop sequence. The associated wait time, $\mathbb{E}_\ell$, increases for all methods with increasing stop sequence \emph{except} for \Fsched{}, which decreases (remembering that the width is fixed). \Fpf{} has the lowest expected wait time, and the upper 90\% interval is lower than the mean for \Fsched{} for the first 20~stops. However, many stops with low indices are serviced within the first 5--10~minutes of the trip, thus inflating $\mathbb{P}_\ell$ under \Fsched{}.
 
 
 \subsubsection{Time of day}
 
-The probabilities and expected waiting time were calculated for 15~minute intervals over the day for each of the models, as is shown in \cref{fig:model_results_pr_timeofday}. The peak hour effects are again visible, associated with an increased probability of arriving before the bus does under \Fpf{} for both the median and lower 2.5\% quantile, while for \Fsched{} the probability of arriving before the bus does decreases slightly. In the evening we see the performance of \Fpf{} drops rapidly, which likely indicates that the probability of stopping is much reduced (many evening services have low occupancy, and as such are less likely to stop at each stop). Future work targetting more complicated dwell time models could help to correct this, however.
+The probabilities and expected waiting time were calculated for 15~minute intervals for each of the models, as shown in \cref{fig:model_results_pr_timeofday}. The peak hour effects are again visible, associated with an increased probability of arriving before the bus under \Fpf{} for both the median and 2.5\% quantile, while for \Fsched{} the probability of arriving before the bus does decreases slightly. In the evening, we see the performance of \Fpf{} drops rapidly, likely due to the much-reduced probability of stopping (many evening services have low occupancy). Future work implementing more specific dwell time models could help to improve this.
 
 
 \begin{knitrout}\small
@@ -247,17 +237,15 @@ The probabilities and expected waiting time were calculated for 15~minute interv
 \end{knitrout}
 
 
-We see much the same pattern with the expected waiting time $\mathbb{E}_\ell$, in which wait times increase by a few minutes under \Fpf{}, while there is little noticable change for \Fsched{} and \Fhist{}. Even so, \Fpf{} consistently provides shorter expected wait times than \Fsched{}, and over most of the day (from about 7~am until 6~pm) the probability of the bus arriving after the lower estimate is above 90\%.
-]
+We see much the same pattern with the expected wait time $\mathbb{E}_\ell$, which increase by a few minutes under \Fpf{} during peak times. There is little noticeable change for \Fsched{} and \Fhist{}. Even so, \Fpf{} consistently provides shorter expected wait times than \Fsched{}.
 
 
 \subsection{Result summary}
 \label{sec:prediction_model_comp_summary}
 
+The results in \cref{sec:prediction_model_comp_stats,sec:prediction_model_comp_probs} demonstrate the relative accuracy and reliability of four methods of predicting the arrival time distribution at a stop. The particle filter (\Fpf{}) uses a sample of weighted particles representing the vehicle's state, along with the \rt{} traffic state, to approximate the distribution. On average, it is slightly more accurate than the currently used method (\Fsched{}), particularly when the bus is within 20~minutes of arriving and during the daytime off-peak period, and captures most of the uncertainty during this period (as per \gls{picp}).
 
-The results in \cref{sec:prediction_model_comp_stats,sec:prediction_model_comp_probs} demonstrate the relative accuracy and reliability of four methods of predicting the arrival time distribution at a stop. The particle filter (\Fpf{}) uses a sample of weighted particles representing the vehicle's state, along with the \rt{} traffic state, to approximate the distribution. On average, it is slightly more accurate that the currently used method (\Fsched{}), particularly when the bus is within 20~minutes of arriving and during the daytime off-peak period, and covers most of the uncertainty during this period (as per \gls{picp}).
-
-As for the reliability of the estimates---that is, their use as an \gls{eta} for commuters---the \pf{} tended to underestimate the median arrival time, whereas the current method tends to \emph{overestimate} the point estimate; in terms of the application, the former is prefered, often resulting in a 30\% higher probability of catching the bus (that is, not missing it). The \pf{} provides an estimate of the arrival time distribution, allowing us to estimate quantiles easily\footnote{Except for the computational burden.}. We showed that the lower bound typically was an overestimate, indicating that perhaps not enough variability was being included, or perhaps that more particles are needed; we used $\tilde N = 200$, but future work could involve modifying this depending on the number of stops remaining along a route. However, the lower bound still gives a 90--95\% chance of catching the bus in most cases, and has a significantly shorter wait compared to the current method (assuming one arrives 6~minutes before the specified time). This indicates that the \pf{}, as well as providing improved prediction accuracy, can also provide more reliability for passengers.
+As for the reliability of the estimates---that is, their use as an \gls{eta} for commuters---the \pf{} tends to underestimate arrival time, whereas the current method tends to \emph{overestimate} it. In terms of the application, the former is prefered, often resulting in a 30\% higher probability of catching the bus. The \pf{} provides an estimate of the arrival time distribution, allowing easy estimation of quantiles. We have seen that the lower bound is typically an overestimate, indicating that perhaps not enough variability is being included, or perhaps that more particles are needed. The presented results used $\tilde N = 200$, but future work could involve modifying this depending on the number of stops remaining along a route. However, the lower bound still gives a 90--95\% chance of catching the bus in most cases and has a significantly shorter wait time compared to the current method (assuming one arrives 6~minutes before the specified time). This difference indicates that the \pf{}, as well as providing improved prediction accuracy, can also provide more reliability for passengers.
 
 
-In the results we saw that there were a few scenarios that could be attributed to much of the \pf{}'s poorer performance: peak times and evenings. Further work could be performed, particularly on forecasting network travel times, to improve these predictions. We also presented two other models: a normal approximation (\Fnorm{}), which demonstrated very poor performance in that it tended to overestimate the distribution uncertainty, likely a result of combining the mixtures; historical data (\Fhist{}) was also used---the arrival time prediction distribution was based purely on the distribution of arrival time delays at stops along a route---which performed admirably, with good estimation of the distribution quantiles, but as would be expected did not perform once the trip was underway and \rt{} information was available. It does, however, suggest that this historical data should (and will be) used for prior predictions of arrival time; that is, before a trip has registered with the \rt{} service, the best prediction of arrival time will be using \Fhist{}.
+We saw that there were a few scenarios that could be attributed to much of the \pf{}'s weaker performance, namely peak times and evenings. Further work could be performed, particularly on forecasting network travel times, to improve these predictions. We also presented two other models. The normal approximation (\Fnorm{}) demonstrated very poor performance in that it tended to overestimate arrival time uncertainty, a likely result of combining the mixtures. Historical data (\Fhist{}), in which the arrival time prediction distribution was based purely on the distribution of arrival time delays at stops along a route, performed admirably. It estimated the distribution quantiles well, but its reliability (at least compared to the other methods) decreased once the trip was underway and \rt{} information was available. It does, however, suggest that historical data should be used for prior predictions of arrival time: before a trip has registered with the \rt{} service, the best prediction of arrival time is \Fhist{}.
