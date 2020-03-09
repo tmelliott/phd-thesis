@@ -519,7 +519,7 @@ knitr::kable(
 @
 
 
-The \glspl{cdf} allow easy calculation of the predicted probability of success in each scenario, displayed in \cref{tab:eta_journey_results}. Additionally, the binary (`Yes' or `No') predictions made using the schedule-delay method are displayed for comparison, as well as the eventual outcome. That is, would the passenger have caught the bus and did it arrive on time? All of the predictions based on the \pf{} arrival time \glspl{cdf} are valid: small probabilities correspond to negative outcomes, and large probabilities ($>0.8$) to positive ones. The schedule-delay predictions, however, had one incorrect prediction for the arrival of the 1:15~pm 25B at the destination on time: it predicted `No', while our method predicted an 81\% chance of success ()
+The \glspl{cdf} allow easy calculation of the predicted probability of success in each scenario, displayed in \cref{tab:eta_journey_results}. Additionally, the binary (`Yes' or `No') predictions made using the schedule-delay method are displayed for comparison, as well as the eventual outcome. That is, would the passenger have caught the bus and did it arrive on time? All of the predictions based on the \pf{} arrival time \glspl{cdf} are valid: small probabilities correspond to an outcome of `No' and large probabilities ($>0.8$) to `Yes'. There was a discrepancy for the 1:15~pm 25B, which arrived at the destination on time: the schedule-delay incorrectly predicted `No', while our method predicted an 81\% chance of success.
 
 
 <<eta_journey_results_avg,echo=FALSE,cache=TRUE,dependson=-1,message=FALSE,fig.width=8,fig.height=2.5,out.width="\\textwidth",fig.cap=sprintf("Results of performing the same journey planning prediction with different starting times (from %s to %s), using the same start and end locations. Observations are whether or not the passenger would have arrived at the stop before the bus, jittered to better see each observation. Predictive probabilities of 0 and 1 that were correctly estimated have been removed.", format(min(tstart), TIME_FMT), format(max(tstart), TIME_FMT)),fig.align="center">>=
@@ -755,9 +755,16 @@ gtfs_arrive_tab <- table(
 gtfs_arrive_pc <-
   round(sweep(gtfs_arrive_tab, 1, rowSums(gtfs_arrive_tab), "/"), 2)
 
+tab <- cbind(
+  "GTS Prediction" = c("No", "Yes"),
+  format(gtfs_catch_pc, nsmall = 2L, digits = 2L),
+  NA,
+  format(gtfs_arrive_pc, nsmall = 2L, digits = 2L)
+)
+
 options(knitr.kable.NA = "")
 knitr::kable(
-  cbind("GTS Prediction" = c("No", "Yes"), gtfs_catch_pc, NA, gtfs_arrive_pc),
+  tab,
   row.names = FALSE,
   format = "latex",
   booktabs = TRUE,
@@ -787,24 +794,19 @@ knitr::kable(
 
 @
 
-The results in \cref{fig:eta_journey_arrival,fig:eta_journey_arriveby} and \cref{tab:eta_journey_results} are based on \emph{one single forecast} made at \Sexpr{format(TSTART, "%kh%M")}. To evaluate the overall performance of our prediction method, we repeated the process described above in 5~minute intervals over the off-peak period from \Sexpr{format(min(tstart), "%kh%M")} to \Sexpr{format(max(tstart), "%kh%M")}. For the appointment time, we used 30~minute intervals allowing for 15--45 minutes for the journey: leaving between 9h15 and 9h44 had a targetted arrival time of 8h00; 9h45--10h14 targetted 8h30; and so on. The probabilities of catching the bus and arriving on time were calculated for each case. In \cref{fig:eta_journey_results_avg}, we have graphed the distribution of predicted probabilities for each of the two outcomes, for both catching the bus and arriving on time. Only a small number of missed buses had predictions over 50\%, though a larger number of potential buses had low capture probabilities. As for the arrival outcome, successfully arriving on time was usually predicted well, with a small number of low predictions; however, the maximum probability assigned to a failed on-time arrival was 75\%.
+The results in \cref{fig:eta_journey_arrival,fig:eta_journey_arriveby} and \cref{tab:eta_journey_results} are based on \emph{one single forecast} made at \Sexpr{format(TSTART, TIME_FMT)}. To evaluate the overall performance of our prediction method, we repeated the process described above in 5~minute intervals over the off-peak period from \Sexpr{format(min(tstart), TIME_FMT)} to \Sexpr{format(max(tstart), TIME_FMT)}. For the appointment time, we used 30~minute intervals allowing for 15--45 minutes for the journey: leaving between 9:15~am and 9:45~am had a targetted arrival time of 8:00~am; 9:45~am--10:15~am targetted 8:30~am; and so on. The probabilities of catching the bus and arriving on time were calculated for each case. \Cref{fig:eta_journey_results_avg}, graphs the distribution of predicted probabilities for each of the two outcomes, for both catching the bus (left) and arriving on time (right). For most of the buses that arrived before the passenger, our method predicted capture probability below 50\%, though more buses which arrived after the passenger also had capture probabilities below 50\%. As for the arrival outcome, the maximum probability of arriving on time for buses which did not was 75\%, whereas a few buses which did arrive on time had small (< 50\%) probabilities of doing so.
 
 
-
-For comparison, \cref{tab:eta_journey_results_avg} presents a two-way contingency table for the binary schedule-delay predictions, with the predicted outcomes in rows. In \Sexpr{round(100 * gtfs_catch_pc[2,2])}\% of the cases where the bus was predicted to arrive after the passenger was the schedule-delay method correct, and \Sexpr{round(100 * gtfs_catch_pc[1,1])}\% for when it predicted the passenger would miss the bus. For arrival on time, the bus correctly predicted `Yes' \Sexpr{round(100 * gtfs_arrive_pc[2,2])}\% of the time, but only correctly predicted `No' in \Sexpr{round(100 * gtfs_arrive_pc[1,1])}\% of cases. Overall, the schedule-delay method correctly predicted the bus capture in \Sexpr{round(100 * sum(diag(gtfs_catch_tab)) / sum(gtfs_catch_tab))}\% of cases, and correctly predicted on-time arrival in \Sexpr{round(100 * sum(diag(gtfs_arrive_tab)) / sum(gtfs_arrive_tab))}\% of cases.
-
-
-In both methods, predicting bus capture is more accurate than predicting on-time arrival, since the forecast length is shorter (10~minutes versus 30~minutes). The schedule-delay predictions give a 1-in-10 chance of missing the bus, while our \pf{} provides a less definite prediction (such as 75\%). This opens up the possiblity for passengers to make more informed decisions based on these probabilites and the importance of their constraints, whereas the schedule-delay method can provide, at best, the predicted arrival time as a singular point estimate with no associated uncertainty.
+For comparison, \cref{tab:eta_journey_results_avg} presents a two-way contingency table for the binary schedule-delay predictions, with the predicted outcomes in rows. Where the schedule-delay predicted that the bus would arrive after the passenger, it was correct \Sexpr{round(100 * gtfs_catch_pc[2,2])}\% of the time. When it predicted the bus would arrive first, it had a \Sexpr{round(100 * gtfs_catch_pc[1,1])}\% success rate. As for the arrival, in all cases that the schedule-delay predicted the bus would arrive on time, it was correct, versus only \Sexpr{round(100 * gtfs_arrive_pc[1,1])}\% when it predicted the bus would be late. Overall, the schedule-delay method correctly predicted the bus capture outcome in \Sexpr{round(100 * sum(diag(gtfs_catch_tab)) / sum(gtfs_catch_tab))}\% of cases and correctly predicted the on-time arrival outcome in \Sexpr{round(100 * sum(diag(gtfs_arrive_tab)) / sum(gtfs_arrive_tab))}\% of cases.
 
 
-
+In both methods, predicting bus capture is more accurate than predicting on-time arrival, which is acceptable considering the difference in forecast length: about 10~minutes for bus capture versus about 30~minutes for arrival. The schedule-delay predictions have a 1-in-10 chance of missing the bus, while our \pf{} provides a less definite prediction (such as 75\%), opening up the opportunity for passengers to make more informed decisions based on these probabilities and the importance of their constraints. In contrast, the schedule-delay method provides, at best, the predicted arrival time as a singular point estimate with no associated uncertainty, allowing only a `Yes' or `No' prediction to be made.
 
 
 \subsection{Planning a multi-stage journey}
 \label{sec:journey_transfer}
 
-A more complex scenario is one in which the passenger must transfer from one route onto another. Transfer journeys are common for travellers commuting from further afield, where there are often several \emph{feeder routes} which connect at a major hub which usually has more frequent trips to another hub. It may also happen that there simply is no single route between a passengers origin and destination, as is demonstrated in \cref{fig:eta_journey_arrival_prep}. In this scenario, the passenger must first catch a bus along route group A\footnote{We use route groups since there are several different routes which make the same journey, as can be seen with route group B in the south-west of \cref{fig:eta_journey_arrival_prep}.} to the stop marked ``Transfer'', at which point they disembark and wait for the next bus along route group B to get to their final destination (marked ``End'').
-
+A more complex scenario is one in which the passenger must transfer from one route to another. Transfer journeys are common among travellers commuting from further afield, and occur when there is no single route between their origin and destination, as is demonstrated in \cref{fig:eta_journey_arrival_prep}. In this scenario, the passenger must first catch a bus along route group A\footnote{We use route groups since there are several different routes which make the same journey, as can be seen with route group B in the south-west of \cref{fig:eta_journey_arrival_prep}.} to the stop marked ``Transfer'', at which point they disembark and wait for the next bus along route group B to get to their final destination.
 
 
 <<eta_journey_transfer_prep,echo=FALSE,cache=TRUE,warning=FALSE,message=FALSE,fig.height=5,out.width="\\textwidth",fig.cap="Transfer options",fig.align="center">>=
@@ -825,7 +827,7 @@ DATE <- "2019-08-29"
 routes <- c("27H", "27W", "24R", "24B", "22R", "22N")
 
 stops <- tibble(
-  which = c("Start", "Transfer", "End"),
+  which = c("Origin", "Transfer", "Destination"),
   id = c("8513", "7151", "1090"),
 )
 
@@ -924,7 +926,7 @@ ggmap(map) +
   ) +
   geom_label(aes(stop_lon, stop_lat, label = which),
     data = stops,
-    nudge_x = c(-0.003, -0.004, 0),
+    nudge_x = c(-0.0035, -0.004, 0),
     nudge_y = c(0, 0, -0.0015)
   ) +
   geom_point(aes(stop_lon, stop_lat),
@@ -979,12 +981,12 @@ all_stop_arrivals <- trip_etas %>%
   arrange(trip_id, eta) %>%
   left_join(stops %>% select(stop_id, which), by = "stop_id") %>%
   mutate(
-    which = factor(which, levels = c("Start", "Transfer", "End"))
+    which = factor(which, levels = c("Origin", "Transfer", "Destination"))
   )
 
 # now filter out irrelevant trips...
 trips_at_start <- all_stop_arrivals %>%
-  filter(which == "Start" & transfer == 1) %>%
+  filter(which == "Origin" & transfer == 1) %>%
   pull(trip_id) %>% unique
 trips_at_transfer <- all_stop_arrivals %>%
   filter(
@@ -1029,10 +1031,10 @@ ggplot(stop_arrivals, aes(timestamp + eta * 60, quantile)) +
 @
 
 
-Similarly to the previous example, we take one single forecast of all trip arrivals at 1~pm to make decisions. Walking time has been removed to simplify the example, but could easily be included if desired. \Cref{fig:eta_journey_transfer_graph} shows, for all active trips at \Sexpr{format(TSTART, "%kh%M")}, their arrival time \glspl{cdf} at the start and transfer stops (for the first leg) and the transfer and end stops (for the second). Additional constraints, such as arrival by a specific time, could of course be added, in this instance we are solely interested in how well a successful transfer can be predicted.
+Similarly to the previous example, we take one single forecast of all trip arrivals at 1~pm. Walking time has been removed to simplify the example, but could easily be included if desired. \Cref{fig:eta_journey_transfer_graph} shows, for all active trips at \Sexpr{format(TSTART, TIME_FMT)}, their arrival time \glspl{cdf} at the start and transfer stops (for the first leg) and the transfer and end stops (for the second). Additional constraints, such as arrival by a specific time, could, of course, be added; in this instance, however, we are solely interested in how well we can predict a successful transfer from A to B.
 
 
-Given \glspl{cdf} for two trips arriving at a stop, the probability that a transfer can successfully be made from A to B can be obtained by the following:
+Given \glspl{cdf} for two trips arriving at a stop, the probability that a transfer can successfully be made from A to B is calculated by
 \begin{equation}
 \label{eq:eta_total_prob}
 \begin{split}
@@ -1043,10 +1045,10 @@ Given \glspl{cdf} for two trips arriving at a stop, the probability that a trans
   &= \sum_{x=1}^\infty
     \Pr{A < x} \left[
       \Pr{B < x + 1} - \Pr{B < x}
-    \right]
+    \right],
 \end{split}
 \end{equation}
-which we can easily compute given the \glspl{cdf} of the arrival time of each trip obtained from \cref{eq:pf_pdf_arrivaltime}. Table \cref{tab:eta_journey_transfer_res} displays the results, along with the binary predictions using the schedule-delay method along with the observed outcomes. The \pf{} predicts transfer probabilities with reasonable accuracy, with low probabilities resulting in negative outcomes. In contrast, the schedule-delay predicions fail to correctly predict the outcome of a transfer between A1 and B3: it predicts a successful transfer, but infact it is not, while the particle filter predicted a 32\% chance of success. This is where a prediction probability shows its power, in that a passenger could, where applicable, base their decision on how important it is they make the transfer. While this is a fairly non-exciting example (it's a short wait for the next bus), there are other situations where the headway between trips is 30--60~minutes, in which case missing a transfer by a few minutes would be frustrating. However, until our application has been updated to make predictions for upcoming (and not just active) trips, such examples are not yet available.
+which is easily computed from the arrival time \glspl{cdf} obtained from \cref{eq:pf_pdf_arrivaltime}. \Cref{tab:eta_journey_transfer_res} displays the prediction probabilities, along with the binary predictions using the schedule-delay method and the observed outcomes.
 
 
 <<eta_journey_transfer_res,echo=FALSE,cache=TRUE,dependson=-1>>=
@@ -1144,6 +1146,8 @@ tstart <- seq(
 @
 
 
+The particle filter predicts transfer probabilities with reasonable accuracy: low probabilities result in negative ('No') outcomes. In contrast, the schedule-delay predictions fail to correctly predict the outcome of a transfer between 1A and 2C: it incorrectly predicted a successful transfer while the particle filter predicted only a 32\% chance of success. Here a passenger could, where applicable, base their decision on how important it is they make the transfer which might depend on frequency or other constraints. While this example is somewhat trivial (it's a short wait for the next bus), there are situations where the headway between trips is 30--60~minutes, in which case---from personal experience---watching your next bus depart just as the one you are on arrives at the station is very frustrating. However, until our application has been updated to make predictions for upcoming (and not just active) trips, we are not yet able to make predictions for such scenarios.
+
 
 <<eta_journey_transfer_many,echo=FALSE,cache=TRUE,dependson=-1,message=FALSE,fig.width=4,fig.height=2.5,out.width=".5\\textwidth",fig.cap=sprintf("Results of performing the same transfer journey planning prediction with different starting times (from %s to %s). Observations are whether or not the first bus would arrive at the transfer stop before the second bus, jittered to better see each observation. Additionally, predictive probabilities of 0 and 1 have been removed since, after checking, none or these were invalid and only served to distort the figure.", format(min(tstart), "%kh%M"), format(max(tstart), "%kh%M")),fig.align="center">>=
 
@@ -1188,12 +1192,12 @@ if (file.exists(all_results_file)) {
         arrange(trip_id, eta) %>%
         left_join(stops %>% select(stop_id, which), by = "stop_id") %>%
         mutate(
-          which = factor(which, levels = c("Start", "Transfer", "End"))
+          which = factor(which, levels = c("Origin", "Transfer", "Destination"))
         )
 
       # now filter out irrelevant trips...
       trips_at_start <- all_stop_arrivals %>%
-        filter(which == "Start" & transfer == 1) %>%
+        filter(which == "Origin" & transfer == 1) %>%
         pull(trip_id) %>% unique
       trips_at_transfer <- all_stop_arrivals %>%
         filter(
@@ -1335,7 +1339,8 @@ knitr::kable(
 @
 
 
-As before, we proceed to repeat the procedure for multiple times (this time between \Sexpr{format(min(tstart), "%kh%M")} and \Sexpr{format(max(tstart), "%kh%M")}), and compute the probabilities of available transfers and whether or not they connected. \Cref{fig:eta_journey_transfer_many} shows the predicted transfer probabilities grouped by outcome, and coloured by the schedule-delay prediction. This is complimented with contingency \cref{tab:eta_journey_transfer_many} for the schedule-delay method and our own, respectively. For the schedule-delay method, in \Sexpr{round(100*gtfs_pc[2,1])}\% of cases a predicted successfull connection failed and showed a \Sexpr{round(100*gtfs_pc[1,2])}\%, versus only \Sexpr{round(100*pf_pc[2,1])}\% using the \pf{} with a decision rule of $\Pcatch > 0.5$. The false negative rate was similar for both methods, although slightly higher for our own (\Sexpr{round(100*pf_pc[1,2])}\% versus \Sexpr{round(100*gtfs_pc[1,2])}\% for schedule-delay). However, depending on the passenger's requirements, it is possible to reduce the false positive rate under the \pf{} by increasing the threshold. \Cref{tab:eta_journey_transfer_many} also shows the results using 0.8 and 0.95 as the decision rule, which result in a \Sexpr{round(100*pf_pc2[2,1])}\% and \Sexpr{round(100*pf_pc3[2,1])}\% false positive rate, respectively, though these result in quite a significant increase in the false negative rate. Again, by providing probabilities the passenger has the option to decide what level of risk they are willing to take.
+
+As before, the procedure was repeated in 5~minute intervals between \Sexpr{format(min(tstart), TIME_FMT)} and \Sexpr{format(max(tstart), TIME_FMT)}, and the probabilities of transfers computed for each. \Cref{fig:eta_journey_transfer_many} shows the predicted transfer probabilities grouped by the outcome. To complement these results, \cref{tab:eta_journey_transfer_many} shows the outcomes for the schedule-delay method along with particle filter predictions using three decision rules. For the schedule-delay method, in \Sexpr{round(100*gtfs_pc[2,1])}\% of cases, a predicted successful connection failed versus only \Sexpr{round(100*pf_pc[2,1])}\% using the particle filter with a decision rule of $\Pcatch > 0.5$. The false-positive rate was similar for both methods, although slightly higher for our own (\Sexpr{round(100*pf_pc[1,2])}\% versus \Sexpr{round(100*gtfs_pc[1,2])}\%). However, depending on the passenger's requirements, it is possible to reduce the false-positive rate under the particle filter by increasing the threshold.  \Cref{tab:eta_journey_transfer_many}  also shows the results using 0.8 and 0.95 as the decision rule, which results in a \Sexpr{round(100*pf_pc2[2,1])}\% and \Sexpr{round(100*pf_pc3[2,1])}\% false positive rate, respectively, though these result in quite a significant increase in the false-negative rate. By providing probabilities, the passenger has the option to decide what level of risk they are willing to take depending on personal constraints.
 
 
-In this section we have seen that having access to the full distribution of arrival times enables calculation of event probabilities as opposed to binary outcome predictions. This allows for more sophisticated decision making by travellers depending on their own needs, or by journey planning software. A further advantage of using the \pf{} to estimate the \glspl{cdf} is  that any improvements to the vehicle or network models will automatically be integrated into the arrival prediction component, allowing for further improvments.
+In this section, we have seen that having access to the full distribution of arrival times enables calculation of event probabilities as opposed to binary outcome predictions. Probabilities allow for more sophisticated decision making by travellers depending on their own needs, or by journey planning software and dynamic routing methods \citep{Berczi_2017}. A further advantage of using the \pf{} to estimate the \glspl{cdf} is that any improvements to the vehicle or network models will be integrated into the arrival prediction component, making future improvements simple to implement.
