@@ -223,5 +223,5 @@ We computed intervals for $\alpha \in \{0.01, 0.05, 0.1, 0.2\}$, and for each ev
 Other variables---time until arrival, time of day, or stop sequence---are not considered as we did in the previous chapter, as the results are much the same. However, if desired, such relationships could be explored to choose the best point or interval estimate under any given situation. The goal of this section was to demonstrate that reliability and usefulness can be improved upon by using prediction intervals.
 
 \begin{itemize}
-\item I think I might need more discussion here ...
+\item More discussion here ...?
 \end{itemize}

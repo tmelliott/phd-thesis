@@ -7,13 +7,13 @@ The particle filter allows us to approximate any distribution by using a sample 
 \section{The Dirac measure}
 \label{app:dirac-delta-measure}
 
-In \cref{cha:gtfs,cha:vehicle_model} we described the particle filter implementation, and noted that we can use the Dirac measure, $\dirac$, to approximate the distribution. We will not got into the theoretical aspects of the function, except to state the following property \citep{}:
+In \cref{sec:recursive-bayes,cha:vehicle_model} we described the particle filter implementation, and noted that we can use the Dirac measure, $\dirac$, to approximate the distribution. We will not got into the theoretical aspects of the function, except to state the following property \citep{cn}:
 \begin{equation}
 \label{eq:dirac_property}
 \int_X f(x) \dirac_y(x)\dx = f(y).
 \end{equation}
 
-Let $x$ be an unknown quantity for which we have a sample of $N$ particles $\{x\vi\}_{i=1}^N$ with associated weights $\{w\vi\}_{i=1}^N$. The Dirac delta measure is used to approximate that distribution of $x$ \citep{}:
+Let $x$ be an unknown quantity for which we have a sample of $N$ particles $\{x\vi\}_{i=1}^N$ with associated weights $\{w\vi\}_{i=1}^N$. The Dirac delta measure is used to approximate the distribution of $x$ \citep{cn}:
 \begin{equation}
 \label{eq:dirac_dist}
 p(x) \approx \sum_{i=1}^N w\vi \dirac_{x\vi}(x)
