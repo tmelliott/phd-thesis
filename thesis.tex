@@ -116,6 +116,8 @@ headsepline, % Uncomment to get a line under the header
 \usepackage[acronym,nonumberlist,toc,nomain]{glossaries} %Load glossaries package
 \makeglossaries
 
+\usepackage{soul}
+\newcommand{\note}[2][]{{\ul{#1}~\footnotesize\textcolor{blue}{\emph{[#2]}}}}
 
 
 \include{include/abbreviations}

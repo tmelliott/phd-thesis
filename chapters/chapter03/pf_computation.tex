@@ -3,7 +3,7 @@
 
 The general construction of the particle filter is straightforward, consisting of Vehicle and Particle objects (as well as the GTFS objects described in \cref{sec:gtfs}). Vehicles are stored within an \verb+std::unordered_map+ using their GTFS \verb+vehicle_id+ as the key.
 
-When a vehicle is first observed, a new Vehicle is created and entered into the map. Then its state is initialised by creating a vector of $\Nparticle$ Particle objects, each of which is assigned a speed between 0 and 30 m/s, and a distance based on the observation:
+When a vehicle is first observed, a new Vehicle is created and entered into the map. Then its state is initialised by creating a vector of $\Np$ \obj{Particle} objects, each of which is assigned a speed between 0 and 30 m/s, and a distance based on the observation:
 for GPS observations, map matching is used to determine the approximate location, around which the particle's are scattered;
 for trip updates, the particle's are placed at the appropriate stop.
 When new data for an existing vehicle is observed, the vehicle's relevant properties are updated (such as position or timestamp). Then the particles are mutated using the transition function from \cref{sec:vehicle_model} and reweighted according to the likelihood function (\cref{sec:pf-likelihood}). If the effective sample size drops below the threshold $\Nthres=\frac{\Np}{4}$, the state is resampled with replacement and particle weights reset to $\frac{1}{\Np}$. See \cref{app:particle-resampling} for details on particle resampling.

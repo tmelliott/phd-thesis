@@ -1,4 +1,4 @@
-\subsection{Particle filter (\Fpf{})}
+\subsection[Particle filter]{Particle filter (\Fpf{})}
 \label{sec:prediction_arrival_time_pf}
 Each active trip is associated with a single vehicle, itself associated with a set of  $\Np$~particles approximating the vehicle's state. Perhaps the most straightforward method---at least conceptually---of predicting arrival times is to let each particle progress to the end of the route and record its arrival times. Computationally, this is easy to implement but very intensive, significantly increasing iteration time for the application. However, the main reason for needing large $\Np$ (we used 5000 for this demonstration) is due to a lot of uncertainty in the vehicle's location and the need to sample many trajectories to prevent degeneration. Now, only arrival times need to be estimated. It is, therefore, possible to sue $\Np^\star < \Np$~particles to estimate arrival times, providing a significant performance improvement. $\Np^\star$ can be adjusted dynamically, such as by how many stops remain; however, the present application used a fixed value of $\Np^\star = 200$.
 
@@ -11,15 +11,15 @@ v\vi_\ell \sim \TNormal{\RouteNWstateseg_\ell}{\RouteNWstatevarseg_\ell^2 + \NWv
 which could be modified if correlations are specified. It is then an iterative process of computing arrival times.
 
 \paragraph{Step 1: complete the current segment}
-If the particle is at a stop, the (remaining) dwell time is sampled from the dwell time distribution (this is the same as in \cref{cha:vehicle_model}), and the particle's departure time is stored. If the particle is not at a stop, and $\SegProg_k > 0$, then the time to completion of the current segment $\ell$ with speed $v\vi_\ell^\star$ is
+If the particle is at a stop, the (remaining) dwell time is sampled from the dwell time distribution (this is the same as in \cref{cha:vehicle_model}), and the particle's departure time is stored. If the particle is not at a stop, and $\SegProg_k > 0$, then the time to completion of the current segment $\ell$ with speed ${v\vi_\ell}^\star$ is
 \begin{equation}
 \label{eq:particle_curseg_tt}
-\tilde b\vi = \frac{(1 - \SegProg_k) \Tseglen_\ell}{v\vi_\ell^\star}.
+\tilde b\vi = \frac{(1 - \SegProg_k) \Tseglen_\ell}{{v\vi_\ell}^\star}.
 \end{equation}
 When the bus is near the end of the segment (less than 200~m remaining), the particle's current speed is used, otherwise the speed is simulated from \cref{eq:pred_seg_speed}:
 \begin{equation}
 \label{eq:particle_speed_decision}
-v\vi_\ell^\star = \begin{cases}
+{v\vi_\ell}^\star = \begin{cases}
 v\vi_\ell & (1-\SegProg_k)\Tseglen_\ell > 200,\\
 \Vspeed\vi_k & \text{otherwise}.
 \end{cases}

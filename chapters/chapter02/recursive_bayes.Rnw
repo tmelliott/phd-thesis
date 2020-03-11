@@ -186,7 +186,7 @@ The prior-predictive distribution of the state, using the Dirac delta measure, i
 \begin{equation}
 \label{eq:ch2:pf_predict_state}
 p(\bx_k | \bx_{k-1}) \approx
-\sum_{i=1}^\Np w\vi_{k-1} \DircMeasure{\bx\vi_k}{\bx_k}
+\sum_{i=1}^\Np w\vi_{k-1} \DiracMeasure{\bx\vi_k}{\bx_k}
 \end{equation}
 
 

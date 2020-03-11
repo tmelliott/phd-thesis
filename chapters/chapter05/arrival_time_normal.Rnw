@@ -1,4 +1,4 @@
-\subsection{Normal approximation (\Fnorm{})}
+\subsection[Normal approximation]{Normal approximation (\Fnorm{})}
 \label{sec:prediction_arrival_time_normal}
 
 Due to the computational demand of the particle filter, significant speed improvements can be obtained by using a normal approximation instead. The network state is a multivariate normal random variable, so the issue lies with stop dwell times having a point mass at zero, resulting in a mixture predictive distribution. For each stop the vehicle passes, there are twice as many components, so after $m$ stops, there are $2^m$ components. However, these regularly converge after a few stops, as shown in \cref{fig:normal_approx}.
@@ -187,7 +187,7 @@ and
   \sum_{i=1}^{\tilde N} \tilde\pi_i z_i} \\
 &= \sum_{\ell=j}^{j+n-1} \Var{\RouteNWstateseg_\ell} +
   \sum_{i=1}^{\tilde N} \tilde\pi_i^2 \Var{z_i} \\
-&= \sum_{\ell=j}^{j+n-1} \hat\RouteNWstatesegvar_\ell +
+&= \sum_{\ell=j}^{j+n-1} \hat\RouteNWstatevarseg_\ell +
   \sum_{i=1}^{\tilde N} \tilde\pi_i \tilde\sigma_i^2
 \end{split}
 \end{equation}

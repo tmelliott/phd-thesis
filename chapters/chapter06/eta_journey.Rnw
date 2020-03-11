@@ -1113,7 +1113,7 @@ tab <- tibble(
   did_catch = f(L1, L2, 3, transfer_arrivals, transfer_departures)
 ) %>%
   rename(
-    "$\\mathbb{P}_\\text{transfer}" = p_catch,
+    "$\\mathbb{P}_\\text{transfer}$" = p_catch,
     "GTFS" = gtfs_eta,
     "Outcome" = did_catch,
     "Leg 1" = L1,

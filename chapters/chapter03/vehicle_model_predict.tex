@@ -176,7 +176,7 @@ A bus' wait time at a bus stop is referred to as \emph{dwell time} and consists 
 Phases i and ii are combined with 1a and 1c from above (deceleration and acceleration, respectively) into a single parameter, $\mindwell$, which is assumed constant across all buses, stops, and routes.
 
 
-The service (phase ii) is the time taken for passengers to get on and off the bus, which varies significantly between stop, route, and time of day. There are many ways to model service time, such as an exponential \citep{Hans_2015} or [another reference?]. Here, we present using a truncated normal distribution using the mean and variance of dwell times, truncated at zero. The service time at the $m\th$ stop along a route ($m=1,...,M-1$, as dwell time doesn't apply for the last stop) is denoted $\pdwell_m$, which we model by its mean and variance, $\dwell_m$ and $\dwellvar_m^2$, respectively, estimated from historical data:
+The service (phase ii) is the time taken for passengers to get on and off the bus, which varies significantly between stop, route, and time of day. There are many ways to model service time, such as an exponential \citep{Hans_2015} or [another reference?]. Here, we present using a truncated normal distribution using the mean and variance of dwell times, truncated at zero. The service time at stop $m$ stop along a route ($m=1,...,M-1$, as dwell time doesn't apply for the last stop) is denoted $\pdwell_m$, which we model by its mean and variance, $\dwell_m$ and $\dwellvar_m$, respectively, estimated from historical data:
 \begin{equation}
 \label{eq:stop_dwell_time}
 \pserve_m \sim \TNormal{\dwell_m}{\dwellvar_m}{0}{\infty}
@@ -185,7 +185,7 @@ The service (phase ii) is the time taken for passengers to get on and off the bu
 For each bus stop, we also have a \emph{stopping probability} $\Prstop_m\in(0,1)$. For the first and last stops, $m\in\{1,M\}$, the is unity; for the remainder, we have no data with which we can reliably estimate $\Prstop_m$, so, for now, we assume all stops have the same values specified by a global $\Prstop$ parameter (see \cref{sec:pf_params} for details on this). The outcome of whether or not a bus stops at a bus stop, $p_m$, is thus a Bernoulli trial,
 \begin{equation}
 \label{eq:stop_pstop}
-\Istop_m \sim \Bernoulli{\Prstop_m}
+\Istop_m \sim \Bern{\Prstop_m}
 \end{equation}
 The total dwell time of a bus at stop $m$ can be expressed as
 \begin{equation}
@@ -197,7 +197,10 @@ which, under the particle filtering framework, is straightforward to implement. 
 One other scenario for bus stops is a \emph{layover}, which is when a bus arrives early at a major stop\footnote{This is more common on longer routes in an attempt to keep them to schedule} and waits until the scheduled departure time. In the GTFS stop times table, layovers are denoted by an arrival time early\footnote{This is usually a one-second difference} than the corresponding departure time, as shown in \cref{tab:layover_times}. Again, under the particle filtering framework, this is simple enough to implement: if the particle arrives early, wait until the scheduled departure time before leaving (i.e., adjusting the dwell time). However, it is not always the case that buses will wait for the layover, so we add a probability of adherence, similar to the stopping probability in equation (Bernoulli).
 
 \begin{knitrout}\small
-\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{table}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+
+
+{\ttfamily\noindent\itshape\color{messagecolor}{\#\# Loading required namespace: transitr}}\end{kframe}\begin{table}
 
 \caption{\label{tab:layover_times}Arrival times for a trip with layover stops marked with an asterix ($\star$).}
 \centering
@@ -247,7 +250,7 @@ Modelling intersections is much the same as bus stops, with a few differences:
 
 However, we did not have any reliable intersection location information available, so were unable to explore this component of the model fully. Instead, we describe here a single behaviour but note that it could easily be modified in future.
 
-We model the wait time $w$ at the $l$th intersection with an exponential distribution with rate $\intwait_\ell^{-1}}$:
+We model the wait time $w$ at intersection $\ell$ with an exponential distribution with rate $\intwait_\ell^{-1}$:
 \begin{equation}
 \label{eq:int_wait}
 \pcwait_\ell \sim \Exp{\intwait_\ell^{-1}}

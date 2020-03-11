@@ -73,7 +73,7 @@ j : \sum_{i=1}^j w\vi[j] \leq u.
 \section{Summary statistics}
 \label{app:particle-summaries}
 
-Another core part of the program is computing of summary statistics, for example the mean and variance. However, these are easily computed using \verb+std::accumulate+, for example, a vehicle's mean speed is obtained by:
+Another core part of the program is computing of summary statistics, for example the mean and variance. However, these are easily computed using {\tt std::accumulate}, for example, a vehicle's mean speed is obtained by:
 \begin{lstlisting}
 double mean = std::accumulate (
     x.begin (), x.end (),
@@ -85,7 +85,7 @@ double mean = std::accumulate (
     }
 );
 \end{lstlisting}
-Similarly, the variance can be calculated by passing a reference to the value of \verb+mean+ to the lambda function (within \verb+[]+), which becomes
+Similarly, the variance can be calculated by passing a reference to the value of {\tt mean} to the lambda function (within {\tt []}), which becomes
 \begin{lstlisting}
 [&mean](double a, Particle& p) {
     return a + p.get_weight () * pow (p.get_speed () - mean, 2.);
@@ -106,4 +106,4 @@ while (wt < 0.5) wt += x.at (i++).get_weight ();
 double median = x.at (i).get_speed ();
 \end{lstlisting}
 
-The issue here is the first step, sorting, which has computational complexity of $\mathcal{O}(N\log N)$\footnote{as described by the documentation page for \verb+std::sort+, \url{https://en.cppreference.com/w/cpp/algorithm/sort}}. If we wish to estimate the median distance and the median speed, we need to sort the particles \emph{twice}. In \cref{cha:etas}, we used multiple quantiles for each stop: this requires sorting each vehicle's particles once for each upcoming stop. However, since we use a subsample to compute \glspl{eta} ($N^\star$), the complexity is significantly smaller, $\mathcal{O}(N^\star\log N^\star)$; if we attempted to use all $N$ particles (in the simulation used in \cref{cha:prediction}, we used $N=10000$) the application would have taken far longer.
+The issue here is the first step, sorting, which has computational complexity of $\mathcal{O}(N\log N)$\footnote{as described by the documentation page for {\tt std::sort}, \url{https://en.cppreference.com/w/cpp/algorithm/sort}}. If we wish to estimate the median distance and the median speed, we need to sort the particles \emph{twice}. In \cref{cha:etas}, we used multiple quantiles for each stop: this requires sorting each vehicle's particles once for each upcoming stop. However, since we use a subsample to compute \glspl{eta} ($N^\star$), the complexity is significantly smaller, $\mathcal{O}(N^\star\log N^\star)$; if we attempted to use all $N$ particles (in the simulation used in \cref{cha:prediction}, we used $N=10000$) the application would have taken far longer.

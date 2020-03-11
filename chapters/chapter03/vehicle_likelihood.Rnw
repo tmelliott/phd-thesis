@@ -405,7 +405,7 @@ The trip update observations differ from the \GPS{} observations in that there a
 \end{itemize}
 
 
-To compute the likelihood for these, we refer back to the dwell time model described in \cref{eq:stop_dwell_model,eq:stop_dwell_time}. Two additional parameters are also needed: the actual arrival time of the bus at stop $m$, $\Tarr_{m}$, and the measurement error of arrival time in seconds, $\TUerr$. The arrival time can be computed for each stop $m$ directly from the model (i.e., via interpolation). The departure time is then computed by summing the arrival and dwell times.
+To compute the likelihood for these, we refer back to the dwell time model described by \cref{eq:stop_dwell_time,eq:stop_pstop,eq:stop_total_dwell_time}. Two additional parameters are also needed: the actual arrival time of the bus at stop $m$, $\Tarr_{m}$, and the measurement error of arrival time in seconds, $\TUerr$. The arrival time can be computed for each stop $m$ directly from the model (i.e., via interpolation). The departure time is then computed by summing the arrival and dwell times.
 
 
 The observed arrival and departured times, denoted $\Varr_m$ and $\Vdep_m$, respectively, are assumed to each be normally distributed, with mean and variance determined by the described model. For arrival time, this is simply

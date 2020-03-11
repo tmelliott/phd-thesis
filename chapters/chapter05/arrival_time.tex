@@ -54,7 +54,7 @@ For bus stop dwell times, we collected two weeks' of data (as was used in \cref{
 \input{chapters/chapter05/arrival_time_normal.tex}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Historical data
-\subsection{Historical arrival delays (\Fhist{})}
+\subsection[Historical arrival delays]{Historical arrival delays (\Fhist{})}
 \label{eq:prediction_arrival_historical}
 
 Another way to make predictions is to use historical data instead of real-time. We collected two weeks of data and recorded arrival time delays by stop and route to obtain a distribution which can then be used to make predictions. The arrival time at stop $j$ along route $r$ has an average delay of $\bar d_{rj}$ seconds with variance $D_{rj}^2$, so the predicted arrival time at stop $j$ on route $r$ with scheduled arrival time $S_{rj}$ is
@@ -65,7 +65,7 @@ Another way to make predictions is to use historical data instead of real-time. 
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Schedule + delay
-\subsection{Schedule delays (\Fsched{})}
+\subsection[Schedule delays]{Schedule delays (\Fsched{})}
 \label{eq:prediction_arrival_sched_delay}
 
 The currently deployed prediction method uses the scheduled arrival time at stop $j$ along route $r$, $S_{rj}$, along with the arrival or departure time at the most recently visited stop, $T_{rm}$, giving a current delay, in seconds, of
