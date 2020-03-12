@@ -62,55 +62,26 @@ The final component of \gls{rti} that we are interested in is \emph{journey plan
 
 
 
-\section{Arrival time predictions in Auckland and abroad}
+\section{The state of Auckland's \gls{rti}}
 
-Introduce Auckland, New Zealand, as the test site.
-\begin{itemize}
-\item examples involve AT
-\item some may apply to others, particularly those using GTFS-realtime
-\end{itemize}
+Our principal case study is the public transport system in Auckland, New Zealand, operated by Auckland Transport. In the following pages, I describe some scenarios that occur within Auckland\footnote{Some of which I have personally witnessed.} although they likely occur in other cities that use the same infrastructure (described in detail in \cref{sec:gtfs}). Additionally, Auckland has a lot of locations without transit infrastructure, such as bus priority lanes, which can lead to long delays during heavy congestion.
 
-Some Auckland-specific issues
-\begin{itemize}
-\item schedule adherence is bad
-\item transfers not guaranteed
-\end{itemize}
 
-GTFS-realtime (cite) has made distributing and access transit data easier but has also led to a (likely unintended) side-effect.
-\begin{itemize}
-\item trip updates report current delay when the bus arrives at a stop
-\item this delay is then added to the scheduled arrival time at upcoming stops -> ETA
-\item unreliable if the schedule is not valid
-\item compounded by [those effects described above] where drivers may try to finish faster
-\end{itemize}
+Other issues relate to driver behaviour and \emph{schedule adherence}. There is also no incentive for drivers to actively adhere to the schedule, as ``Punctuality is measured by the percentage of total scheduled services leaving their origin stop no more than one minute early or five minutes late'' \citep[13]{AT_report_2019}. This means buses often run early, particularly towards the end of the route, which I would argue is more frustrating than running late for anyone wanting to catch it. At other times, travellers may need to catch multiple buses to get somewhere, in which case a \emph{transfer} between services is necessary. However, if the first bus runs late, the connecting bus will usually depart on time (before the first bus gets there) leaving the passenger stranded until the next trip. In some cases, this may be 30~minutes or more, which inevitably leads to frustrated passengers.\footnote{I have been most unfortunate to watch a bus depart without me just as the one I'm on pulls into the station on more than one occasion.}
 
-Besides being inaccurate and unreliable, arrival times based on schedule and current delay are prone to sudden changes.
-\begin{itemize}
-\item frustrates travellers
-\item bus gets later -> ETA jumps
-\item bus gets earlier -> ETA slumps
-\item bus late to first stop and suddenly arrives -> ETA JUMPS HUGE, or the trip disappears from the DMS if the bus doesn't get to the first stop before it's scheduled to get to a target stop
-\end{itemize}
 
-Systems around the world may use specific setups, such as using taxi data or otherwise location specific.
-\begin{itemize}
-\item taxi data not widely available
-\item Celan + Lep located (manually?) stops and potential time barriers for their network
-\item they require manual setup!
-\end{itemize}
+Given that many of the issues with Auckland's transport system relate to infrastructure, the easiest solution is improved, reliable \gls{rti}. Auckland Transport uses \gls{gtfs}, a specification for how transit data should be organised \citep{GoogleDevelopers_2006}. Part of \gls{gtfs} provides a simple method for predicting arrival times, which is what Auckland Transport and other agencies use. In this method, \emph{trip updates} are reported when a bus arrives or departs from a stop, and includes the vehicle's \emph{delay} (the difference between scheduled and actual arrival). Arrival time at upcoming stops is then estimated by adding this delay to the scheduled arrival time. While this is simple, it quickly runs into problems, particularly if the scheduled travel times are not accurate and drivers do not actively adhere to them.
 
-Conversely, GTFS and GTFS-realtime provide an opportunity for a standard, globally available framework.
-\begin{itemize}
-\item desirable to have a framework that can use just GTFS
-\item provide some method of combining information across buses/routes to estimate traffic state
-\item extensible! can be deployed (Easily) to any other region/country that uses GTFS
-\end{itemize}
 
-Some nice build up to the strong point (what we are trying to achieve, essentially):
-\begin{itemize}
-\item to the best of our knowledge no such generalised GTFS-based system estimating network traffic conditions to predict bus arrival time exists
-\item nor do many incorporate uncertainty into predictions (i.e., prediction intervals, arrival time distributions)
-\end{itemize}
+Besides being inaccurate and unreliable, arrival times based on schedule and current delay are prone to sudden changes in the vehicle's delay. For example, if the bus encounters heavy traffic between stops, it will get a lot later, but this is not reported to passengers until the bus finally arrives at the next stop, in which case passengers waiting at stops further along see the \gls{eta} suddenly increase. Another common occurrence is when the bus is delayed on a previous trip: the default arrival time estimate is the scheduled arrival time, so until the bus starts the trip, the \gls{eta} is as scheduled. When the bus is delayed, it may start the route 10~minutes late. When it does, all the \glspl{eta} at stops will suddenly increase by 10~minutes; however, if the \gls{eta} reaches zero before the bus commences the trip, the bus disappears from the \gls{dms} completely. These scenarios all contribute to traveller frustration and lack of trust in the system.
+
+
+Conversely, \gls{gtfs} provides an opportunity for a standard, globally available framework: ``The standardised format means that innovative tools and products that utilize GTFS can easily be applied across transit agencies.'' \citep[26]{TCRP_2020}. It is therefore desirable to have a framework based around \gls{gtfs} that is capable of using the available data (both static and real-time) to model transit vehicles, estimate traffic conditions throughout the network, and estimate arrival times. Location-specific features, such as taxis or intersection locations, could be added as necessary provided the framework is structured to allow it.
+
+
+The core components described in the literature as essential to arrival time prediction are travel time and dwell time. To the best of our knowledge, no system exists that bases itself purely on \gls{gtfs} data while providing a means of combining data across routes to estimate traffic conditions which can be used to improve arrival time prediction.
+
+
 
 \section{Research proposal}
 

@@ -1,8 +1,18 @@
 {
-  "grammarly.userWords": [
-    "ggplot"
-  ],
   "ltex.en-GB.disabledRules": [
+    "OXFORD_SPELLING_ADJECTIVES",
     "OXFORD_SPELLING_ISE_VERBS"
-  ]
+  ],
+  "ltex.en-GB.dictionary": [
+    "Kalman",
+    "ridership"
+  ],
+  "ltex.commands.dummy": [
+      "\\gls{}",
+      "\\glspl{}",
+      "\\Citeauthor{}",
+      "\\citeauthor{}",
+      "\\Citet",
+      "\\kf{}",
+  ],
 }
