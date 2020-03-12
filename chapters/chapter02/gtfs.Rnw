@@ -26,13 +26,13 @@ will arrive at stops for each trip \\
 shape & the GPS track a vehicle will take for a specific route \\
 \bottomrule
 \end{tabular}
-\caption{Definitions of relevant GTFS terms, taken from\\
+\caption{Definitions of relevant GTFS terms, taken from
 \url{https://developers.google.com/transit/gtfs/reference/}}
 \label{tab:gtfs_terms}
 \end{table}
 
 
-There are several components of GTFS that are of particular interest to us: routes, trips, stops, stop times, and shapes. The definitions of these terms are given in \cref{tab:gtfs_terms}. Extensive documentation can be found on these and the other components on the GTFS website (\url{https://developers.google.com/transit/gtfs/}) \citep{GoogleDevelopers_2006}.
+There are several components of GTFS that are of particular interest to us: routes, trips, stops, stop times, and shapes. The definitions of these terms are given in \cref{tab:gtfs_terms}. Extensive documentation can be found on these and the other components on the GTFS website\footnote{\url{https://developers.google.com/transit/gtfs/}} \citep{GoogleDevelopers_2006}.
 
 
 \Cref{fig:gtfs_nw} demonstrates a single \emph{route}, along which there are two active \emph{trips} (A and B). The route's \emph{shape} is represented by the line connecting the six \emph{stops} numbered 1--6. The \rt{} arrivals board is shown for stop~5, displaying the scheduled \emph{stop time} (arrival time) for each trip at that stop. The additional information displayed is described in the next section.

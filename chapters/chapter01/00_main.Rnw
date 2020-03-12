@@ -17,7 +17,9 @@ One limitation of \gls{rti} is the infrastructure required to keep track of vehi
 The history of \gls{rti} for public transport spans several decades, which we will now examine, focussing on the key concepts essential for reliable \glspl{eta}. Afterwards, the current state of arrival time prediction in Auckland, New Zealand is examined to establish why---despite decades of research---there is room for significant improvement. Finally, I present the aims of this research and summarize the process of estimating the arrival time of buses.
 
 
+
 \section{A brief history of real-time information}
+\label{sec:literature}
 
 For a long time, public transport services such as buses and trains had only static timetables that passengers would use to plan their journey. There was no way for passengers to know if their bus was on-time, late, or early, nor could operators track how their services were running. In the 1960s, the first vehicle tracking systems were trialled in Germany and the United States of America \citep{TCRP_1997}. These early systems used \emph{beacons} (on signposts) placed along the route that the bus detects, allowing the bus to provide its location to the service provider in real-time. Similar vehicle tracking technologies continued to develop over the subsequent decades, but the focus remained on service monitoring and operational control.
 
@@ -63,6 +65,7 @@ The final component of \gls{rti} that we are interested in is \emph{journey plan
 
 
 \section{The state of Auckland's \gls{rti}}
+\label{sec:auckland_etas}
 
 Our principal case study is the public transport system in Auckland, New Zealand, operated by Auckland Transport. In the following pages, I describe some scenarios that occur within Auckland\footnote{Some of which I have personally witnessed.} although they likely occur in other cities that use the same infrastructure (described in detail in \cref{sec:gtfs}). Additionally, Auckland has a lot of locations without transit infrastructure, such as bus priority lanes, which can lead to long delays during heavy congestion.
 
@@ -84,197 +87,30 @@ The core components described in the literature as essential to arrival time pre
 
 
 \section{Research proposal}
+\label{sec:proposal}
 
-Public transport is essential for growing cities where travellers need to get to and from work, school, or other activities dependably.
-\begin{itemize}
-\item the primary source of unreliability is ETAs - inaccurate and untrustworthy
-\item might jump (up or down) due to congestion/free-flow/speeding driver
-\item deters commuters who might prefer alternative (private) transport options
-\end{itemize}
+Public transport is essential wherever people need to get to and from work, school, or other activities dependably. However, in this age of cellphones and \gls{rti}, travellers have come to expect, at the very least, the countdown on the \gls{dms} at their stop to be reliable---in Auckland, this is not the case. This unreliability makes \gls{eta} unusable for real-time journey planning, making it difficult for commuters to rely on public transport and opt instead for alternative, often private, transport options.
 
-The primary focus of this thesis is the development of an arrival time prediction framework that includes real-time traffic information based solely on GTFS(-realtime).
-\begin{itemize}
-\item not just for Auckland
-\item traffic state independent of routes to increase available information
-\item will compare its reliability against the current method in Auckland
-\item we consider not only the reliability of point estimates, but also focus on the distribution (and prediction intervals) - we cannot predict arrival time accurately, but we want to account for as much uncertainty as possible
-\end{itemize}
 
-We also consider journey planning, notably the use of arrival time distributions to make decisions.
-\begin{itemize}
-\item currently no real-time decision-making scheme in Auckland
-\item some work (Berczi et al., 2017) can make use of probabilistic arrival time distributions to make dynamic route choices
-\item not our intention to select candidate routes (that's hard) but instead to demonstrate the reliability/usefulness of our arrival time distribution to decide between options
-\item answer for example: which bus should I catch? will I get to work on time? what is the probability I'll make the transfer/how long will I have to wait?
-\end{itemize}
+The central focus of this thesis is the development of an arrival time prediction application that includes real-time traffic information obtained from both static and real-time data using \gls{gtfs}. This means that the application can be applied to any city using \gls{gtfs}, and not solely Auckland, as many of the problems discussed earlier will be present elsewhere. This involves exploring how traffic state can be estimated independently of routes so that travel time or speed information can be shared across routes that use the same roads. Our goal is to make arrival time predictions which, by accounting for real-time traffic conditions, are more reliable that the current method used in Auckland. However, it is clear from both the literature and personal experience that large levels of uncertainty are inescapable in transit prediction. For this reason we focus on capturing the uncertainty in the model and estimating the \emph{arrival time distribution}, which we can then summarize with, for example, prediction intervals.
 
-The first necessity before approaching this problem is to provide an overview of the relevant background information.
-\begin{itemize}
-\item GTFS
-\item what real-time transit data looks ("and feels") like
-\item developing a network form from GTFS to allow the combination of data across routes
-\item a brief overview of the types of models used throughout (RBMs)
-\end{itemize}
 
-A lot of previous research uses the concept of \emph{vehicle state}, which is updated when new data is received \citep{Cathey_2003}.
-\begin{itemize}
-\item their (and many others') approach introduces unnecessary uncertainty (map matching)
-\item proposal: developing a method of incorporating GPS observations directly into the likelihood
-\item main goal: to estimate average vehicle speed along road segments in real-time (similar to the work of Celan and Lep (2017, 2018))
-\end{itemize}
+We also consider journey planning, notably the use of arrival time distributions to make decisions, since Auckland (and other) transit providers offer no such service: all the ``journey planning'' is based solely on the scheduled timetables. \Citet{Berczi_2017} demonstrated the use of probabilistic arrival time distributions in a real-time dynamic routing problem. It is not our intention to solve the routing problem (that is, selecting candidate routes from origin to destination), but instead to demonstrate the reliability (or usefulness) of our own arrival time distribution in selecting between alternative routes. This could then be incorporated into a dynamic routing framework that uses the probabilities of events to make decisions.
 
-After estimating vehicle speeds from the buses traversing the road network, it is possible to model the traffic state itself.
-\begin{itemize}
-\item similar to other work we implement a KF on the network state
-\item requires modelling of historical data to determine model parameters
-\item also presents the opportunity to forecast road state - the current implementation of the arrival time application does not use this, but we give a possibility here to demonstrate
-\end{itemize}
 
-Lastly is arrival time estimation itself, which combines vehicle and road states to generate an arrival time distribution.
-\begin{itemize}
-\item we explore how to obtain it
-\item and how well the distribution approximates the truth (the uncertainty is real!)
-\item in Ch 6 we focus on journey planning: point estimates for a quick "when will the bus arrive"; prediction intervals for simple planning; and answering more comprehensive JP questions (journey length, arrive-on-time probability, transfer probability, etc.)
-\item the focus is on the effectiveness (reliability) of our PF proposal, and not journey planning itself (which is difficult and there exists already methods of dynamic routing using probabilistic blah blah blah)
-\end{itemize}
+Before approaching this problem, I first provide an overview of the relevant background information in \cref{cha:data}. This includes an overview of \gls{gtfs}, and discuss the characteristics of real-time transit data. We will also examine how a \emph{network} can be constructed from \gls{gtfs} data to allow data to be shared across independent routes. Lastly, I give a brief introduction to \emph{recursive Bayesian filtering}, an approach to modelling data in real-time that is used extensively throughout this thesis.
 
-Since this is a real-time application, the computational constraints must also be assessed throughout the thesis. Therefore at the end of each chapter, we outline the programmatic considerations necessary and discuss the relative components of the R package `transitr` developed as part of this research.
-\begin{itemize}
-\item main goal: 30~seconds (or less) per iteration
-\item includes fetching data from the server and writing data to a file available to users
-\end{itemize}
 
-Finally, in chapter 7, we review our methods and findings and comment on what could be done to improve the predictions. The role of RTI in public transport is only going to become more critical as cities---particularly Auckland---grow, and improving the reliability of the information is the first step to increasing ridership.
+Having placed some foundations, we begin the process of real-time prediction by first modelling the state of a transit vehicle, which will be updated whenever new data is received. One important aspect of this chapter involves removing all unnecessary uncertainty. \Citet{Cathey_2003} (and others) used \emph{map-matching} to calculate the vehicle's trip-distance-travelled from the reported \gls{gps} coordinates. In \cref{cha:vehicle_model}, as part of the vehicle model, I propose a method of removing this step and incorporating \gls{gps} observations directly into the likelihood function in an effort to overcome several of the issues identified in \cref{cha:data}. The main goal of \cref{cha:vehicle_model} is to use real-time transit vehicle observations to estimate vehicle speed along road. This is similar to the work of \citet{Celan_2017,Celan_2018} who used historical data to estimate average vehicle speed along roads in a \emph{network}.
 
 
+Having observed the speeds of vehicles as the travel around Auckland, we can model the real-time \emph{traffic state} of the road network. Similar to the work of \citet{Shalaby_2004} we develop a \kf{} that allows real-time estimation of network state in \cref{cha:network_model}. A large part of this consists of estimating the necessary model parameters from historical data and assessing the real-time accuracy of our model. As many previous researchers have noted, predicting future travel times (which depend on road state) is difficult and requires a more complex model than the \kf{}. At the end of \cref{cha:network_model} I discuss a possible approach to forecasting that could later be incorporated into the arrival time prediction component of our application.
 
 
+Finally, we arrive at arrival time estimation itself, which combines vehicle and road states to obtain an arrival time distribution. In \cref{cha:prediction}, we see how the distribution itself is computed, and compare our approach to several others, with a focus on the adequacy of the distribution since, as we have already mentioned, uncertainty is inevitable. Later in \cref{cha:etas} I demonstrate how an arrival time \gls{cdf} is obtained, and present several forms of summary statistics that could be displayed to commuters (point and interval estimates), as well as demonstrate the use of the distribution to answer journey planning questions (journey length, probability of on-time arrival, and the likes). The focus of these results is a comparison of the reliability and potential usefulness of our method versus that currently used in Auckland.
 
 
-\pagebreak
+Since this is a real-time application, the computational constraints are also assessed throughout. Therefore, at the end of each chapter, I describe the programmatic considerations of the application and discuss the relative components of the R package `transitr` developed as part of this research. The target for real-time predictions---from the time the data is first requested from the server until \glspl{eta} are available for travellers---is 30~seconds.
 
-Over the last three decades, technological advances have changed the way people use public transport. In times gone by, one might have used a paper timetable to decide when to leave home, and then be subjected to an indefinite wait until the bus finally appeared around the corner. These days, you just take out your phone to see the bus' precide location on a map. Despite this revolutionary change, to this day it remains a complicated business of converting a location into an \gls{eta}.
 
-
-Around the world, public transport providers have invested in systems to provide \gls{rti} to their passengers in efforts to improve ridership, the number of commuters choosing to use public transport. Research has shown that \gls{rti} reduced the experienced wait time at bus stops \citep{TCRP_2003} and allows for improved decision making by passengers, leading to shorter waiting times \citep{Cats_2015,Lu_2017}. This, of course, assumes the \gls{rti} is reliable, wherein lies the issue.
-
-
-One of the main issues with \gls{rti} is that it requires considerable infrastructure to keep track of and report the information \citep{TCRP_2003b}, particularly in recent times when fleet sizes exceed 1000~vehicles. This has inevitably led to a simplification of how arrival times are predicted, which consequently has led to less reliable information, particularly in Auckland, New Zealand.
-
-
-\section{Arrival time estimation of transit vehicles}
-\label{sec:literature}
-
-For a long time, public transport services such as buses and trains had static timetables that passengers could use to plan their journey. In the 1960s, the first vehicle tracking systems, which used fixed signposts to detect the passing of a vehicle, were trialed in Germany and the USA \citep{TCRP_1997}. This allowed the transit provider to monitor the \rt{} performance of its services from a central location.
-
-
-Over the next few decades, \gls{avl} technology was slowly deployed primarily as a monitoring tool for service providers. The first use of \gls{avl} in \gls{rti} was as a \gls{dms} at bus stops displaying the \gls{eta}, in minutes, until the bus arrives \citep{TCRP_2003}. The most prominent example at the time was Transport for London's \emph{Countdown} system, which used the signpost \gls{avl} system with an odometer to determine the vehicle's position and provide \glspl{eta}.
-
-
-
-The most difficult challenge for the provision of accurate \gls{rti} is time itself, particularly in the 1990s when computers were much less powerful than they are today. In response to this, simple, fast algorithms were developed that used \rt{} location information to update the estimates of arrival times, the most prominent being the \kf{}. \citet{Reinhoudt_1997} implemented a \kf{} to model the \emph{link travel time}, replacing the weighted average used by Transport for London's Countdown system, and found that it led to more accurate predictions of arrival time. Later, \citet{Wall_1999} and \citet{Dailey_2001} implemented \kf{}s to track the state of a vehicle, allowing for uncertainty in its location and speed to be incorporated into the arrival time prediction, which was based on a \emph{travel time function} estimated from historical data.
-
-
-
-The main problem with the signpost \gls{avl} system is that it needs to be rolled out for each individual route. It is therefore no surprise that many transit providers began to favour the distribution of \gls{gps} devices to track their fleets. The result of this was a necessity for a much more generalised prediction framework, since data was no longer route-specific and instead required more complex methods for both tracking and prediction. \citet{Cathey_2003} released a general prescription in which they described the three necessary components to arrival time prediction: tracking, filtering, and prediction.
-
-
-Tracking is, in our context, the process of combining schedule information with \rt{} location information to acquire the necessary data for the rest of the model. For transit vehicle tracking using a \gls{gps}, the first step is to match the location to the route: geographic observations are processed to compute, for example, \emph{trip distance travelled}, which is the distance the vehicle has travelled along the route \citep{Cathey_2003,Gong_2013}. Other methods involved using arrival time observations, in which case the travel time between \emph{time points} (using significant stops along the route) is observed \citep{Shalaby_2004,Jeong_2005,Yu_2011}.
-
-
-The filtering component is responsible for taking a sequence of vehicle observations (as determined by the \emph{tracker}) and estimating the \emph{state} of the vehicle, which often includes distance travelled along the route and speed \citep{Dailey_2001,Cathey_2003}. This is where the computational efficiency of the \kf{} plays its pivotal role, since the state can easily and quickly be estimated (details are given in \cref{sec:recursive-bayes}). However, despite being adopted early, more recent applications favour deterministic methods, such as arrival time reporting \citep{Yin_2017,Cats_2015,Cats_2016}. While easy to implement, and often accurate, this approach can reduce reliability in the presence of poor data (such as erroneous or missing arrival or departure times), as observed in the Auckland Transport system.
-
-
-The final component is the predictor, which combines the vehicle location information with a variety of other information (which can be historical or \rt{}). The general concensus is that this `other information' needs to include \emph{link travel time}---that is, the time taken to travel between various points along the route---and \emph{stop dwell time}---which is the time lost while servicing a bus stop.
-
-
-
-Of course, not only has the technology for tracking a vehicle improved over the years: so have computers, leading to more and more complex prediction schemes. \Glspl{svm} \citep{Yu_2006,Yu_2010} and \glspl{ann} \citep{Mazloumi_2012,cn} models trained with historical link travel time data were found to better predict the arrival times of upcoming buses based on the travel time of the preceeding bus, and \citet{Yu_2011} extended the idea to involve vehicles from multiple routes, showing significant improvments over other methods. However, the main limitation was that the routes were pre-specified, which is a common constraint of proposed methods \citep{Chang_2010,Celan_2017,Celan_2018}.
-
-
-A lot of the innovation for modelling transit vehicles has been in operational research, rather than \gls{rti}. For example \citet{Hans_2015} developed a particle filter to model buses in \rt{} in an attempt to reduce bunching (when consecutive trips end up travelling one after the other rather than spaced out temporally). The particle filter is a computationally demanding generalisation of the \kf{}, so historically it was impossible to implement for \rt{} applications, but in recent years this has changed; indeed, many of the \rt{} models employed come with computational constraints and need to be assessed for their feasibility \citep{Chang_2010,Cats_2016}.
-
-
-
-
-\subsection{Dwell time behaviour at bus stops}
-\label{sec:intro_dwell}
-
-The effect of dwell time has also been shown to greatly influence arrival time uncertainty \citep{Jeong_2005,Meng_2013,Shen_2013,Robinson_2013,Gong_2013,Wang_2016}, though in most of these the available data has been either manually collected or available through technologies such as \glspl{apc}, which are less common than \gls{gps}.
-
-
-\subsection{Road travel times for arrival time prediction}
-\label{sec:intro_travel_time}
-
-Early work, such as by \citet{Reinhoudt_1997} and \citet{Wall_1999}, demonstrated the use of \emph{link travel times} to inform the arrival time of upcoming buses.
-
-Any state-of-the-art system for arrival time prediction needs to use \rt{} vehicle location data along with \rt{} link travel times and dwell time information. Where possible, link travel times should be obtained from more than one route in order to expand the available data, or even, if possible, non-transit data. The most popular choice of outside information is taxi data, which is often available to researchers, and has been shown by the likes of \citet{Xinghao_2013} and \citet{Ma_2019} to further improve estimation of traffic state, and ultimately arrival times.
-
-
-Of course, looking outside of transit altogether we see that traffic flow modelling has been the focus of much research, and some of these methods have been brought into the transit realm. \citet{Julio_2016} developed a shockwave model which used up- and down-stream changes in traffic flows to make forecasts of bus travel times. \citet{Salonen_2013} compared the travel times of buses and cars \ldots
-
-
-\subsection{Arrival times and journey planning}
-\label{sec:intro_etas}
-
-
-Arrival time prediction of transit vehicles is at first a simple task, but a little inspection shows that underneath there is a lot of complexity, from the types of data through to the models used to make the predictions. These models need to account for a range of systems: vehicle motion, traffic flow behaviour, and stop service times. Perhaps the least explored component of arrival time is indeed the uncertainty associated with it: even in the best of circumstances, we are unlikely to be able to reuce it to zero. Traffic lights, pedestrian crossings, passenger demand at stops, interactions with other buses, weather, and myriad other causes will affect the final arrival time. \citet{Mazloumi_2011} presented some work that involved assessing the coverage probability of a \emph{prediction interval} to convey the remaining uncertainty, but we found no other examples of prediction intervals pertaining to arrival time prediction.
-
-
-The final aspect of \gls{rti} of significance is \emph{journey planning}, which is the process of determining the best route from origin to destination given a set of conditions, for example departure or arrival time. Early work by \citet{Horn_2004} used simple algorithms to minimise walking and waiting, and were able to make decisions in \rt{}. However, the complexity of this task can get large, particularly when a journey consists of multiple legs (separate bus journeys). \citet{Hame_2013a} developed a Markov decision process to explore all of the possible options under the constraint of arriving on time, which took up to 30~second to solve for some specific journeys. More recently \citet{Zheng_2016} proposed a method that accounted for travel time uncertainty, which is often significant. Even more general is a method by \citet{Berczi_2017} in which any probabilitic model of arrival time could be used as an input to determine an optimal journey plan.
-
-
-
-
-\section{Arrival time prediction in Auckland and abroad}
-\label{sec:auckland_etas}
-
-Our principal study area is Auckland, New Zealand, which has a public transport service operated by Auckland Transport. The examples given and the issues discussed in this thesis are primarily related to Auckland Transport, but are  likely applicable to other providers around the world. The primary features of Auckland that make it difficult to predict arrival time are heavy congestion along arterial roads, many of which have no or inadequate transit infrastructure, such as bus lanes. Additionally, the scheduled adherence of vehicles is often poor, as the majority of routes are timed only by their initial start time (that is, the time the bus departs from the first stop). What's more, poor communication between subcontractors (\AT{} subcontracts individual routes out to various bus companies) means that, where one might expect two buses to link temporally and provide a convenient transfer, they do not---often one arrives at a transfer station just as the connecting route departs, which can, in extreme cases, result in a wait of 30~minutes or more, which I have experienced more than once myself.
-
-
-Perhaps the main issue with \AT{} is that, while they may be investing money in select infrastructural projects, the vast majority of routes will still be running along roads with no priority, and neither is there any foreseable change to schedule adherance (bus drivers actively keeping to the scheduled), since ``Punctuality is measured by the percentage of total scheduled services leaving their origin stop no more than one minute early or five minutes late'' \citep[13]{AT_report_2019}. While this might not necessarily be a problem outside of Auckland, it highlights the issues that simply using the scheduled travel time between stops is inadequate and unreliable.
-\note{Rewrite last sentence/paragraph with more emphasis on problematic nature of current system.}
-
-
-Perhaps the most interesting point about all of this is that, despite all of this work, many public transport providers still use very simple arrival time prediction mechanisms. The Auckland Transport system, which contains \rt{} vehicle location information, only uses the arrival or departure delay from the most recently visited stop to update the arrival times estimate for upcoming stops. As a result, the system is often unreliable, particularly when traffic is more congested than usual, and leads to much frustration of passengers. One possible reason for this is that many of the arrival time predictions schemes have been developed for a particular city, rather than for transit in general. At first, this may seem reasonable: they are, after all, different cities. However, with the global adoption of \gls{gtfs} (details in \cref{sec:gtfs}), one would expect this not to be the case: ``The standardised format means that innovative tools and products that utilize GTFS can easily be applied accross transit agencies'' \citep[26]{TCRP_2020}.
-
-
-
-Many of the arrival time prediction deployments around the globe use location-specific information to model the real-time state of traffic, as we saw with taxi data being the primary example. Other methods use location-specific designs: \citet{Celan_2017,Celan_2018} located stops and other potential time barriers (for example traffic lights, roundabouts, or pedestrian crossings) along specific routes in two major Slovenian cities, allowing them to develop a \emph{network} of nodes (stops, intersection) with edges (roads) connecting them. They found that ignoring potential time barriers and only using stop locations resulted in poorer predictive performance. \note[The issue is, this information is seldom available, so such networks are not available in general.]{This last sentence is weak, Tom}
-
-
-Another \note[down side]{one word? better word?} of location-specific setups is exactly that they are location-specific, often requiring manual setup, for example, identifying intersections or connecting to unique data sources (taxis). With \gls{gtfs} becoming widespread, it would be desirable to have a generalised framework which could, in its simplest form, take a standardised transit data set and generate a transit network that could be modelled in \rt{}, providing arrival times predictions account for the all important travel time information. Any such framework should also take into account stop dwell times, but be extensible so that once deployed, it could be modified to suit any specific location. \note[To the best of our knowledge, no such system exists that uses a \gls{gtfs}-based system to make probabilistic arrival time estimates; that is, a distribution of arrival times that accounts for uncertainty in the system.]{This doesn't tie in very nicely}
-
-
-
-
-\section{Research proposal}
-\label{eq:proposal}
-
-Public transport is essential for growing cities where travellers need to get to and from work, school, or other activities in a reliable manner. One major source of unreliability, particularly in Auckland, is with the \rt{} arrival predictions, which are often inaccurate and not trustworthy: sometimes the bus does not even show up, while \note[at others]{try again\ldots} the \gls{eta} increases as the bus encounters heavy traffic, or rapidly decreases as the bus approaches faster than expected. This can deter commuters from choosing to use public transport and prefering private means.
-
-
-\note{Rewrite this paragraph\ldots}
-The first part of this research focuses on developing a generalised arrival time prediction framework (not just specifically for Auckland) that can combine data from multiple routes to model traffic congestion, in \rt{}, in an effort to reduce the uncertainty in arrival time estimation. One complete, we will be able to assess the effectiveness of this approach, and determine whether or not more reliable predictions are indeed possible. One approach to reliability improvement will be to introduce the concept of \emph{prediction intervals} in an effort to account for the remaining uncertainty.
-
-
-A second, related issue is uncertainty in journey planning, particularly when transfers between services are required. As described earlier, it is not uncommon to miss a transfer by a few minutes. It is for this reason that we will explore not only point or interval prediction, but indeed estimating the full arrival time distribution, which one could then use to estimate the probabilities of certain events common in journey planning: will I arrive on time?\ or how long will I have to wait at the transfer point?
-
-
-
-To approach this problem, we begin by providing an overview of the relevant information in \cref{cha:data}, most notably of the \gls{gtfs} standard. This is followed up by an overview of the data available to us in Auckland, which includes vehicle positions and trip updates (times of arrival at and departure from bus stops). As many have noted, using a \emph{network} representation of roads and bus stops improves estimation and prediction, particularly when information from different routes can be combined, so we also describe the process of constructing a network from \gls{gtfs} data. We also include a brief overview of \rt{} modelling with \glspl{rbm}, before finally discussing the \rt{} implementation of our application using \textsf{Rcpp}.
-
-
-A lot of previous research has using the concept of \emph{vehicle state}, which is updated as new information is obtained from the \emph{tracker} \citep{Cathey_2003}. However, this introduces an unnecessary source of error associated with map-matching. To bypass this, we propose a \rt{} vehicle model in \cref{cha:vehicle_model} that uses the observed \gls{gps} data directly in the likelihood function, which allows us to overcome some of the issues that will be introduced in \cref{cha:data}. The primary goal of the vehicle model is to estimate vehicle speeds along roads throughout the network, as this has been shown to be one of the primary sources of arrival time uncertainty \citep{Shalaby_2004,Yu_2010,Yu_2011,Yin_2017}.
-
-
-When it comes to the network itself, there have been many alternate approaches to modelling and predicting travel times. A common method has been to use historical data combined with \rt{} vehicle information---for example, the vehicles speed or travel time along previous roads. In \cref{cha:network_model}, we present a simple \rt{} model that uses the \rt{} speed information obtained from the vehicle model to update the state of the network. That is, we use \rt{} transit data to infer \rt{} traffic conditions throughout the network. We also provide an example of how, with further research, it could be improved to make more accurate forecasts of arrival time.
-
-
-The last component of this research is to make arrival time predictions and assess their reliability, which we perform in two stages. The first stage (\cref{cha:prediction}) involves making arrival time predictions by combining both the vehicle and network states to obtain an arrival time distribution. We assess the statistical properties of the method in comparison to several alternatives. The second stage (\cref{cha:etas}) involves an exploration of \emph{journey planning}, using the arrival time distribution to make informed decisions. This involves comparing point estimates, prediction intervals, and a brief overview of the possibilities of using distributions for decision making: which bus should I catch to maximise my change of getting to work on time? In both chapters, we compare our method with the currently deployed method in Auckland, which uses solely \gls{gtfs} information to make the predictions.
-
-
-Of course, this is a \rt{} application, so throughout all of it we must consider the computational constraints. While many methods currently deployed run in seconds, we set ourselves a goal of running a full interation in no more than 30~seconds, from start (requesting the latest data from the server) to finish (the predictions available for users). The complexities associated with this constraint will be discussed throughout.
-
-
-Finally, in \cref{cha:discussion}, we review our methods and findings, and comment on what could be done to improve the predictions. The role of \gls{rti} in public transport is only going to become more critical as cities---particularly Auckland---grow, and improving the reliability of the information is the first step to increasing ridership.
+Finally, in chapter 7, we review our methods and findings and comment on what could be done to improve our application in the future. The role of \gls{rti} in public transport is only going to become more critical as cities---particularly Auckland---grow, and improving the reliability of the information is the first step to increasing ridership.
