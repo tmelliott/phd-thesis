@@ -464,3 +464,189 @@ Comparing the estimates numerically using \gls{rmse} (\cref{tab:sim2_pf_full}) w
 \label{sec:vehicle_sim_C}
 
 This time, we perform a simulation that more closely replicates the Auckland Transport system we are modelling. In it, we no longer know the locations of intersections, so road segments are specified between stops instead. In this simulation, the bus may still stop at intersections, but the underlying model does not know where these are. The goal is to esimate travel time along segments (which is now the \emph{link time} between stops).
+
+
+<<sim3_gen,echo=FALSE,message=FALSE>>=
+source("scripts/pf_simulation.R")
+sim3 <- run_simulation(
+    include = "both",
+    pr_stop = 0.5,
+    pr_int = 0,
+    prefix = "simC_results"
+)
+s3 <- sim3$sim
+
+segs <- lapply(1:nrow(s3$segments),
+    function(i) s3$segments$distance[i] + c(0, s3$segments$length[i])
+)
+tt <- s3$segments$tt
+
+fcap3 <- 'Simulated vehicle trajectory, with road segments as links between stops and unknown intersection locations'
+fscap3 <- c(
+    "The simulated data.",
+    "10~s sampling.",
+    "30~s sampling.",
+    "Observations at bus stops and intersections."
+)
+@
+
+
+
+<<sim3_graph,echo=FALSE,fig.height=2,fig.width=4,out.width=".49\\linewidth",fig.cap=fcap2,fig.subcap=fscap2,fig.ncol=2,warning=FALSE,message=FALSE>>=
+p3 <- ggplot(s3$path, aes(time, distance)) +
+    geom_hline(yintercept = s3$segments$distance[-1],
+        lty = 2, colour = "gray") +
+    geom_hline(yintercept = s3$stops$distance[-1],
+        lty = 3, colour = "orangered") +
+    theme_minimal() +
+    theme(panel.grid = element_blank()) +
+    xlab('Time (s)') + ylab('Distance (m)') +
+    ylim(0, max(s3$path$distance)) + xlim(0, max(s3$path$time))
+
+p3 + geom_path()
+p3 + geom_point(aes(t, x), data = s3$observations$high)
+p3 + geom_point(aes(t, x), data = s3$observations$low)
+p3 + geom_point(aes(t, x), data = s3$observations$waypoints)
+@
+
+
+
+<<sim3_pf,echo=FALSE,message=FALSE,warning=FALSE,fig.height=3,fig.width=8,out.width="\\linewidth",fig.cap="Simulation results for the three models (rows) applied to the data from three sampling methods (columns), using $\\Np=2000$ particles. [details].">>=
+S0 <- sim3$fits
+S0 %>%
+    filter(segment != "Segment 4") %>%
+    mutate(
+        xpos = as.numeric(as.factor(model)) +
+            as.numeric(as.factor(segment)) / 15,
+        obs = factor(obs, labels = c("Uniform (10s)", "Uniform (30s)", "Nodes"))
+    ) %>%
+    ggplot(aes(xpos, speed_estimate - avg_speed, colour = segment)) +
+    geom_pointrange(
+        aes(
+            ymin = speed_estimate - avg_speed - speed_sd,
+            ymax = speed_estimate - avg_speed + speed_sd
+        ),
+        shape = 19, size = 0.5
+    ) +
+    facet_grid( ~ obs,  scales = "free_y") +
+    theme_classic() +
+    theme(strip.background = element_blank()) +
+    geom_hline(yintercept = 0, col = "gray", lty = 2) +
+    ylab("Estimate - actual (m/s)") +
+    scale_x_continuous(
+        "Model",
+        limits = c(0.5, 4.0),
+        breaks = 1:3,
+        labels = paste0("A", 1:3)
+    ) +
+    labs(colour = "")
+
+@
+
+
+
+<<sim3_pf_full,echo=FALSE,message=FALSE,warning=FALSE,fig.width=8,fig.height=5,fig.cap="Speed estimation results for 100 simulations. In each the vehicle trajectory is simulated using a different seed, and the speed estimate is taken as the mean of the particle speeds along each segment.">>=
+library(parallel)
+cl <- makeCluster(4L)
+r <- clusterEvalQ(cl, source("scripts/pf_simulation.R"))
+
+s00 <- pbapply::pblapply(1:100,
+    function(seed) {
+        run_simulation(seed = seed, include = "both", pr_stop = 0.5,
+            pr_int = 0.0,
+            prefix = "simC_results")
+    },
+    cl = cl
+) %>%
+    map("fits") %>%
+    bind_rows() %>%
+    mutate(
+        model = factor(paste0("A", model)),
+        obs = factor(obs, labels = c("Uniform (10s)", "Uniform (30s)", "Nodes"))
+    )
+
+stopCluster(cl)
+
+s00 <- s00 %>%
+    filter(
+        segment != "Segment 6" &
+        is.finite(speed_estimate) &
+        speed_estimate < 30
+    )
+
+p_base <- s00 %>%
+    group_by(obs, model, segment) %>%
+    summarize(
+        rmse = sqrt(
+            mean(
+                (speed_estimate - avg_speed)^2,
+                na.rm = TRUE
+            )
+        ),
+        mae = mean(
+            abs(speed_estimate - avg_speed),
+            na.rm = TRUE
+        )
+    ) %>%
+    mutate(
+        segment = as.integer(as.factor(segment))
+    ) %>%
+    ggplot(aes(x = segment, colour = model)) +
+        facet_grid(~obs) +
+        theme_classic() +
+        theme(strip.background = element_blank()) +
+        xlab("Segment")
+
+library(patchwork)
+prmse <- p_base +
+    geom_point(aes(y = rmse)) +
+    geom_path(aes(y = rmse)) +
+    ylab("RMSE (m/s)")
+pmae <- p_base +
+    geom_point(aes(y = mae)) +
+    geom_path(aes(y = mae)) +
+    ylab("MAE (m/s)")
+
+prmse / pmae
+
+s00 %>%
+    group_by(obs, model) %>%
+    summarize(
+        "RMSE (m/s)" = sqrt(
+            mean(
+                (speed_estimate - avg_speed)^2,
+                na.rm = TRUE
+            )
+        ) %>%
+            round(2),
+        "MAE (m/s)" = round(
+            mean(
+                abs(speed_estimate - avg_speed),
+                na.rm = TRUE
+            ),
+            2
+        )
+    ) %>%
+    ungroup() %>%
+    mutate(
+        rank = rank(obs, ties = "min"),
+        obs = as.character(obs),
+        obs = ifelse(seq_along(obs) == rank, obs, "")
+    ) %>%
+    select(-rank) %>%
+    rename(
+        "Sampling method" = obs,
+        "Model" = model
+    ) %>%
+    kable(
+        format = "latex",
+        booktabs = TRUE,
+        caption = "RMSE of average speed estimation",
+        escape = FALSE,
+        linesep = ""
+    ) %>%
+    kableExtra::row_spec(3, extra_latex_after = "\\midrule") %>%
+    kableExtra::row_spec(6, extra_latex_after = "\\midrule") %>%
+    kableExtra::kable_styling(font_size = 8)
+
+@

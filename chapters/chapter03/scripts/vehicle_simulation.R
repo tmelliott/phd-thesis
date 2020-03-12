@@ -20,6 +20,8 @@ simulate_vehicle <- function(length = 2000,
     speed <- numeric()
     acceleration <- numeric()
 
+    # if "include = 'both'", we want to use stops as nodes,
+    # and intersections are "unknown"
     stops <- tibble(type = "stop", distance = stops)
     segments <- tibble(type = "segment", distance = unique(c(0, segments)))
     z <- bind_rows(stops, segments) %>% arrange(distance) %>%
@@ -84,6 +86,7 @@ simulate_vehicle <- function(length = 2000,
 
     Tmax <- length(distance) - 1
     Dmax <- max(distance)
+
     # figure out dwell time in each segment:
     z$seg_index <- sapply(z$distance,
         function(dist) max(which(segments$distance <= dist)))
@@ -96,17 +99,33 @@ simulate_vehicle <- function(length = 2000,
             acceleration = acceleration
         ),
         stops = z %>% filter(type == "stop"),
-        segments = z %>% filter(type == "segment") %>%
-            select(-seg_index) %>%
-            mutate(
-                id = as.character(1:n()),
-                segment = paste("Segment", id),
-                length = diff(c(distance, Dmax)),
-                tt_total = diff(c(t, Tmax)),
-                dwell = seg_dwell$dwell,
-                tt = tt_total - dwell,
-                avg_speed = length / tt
-            ),
+        segments =
+            if (include == "both") {
+
+                z %>% filter(type == "stop" & distance > 0) %>%
+                    mutate(
+                        tend = t + d,
+                        id = seq_along(t),
+                        segment = paste("Segment", id),
+                        length = diff(c(0, distance)),
+                        tt = t - c(0, tend[-length(tend)]),
+                        avg_speed = length / tt,
+                        distance = distance - length
+                    )
+
+            } else {
+                z %>% filter(type == "segment") %>%
+                select(-seg_index) %>%
+                mutate(
+                    id = as.character(1:n()),
+                    segment = paste("Segment", id),
+                    length = diff(c(distance, Dmax)),
+                    tt_total = diff(c(t, Tmax)),
+                    dwell = seg_dwell$dwell,
+                    tt = tt_total - dwell,
+                    avg_speed = length / tt
+                )
+            },
         observations = structure(
             lapply(c("high", "low", "waypoints"),
                 function(obs) {
