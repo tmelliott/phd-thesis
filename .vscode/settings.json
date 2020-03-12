@@ -1,5 +1,8 @@
 {
   "grammarly.userWords": [
     "ggplot"
+  ],
+  "ltex.en-GB.disabledRules": [
+    "OXFORD_SPELLING_ISE_VERBS"
   ]
 }

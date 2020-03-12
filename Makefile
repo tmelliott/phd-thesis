@@ -58,3 +58,6 @@ reflist.bib: $(NAME).tex allrefs.bib
 	@rm reflist.bib-save*
 	@# remove pesky @{bibtex-control}
 	@R --slave -f clean_reflist.R
+
+wordcount:
+	@texcount $(NAME).tex -inc -merge -nosub

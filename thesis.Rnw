@@ -1,3 +1,4 @@
+\documentclass[11pt,english,doublespacing,liststotoc,tocbibind,headsepline]{MastersDoctoralThesis}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Masters/Doctoral Thesis
 % LaTeX Template
@@ -22,23 +23,23 @@
 %   PACKAGES AND OTHER DOCUMENT CONFIGURATIONS
 %----------------------------------------------------------------------------------------
 
-\documentclass[
-11pt, % The default document font size, options: 10pt, 11pt, 12pt
-%oneside, % Two side (alternating margins) for binding by default, uncomment to switch to one side
-english, % ngerman for German
-doublespacing,
-% singlespacing, % Single line spacing, alternatives: onehalfspacing or doublespacing
-% draft, % Uncomment to enable draft mode (no pictures, no links, overfull hboxes indicated)
-%nolistspacing, % If the document is onehalfspacing or doublespacing, uncomment this to set spacing in lists to single
-liststotoc, % Uncomment to add the list of figures/tables/etc to the table of contents
-tocbibind,
-%toctotoc, % Uncomment to add the main table of contents to the table of contents
-%parskip, % Uncomment to add space between paragraphs
-%nohyperref, % Uncomment to not load the hyperref package
-headsepline, % Uncomment to get a line under the header
-%chapterinoneline, % Uncomment to place the chapter title next to the number on one line
-%consistentlayout, % Uncomment to change the layout of the declaration, abstract and acknowledgements pages to match the default layout
-]{MastersDoctoralThesis} % The class file specifying the document structure
+% \documentclass[
+% 11pt, % The default document font size, options: 10pt, 11pt, 12pt
+% %oneside, % Two side (alternating margins) for binding by default, uncomment to switch to one side
+% english, % ngerman for German
+% doublespacing,
+% % singlespacing, % Single line spacing, alternatives: onehalfspacing or doublespacing
+% % draft, % Uncomment to enable draft mode (no pictures, no links, overfull hboxes indicated)
+% %nolistspacing, % If the document is onehalfspacing or doublespacing, uncomment this to set spacing in lists to single
+% liststotoc, % Uncomment to add the list of figures/tables/etc to the table of contents
+% tocbibind,
+% %toctotoc, % Uncomment to add the main table of contents to the table of contents
+% %parskip, % Uncomment to add space between paragraphs
+% %nohyperref, % Uncomment to not load the hyperref package
+% headsepline, % Uncomment to get a line under the header
+% %chapterinoneline, % Uncomment to place the chapter title next to the number on one line
+% %consistentlayout, % Uncomment to change the layout of the declaration, abstract and acknowledgements pages to match the default layout
+% ]{MastersDoctoralThesis} % The class file specifying the document structure
 
 \usepackage[utf8]{inputenc} % Required for inputting international characters
 \usepackage[T1]{fontenc} % Output font encoding for international characters
@@ -69,6 +70,8 @@ headsepline, % Uncomment to get a line under the header
 \usepackage{soul}
 \newcommand{\note}[2][]{{\ul{#1}~\footnotesize\textcolor{blue}{\emph{[#2]}}}}
 
+% because I always forget to use \citet
+\let\cite\citet
 
 \include{include/abbreviations}
 

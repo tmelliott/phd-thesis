@@ -11,7 +11,12 @@ Essentially, we want to detect where two routes overlap, even partially, so tspe
 % Getting intersection data is not easy, however, and initial attempts at doing so using Open Street Maps \citep{OpenStreetMap_2017} were unsuccessful due to the difficulty in identifying an intersection, and replication of traffic lights (one for each physical light). One possible method to reduce the instances of the second situation is to find road segments that end at the same stop, but have a different origin (or vice versa). Then we travel along the paths until they meet, at which point we place an intersection.
 
 
+\begin{knitrout}\small
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
 
+
+{\ttfamily\noindent\itshape\color{messagecolor}{\#\# Loading required namespace: transitr}}\end{kframe}
+\end{knitrout}
 One other issue specific to \AT{}'s \GTFS{} feed is that all of the object IDs are \emph{versioned}. That is, instead of a fixed route having a route ID of \verb+02702+, the date and version number are appended to it: \verb+02702-20190806160740_v82.21+. This is the same for the IDs of trips, shapes, and stops. This makes it difficult to transfer existing segments based on stops from previous versions of the \gls{api}, requiring an additional step to remove the version information from the raw data.
 
 
