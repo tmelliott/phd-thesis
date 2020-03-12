@@ -114,8 +114,13 @@
 \usepackage{courier}
 \lstset{basicstyle=\footnotesize\ttfamily,breaklines=true}
 
-\usepackage[acronym,nonumberlist,toc,nomain]{glossaries} %Load glossaries package
+%\usepackage[acronym,nonumberlist,toc,nomain]{glossaries} %Load glossaries package
+\usepackage[acronym,nonumberlist,toc,nomain]{glossaries-extra}
 \makeglossaries
+\GlsXtrEnableEntryUnitCounting
+ {abbreviation}% list of categories to use entry counting
+ {3}
+ {chapter}
 
 \usepackage{soul}
 \newcommand{\note}[2][]{{\ul{#1}~\footnotesize\textcolor{blue}{\emph{[#2]}}}}
@@ -290,7 +295,7 @@ The acknowledgments and the people to thank go here, don't forget to include you
 %   ABBREVIATIONS
 %----------------------------------------------------------------------------------------
 
-\glsaddall
+%\glsaddall
 \printglossary[type=\acronymtype,title=List of Abbreviations] %Generate List of Abbreviations
 
 %----------------------------------------------------------------------------------------
