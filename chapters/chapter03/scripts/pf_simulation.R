@@ -24,7 +24,9 @@ run_simulation <- function(seed = 1, include = "none",
         seed = seed,
         accel_prop = accel_prop,
         pi = as.integer(include %in% c("stops", "both")),
-        rho = as.integer(include %in% c("segments", "both")),
+        rho = switch(include,
+            "stops" = 0, "segments" = 1, "both" = 0.5
+        )
     )
 
     if (interactive()) {
@@ -103,7 +105,8 @@ particle_filter <- function(t, x, n = 5000, model = 1,
         dwell = integer(n),
         dwell_time = replicate(n, numeric(nrow(stops)), simplify = FALSE),
         segment_start = replicate(n, numeric(nrow(segments)), simplify = FALSE),
-        segment_end = replicate(n, numeric(nrow(segments)), simplify = FALSE)
+        segment_end = replicate(n, numeric(nrow(segments)), simplify = FALSE),
+        stop_arrival = replicate(n, numeric(nrow(stops)), simplify = FALSE)
     )
 
     current_segment <- 1L
@@ -175,6 +178,8 @@ particle_filter <- function(t, x, n = 5000, model = 1,
                 if (state$distance[i] >=
                     stops$distance[state$stop_index[i] + 1L]) {
                     state$stop_index[i] <- state$stop_index[i] + 1L
+                    ## arrival time:
+                    state$stop_arrival[[i]][state$stop_index[i]] <- time
                     if (runif(1) < pr_stop) {
                         state$dwell[i] <- round(
                             gamma + truncnorm::rtruncnorm(1, 0, Inf,
@@ -210,12 +215,42 @@ particle_filter <- function(t, x, n = 5000, model = 1,
                     data = segments, lty = 3, colour = "blue")
         }
 
-        # reweight
-        state <- state %>%
-            mutate(
-                likelihood = dnorm(x[k], distance, gps),
-                weight = weight * likelihood / sum(weight * likelihood)
-            )
+        # is observation at stop?
+        if (any(x[k] == stops$distance) &&
+            (x[k] > x[k - 1] ||
+             (length(x) > k && x[k] < x[k + 1]))) {
+            # which stop?
+            sx <- which(x[k] == stops$distance)
+            # arrival or departure?
+            if (x[k] > x[k - 1]) {
+                state <- state %>%
+                    mutate(
+                        likelihood = dnorm(
+                            stops$t[sx],
+                            sapply(stop_arrival, function(x) x[sx]),
+                            2.0
+                        )
+                    )
+            } else {
+                state <- state %>%
+                    mutate(
+                        likelihood = dnorm(
+                            stops$t[sx] + stops$d[sx],
+                            sapply(stop_arrival, function(x) x[sx]) +
+                                sapply(dwell_time, function(x) x[sx]),
+                            2.0
+                        )
+                    )
+            }
+        } else {
+            # use distance
+            # reweight
+            state <- state %>%
+                mutate(
+                    likelihood = dnorm(x[k], distance, gps),
+                    weight = weight * likelihood / sum(weight * likelihood)
+                )
+        }
 
         Neff <- 1 / sum(state$weight^2)
         if (draw) {

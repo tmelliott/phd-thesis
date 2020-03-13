@@ -11,7 +11,7 @@ simulate_vehicle <- function(length = 2000,
                              gamma = 10,
                              tau = c(18, 10),
                              rho = 0,
-                             omega = c(30, 10)
+                             omega = 10
                             ) {
     set.seed(seed)
     include <- match.arg(include)
@@ -64,7 +64,7 @@ simulate_vehicle <- function(length = 2000,
                     z$t[znext] <- length(distance)
                     if (runif(1) < rho) {
                         dwell <- round(
-                            truncnorm::rtruncnorm(1, 0, Inf, omega[1], omega[2])
+                            rgamma(1, omega)
                         )
                         z$d[znext] <- dwell
                         x[1] <- z$distance[znext]

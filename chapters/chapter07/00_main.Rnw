@@ -2,3 +2,17 @@
 \chapter{Discussion}
 \label{cha:discussion}
 
+
+\paragraph{Single paragraph iterating the most important findings}
+
+\begin{itemize}
+\item start by reiterating the research questions, followed by the answer
+\item a \emph{transit network} can be constructed from \gls{gtfs} data to combine data across routes
+\item arrival time accuracy/reliability can be improved from what Auckland currently uses
+\item incorporating uncertainty is possible/necessary
+\item make links between our findings and the literature
+\item discuss any unexpected findings
+\end{itemize}
+
+
+\paragraph{Future research (and how this application framework makes that possible)}

@@ -191,3 +191,63 @@ Comparing the estimates numerically using \gls{rmse} (\cref{tab:sim2_pf_full}) w
 \label{sec:vehicle_sim_C}
 
 This time, we perform a simulation that more closely replicates the Auckland Transport system we are modelling. In it, we no longer know the locations of intersections, so road segments are specified between stops instead. In this simulation, the bus may still stop at intersections, but the underlying model does not know where these are. The goal is to esimate travel time along segments (which is now the \emph{link time} between stops).
+
+
+
+
+\Cref{fig:sim3_graph} displays the simulated data in which only the stop locations are known, but the bus gets delays at intersections along the way. The results for this simulation are displayed in \cref{fig:sim3_pf}, which conveys that the \emph{uncertainty} is not being measured accurately.
+
+\begin{knitrout}\small
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{figure}
+\subfloat[The simulated data.\label{fig:sim3_graph1}]{\includegraphics[width=.49\linewidth]{figure/sim3_graph-1} }
+\subfloat[10~s sampling.\label{fig:sim3_graph2}]{\includegraphics[width=.49\linewidth]{figure/sim3_graph-2} }\newline
+\subfloat[30~s sampling.\label{fig:sim3_graph3}]{\includegraphics[width=.49\linewidth]{figure/sim3_graph-3} }
+\subfloat[Observations at bus stops and intersections.\label{fig:sim3_graph4}]{\includegraphics[width=.49\linewidth]{figure/sim3_graph-4} }\caption[Simulated vehicle trajectory, with five road segments and three intermediate stops]{Simulated vehicle trajectory, with five road segments and three intermediate stops.}\label{fig:sim3_graph}
+\end{figure}
+
+
+\end{knitrout}
+
+
+
+\begin{knitrout}\small
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{figure}
+\includegraphics[width=\linewidth]{figure/sim3_pf-1} \caption[Simulation results for the three models (rows) applied to the data from three sampling methods (columns), using $\Np=2000$ particles]{Simulation results for the three models (rows) applied to the data from three sampling methods (columns), using $\Np=2000$ particles. [details].}\label{fig:sim3_pf}
+\end{figure}
+
+
+\end{knitrout}
+
+
+
+\begin{knitrout}\small
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{figure}
+\includegraphics[width=\maxwidth]{figure/sim3_pf_full-1} \caption[Speed estimation results for 100 simulations]{Speed estimation results for 100 simulations. In each the vehicle trajectory is simulated using a different seed, and the speed estimate is taken as the mean of the particle speeds along each segment.}\label{fig:sim3_pf_full}
+\end{figure}
+
+\begin{table}
+
+\caption{\label{tab:sim3_pf_full}RMSE of average speed estimation}
+\centering
+\fontsize{8}{10}\selectfont
+\begin{tabular}[t]{llrr}
+\toprule
+Sampling method & Model & RMSE (m/s) & MAE (m/s)\\
+\midrule
+Uniform (10s) & A1 & 2.67 & 2.10\\
+ & A2 & 2.70 & 2.12\\
+ & A3 & 2.74 & 2.16\\
+\midrule
+Uniform (30s) & A1 & 2.82 & 2.12\\
+ & A2 & 2.75 & 2.13\\
+ & A3 & 2.73 & 2.02\\
+\midrule
+Nodes & A1 & 3.15 & 2.37\\
+ & A2 & 2.96 & 2.26\\
+ & A3 & 2.84 & 2.17\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+
+\end{knitrout}
