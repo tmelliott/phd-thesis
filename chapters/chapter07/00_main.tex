@@ -1,18 +1,128 @@
-
 \chapter{Discussion}
 \label{cha:discussion}
 
+\phantom{\gls{gtfs}\gls{gtfs}\gls{gtfs}}
 
-\paragraph{Single paragraph iterating the most important findings}
+Accurately predicting the arrival time of transit vehicles involves estimation many unknowable factors, and is inevitably prone to high levels of uncertainty.
+%By modelling uncertainty, we showed that it was possible to improve the \emph{reliability} of arrival time predictions---namely recuding travellers' chances of missing a bus---without using any additional data.
+We set out to develop a real-time application framework that sits on top of \gls{gtfs}---a globally used transit data format---allowing estimation of \emph{network traffic state} to make arrival time predictions more useful for travellers. Our results demonstrate that the proposed \emph{particle filter} method provides the ability to both estimate network state and predict arrival time distributions better, on average, than the currently deployed method. That it also provides a full \gls{cdf} of arrival time means journey planning decisions can be more informed, since ``worst'' or ``best'' case scenarios can be accounted for.
+
+
+\section{A journey towards reliable predictions}
+
+The process of predicting arrival times that incorporate real-time traffic conditions involves three main phases: vehicle modelling to estimate vehicle state and road speeds, network modelling to update network state, and arrival time prediction. First, however, the \emph{road network} needs constructing from \gls{gtfs} data.
+
+\note{Throughout, remember to use the formula: answer question, support with results, explain relation to literature}
+
+\subsection{Modelling vehicle state}
 
 \begin{itemize}
-\item start by reiterating the research questions, followed by the answer
-\item a \emph{transit network} can be constructed from \gls{gtfs} data to combine data across routes
-\item arrival time accuracy/reliability can be improved from what Auckland currently uses
-\item incorporating uncertainty is possible/necessary
-\item make links between our findings and the literature
-\item discuss any unexpected findings
+  \item the data is difficult to work with due to blah blah blah
+  \item the particle filter provides a flexible way of incorporating lots of different sources of uncertainty
+  \item also reduces unnecessary ones, such as map-matching, which solves issues such as looping, etc.
+  \item fine control over PF performance (degeneration rates, etc)
+  \item something about \citet{Hans_2015}
+
+  \item GPS error is interesting, and possibly more accurate than expected---we used a na\:ive assumption that it is Gaussian on the ground, but it is not (cite blah blah).
+  \item However, this type of likelihood has not appeared before, at least that we are aware of: usually Normal likelihood is assumed \emph{around the map-matched trip-distance-travelled}. \note{Tom, check what Hans etc did}.
+
+  \item We also implemented likelihood on arrival times, and modelling dwell times. We found a strange, unexpected 9~second period, which will have some procedural cause, but could mean that the arrival time likelihood could be improved (specifically for AT's data).
+  \item again, not much literature places this kind of likelihood on arrival time...instead they use e.g., ANN or SVM or other methods, unsure where uncertainty goes
+
+  \item Dwell time model disrupted by the 9-second phenomenon.
+
+  \item We are able to observe real-time vehicle speeds through the network. Similar to previous work, but many of these used historical data/patterns. Or, \emph{link travel times} based solely on arrival/departure observations.
 \end{itemize}
 
 
-\paragraph{Future research (and how this application framework makes that possible)}
+\subsection{Estimating real-time traffic conditions}
+
+\begin{itemize}
+  \item real-time vehicle speed estimates obtained from vehicles traversing the network
+  \item not limited to individual routes---that way more data, particularly for low-frequency routes that share roads
+  \item capable to reacting to real-time traffic events as they happen, rather than relying on historical trends
+  \item \citet{Celan_2018,Celan_2017} use historical speed maps
+  \item \citet{Julio_2016} used historical relationships between adjacent segments
+  \item Others did ... in which real-time link travel times estimated, which differ slightly in generalisability
+  \item uses KF like \citet{Shalaby_2004}, and others (who also showed how it responds in real-time)
+  \item we demonstrated the potential for historical-data to be used in forecasts (this is a quasi-kNN thing, potential for ANN-type methods)
+
+  \item anything unexpected?
+  \item speeds tend to be overestimated
+
+  \item independence between segments not considered, but probably important (particularly at peak time)
+  \item might also be relevant for individual vehicles (one might travel quickly along a road segment/segments for some obscure reason)
+\end{itemize}
+
+
+\subsection{Predicting arrival times}
+
+\begin{itemize}
+  \item combination of vehicle and network states + dwell time distributions from historical data
+  \item layover adherence is pretty bad, making it difficult to rule out uncertainty past those stops
+  \item overestimated speeds result in more underestimation of arrival times; sometimes not enough uncertainty covered particularly during peak times
+  \item argue that this is better than the other way around, so until above above can be fixed to make things more accurate (the speed esimation and model) we leave as-is
+  \item \citet{Hans_2015} used particle filter to estimate ``arrival times'' for operations research, showed that it was good when lots of uncertainty/trajectory choices
+
+  \item estimating ETA distribution is good because uncertainty is real/cannot be avoided---and people have shown that people can make use of uncertainty in journey planning (e.g., \citet{Fernandes_2018,Mazloumi_2011}).
+
+  \item anything unexpected?
+
+  \item we also presented a (novel?) method of summarizing the arrival time distribution such that it can be distributed (impossible to distribute the full particle distribution because too many particles). \note{Maybe an appendix section on distributing ETAs} - YES! with GTFS extension thingy
+
+  \item \glspl{cdf} can be used to answer journey planning questions, including relationships between trips (assuming, of course, independence)
+
+  \item work e.g., \citet{Yu_2011,Yin_2017} did things with multiple routes/segments that use relationships between segments
+  \item \citet{Celan_2017,Celan_2018} maybe did things with segment relationships?
+  \item \citet{Julio_2016} definitely did
+
+  \item finally: journey planning stuff; we can estimate probabilities of events, but also probabilistic arrival times which could be used as input to dynamic routing methods \citep{Berczi_2017}
+\end{itemize}
+
+
+\section{Running the application in real-time}
+
+\begin{itemize}
+  \item needs to run fast so results are available to travellers to make decisions quickly
+  \item target: 30~seconds
+  \item result: 6--10~seconds
+  \item could be even faster on more cores (have access to VM with 8~cores, but unfortunately were unable to run the simulations on it due to configuration security settings)
+
+  \item this means that results are available 6--10~seconds after data received, which is not too bad!
+  \item compared to other applications, do we get some timings?
+  \item \citet{Chang_2010} obtained 4000~predictions/minute; we did ... at least 10000, probably more (number of vehicles $\times$ number of remaining stops per vehicle) in 10~seconds!
+  \item but much longer compared to other, simpler methods (who gives timings? report their timings!) \citep{Yu_2006}
+\end{itemize
+
+
+
+\section{Future work}
+
+\begin{itemize}
+  \item construct network: even more generalised
+  \begin{itemize}
+    \item identify road intersections where routes diverge
+    \item express routes: do these include segments, or just the stops they use?
+    \item possibility to import nodes (intersections, etc) from an external source (OpenStreetMap, perhaps; initial attempts at this were a rabbit hole)
+  \end{itemize}
+  \item improved vehicle model: likelihood for GPS, handling of arrival time oddities; speed/velocity, odometer readings
+  \item incorporate real-time dwell time models (demand-based) (could start based on historical trend), plus if APC data is available use that
+  \item network model: correlations between segments is going to improve things substantially
+  \item also forecasting/state prediction using historical data/trends; this could use ANN/SVM/kNN type models
+  \item also if lots of historical data is available, could do something similar to \cite{Chen_2014}
+  \item arrival time prediction: incorporating above improvements should be automatic; correlations and forecasts will have the most significant improvments as we demonstrated briefly
+  \item JP methods implemented on a server that access ETA distributions to make probabilistic decisions
+\end{itemize}
+
+
+\section{Conclusion}
+
+\begin{itemize}
+  \item arrival time prediction is hard
+  \item there are lots of sources of uncertainty---some of which can be reduced, but a lot of which cannot
+  \item by modelling as much uncertainty as possible, we improve reliability of arrival times estimates by the definition that the probability of missing the bus is reduced (but also travellers stay informed as the potential wait times)
+  \item our generalised framework can, one day, have ``modular'' features for, e.g., the vehicle model, or likelihood functions, or network forecasts (currently these are C++ functions that would need manual modification)
+  \item incorporating all of this uncertainty in arrival time predictions means journey planning is better able to make decisions (minimise risk, depending on the importance of constraints)
+  \item but finally, for the passenger who has just arrived at the stop, we hope that an ETA that decreases over time, on average, will be more helpful than an ETA that jumps around
+  \item perhaps even having a predicted range will appease some commuters who have a general understanding of Auckland traffic and might, possibly, appreciate knowing the min/max expected arrival times.
+\end{itemize}

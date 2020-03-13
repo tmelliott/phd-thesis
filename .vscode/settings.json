@@ -1,7 +1,8 @@
 {
   "ltex.en-GB.disabledRules": [
     "OXFORD_SPELLING_ADJECTIVES",
-    "OXFORD_SPELLING_ISE_VERBS"
+    "OXFORD_SPELLING_ISE_VERBS",
+    "OXFORD_SPELLING_NOUNS"
   ],
   "ltex.en-GB.dictionary": [
     "Kalman",
