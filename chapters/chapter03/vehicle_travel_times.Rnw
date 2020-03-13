@@ -491,7 +491,7 @@ fscap3 <- c(
 )
 @
 
-\Cref{fig:sim3_graph} displays the simulated data in which only the stop locations are known, but the bus gets delays at intersections along the way. The results for this simulation are displayed in \cref{fig:sim3_pf}, which conveys that the \emph{uncertainty} is not being measured accurately.
+\Cref{fig:sim3_graph} displays the simulated data in which only the stop locations are known, but the bus gets delays at intersections along the way. The results for this simulation are displayed in \cref{fig:sim3_pf}, which conveys that the \emph{uncertainty} is not being measured accurately (the speed tends to be underestimated).
 
 <<sim3_graph,echo=FALSE,fig.height=2,fig.width=4,out.width=".49\\linewidth",fig.cap=fcap2,fig.subcap=fscap2,fig.ncol=2,warning=FALSE,message=FALSE>>=
 p3 <- ggplot(s3$path, aes(time, distance)) +

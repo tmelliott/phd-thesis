@@ -7,9 +7,9 @@ The next major step in this work was to implement the model in real-time using C
 \item fetches the lastest observations,
 \item attaches them to an existing vehicle, or creates a new one,
 \item updates or initialises vehicle states using the particle filter model described in \cref{sec:vehicle_model}, and
-\item estimates average road speeds as vehicles traverse the network as described in \cref{sec:vehicle_speeds},
+\item estimates average road speeds as vehicles traverse the network as described in \cref{sec:vehicle_speeds}.
 \end{enumerate}
-as displayed in \cref{fig:program_flow}. During the process of coding up our implementation (\cref{sec:pf_implementation}), we inevitably ran into issues, some of which are related to computational complexity, while others are due to imperfections with the data (see \cref{sec:pf_issues}). Once the implementation was complete, we needed to estimate the parameters (such as system noise and measurement error) for the model.
+During the process of coding up our implementation (\cref{sec:pf_implementation}), we inevitably ran into issues, some of which are related to computational complexity, while others are due to imperfections with the data (see \cref{sec:pf_issues}). Once the implementation was complete, we needed to estimate the parameters (such as system noise and measurement error) for the model.
 
 
 In order to assess the \rt{} performance of the model and our \pf{} implementation, we created a virtual \rt{} server which serves historical data. This means we can both process the data faster---we do not need to wait in \rt{} for new observations---and allows us to run the model with different settings and parameter values for comparison. We used (a subset of) data from Tuesday 8~October~2018 for the simulations used in \cref{sec:pf_issues,sec:pf_params}, which were carried out on a virtual machine with 8~Intel Xeon 3.00GHz CPU cores and 32~GB of memory, running Ubuntu 16.04 and R 3.4.1. The results themselves were processed locally using R 3.6.0. These results were published in \citet{Elliott_2020}.
