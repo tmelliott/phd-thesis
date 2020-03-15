@@ -5,94 +5,134 @@
 
 Accurately predicting the arrival time of transit vehicles involves estimation many unknowable factors, and is inevitably prone to high levels of uncertainty.
 %By modelling uncertainty, we showed that it was possible to improve the \emph{reliability} of arrival time predictions---namely recuding travellers' chances of missing a bus---without using any additional data.
-We set out to develop a real-time application framework that sits on top of \gls{gtfs}---a globally used transit data format---allowing estimation of \emph{network traffic state} to make arrival time predictions more useful for travellers. Our results demonstrate that the proposed \emph{particle filter} method provides the ability to both estimate network state and predict arrival time distributions better, on average, than the currently deployed method. That it also provides a full \gls{cdf} of arrival time means journey planning decisions can be more informed, since ``worst'' or ``best'' case scenarios can be accounted for.
+We set out to develop a real-time application framework that sits on top of \gls{gtfs}---a globally used transit data format---allowing estimation of \emph{network traffic state} to make arrival time predictions more useful for travellers. Our results demonstrate that the proposed \emph{particle filter} method provides the ability to both estimate network state and predict arrival time distributions better, on average, than the currently deployed method. By estimating the full \gls{cdf}, we are able to provide quantile-based prediction intervals, but also compute probabilities for journey planning problems, such as the chance of arriving at the desination on time.
+
+
+Our application uses \emph{recursive Bayesian filtering}, a logical choice for real-time applications as demonstrated by its use in many other bus applications. \citet{Wall_1999,Dailey_2001,Cathey_2003} used a \kf{} to estimate the state of a bus, while \citep{Shalaby_2004,cn} implemented a \kf{} on road state to allow real-time estimation of traffic conditions. The \kf{} can also be used for arrival time prediction, such as where \citet{Wall_1999,Dailey_2001} combined vehicle distance travelled with \emph{time until arrival}. However, the \kf{} is limited by its normality assumption which, as I explained, is not a valid assumption for transit vehicle prediction due to the multimodality introduced by bus stops. An alternative is to use a particle filter, which allows for better coverage of the set of possible trajectories \citep{Hans_2015}.
+
+We use a particle filter to estimate vehicle state and make arrival time predictions, while the \kf{} is sufficient for the road network state. We chose \emph{average vehicle speed} similarly to \citet{Celan_2017,Celan_2018} instead of travel time \citep{Shalaby_2004} as the latter tends to have long tails and the system noise parameter (how quickly speed changes over time) is strongly correlated to travel time. Together, the estimated vehicle and network states, in conjunction with dwell time distributions, provide a more reliable approximation of bus arrival time than can be achieved with the currently used method in Auckland, New Zealand. I will now review and discuss the three main components of our arrival time prediction application.
 
 
 \section{A journey towards reliable predictions}
 
-The process of predicting arrival times that incorporate real-time traffic conditions involves three main phases: vehicle modelling to estimate vehicle state and road speeds, network modelling to update network state, and arrival time prediction. First, however, the \emph{road network} needs constructing from \gls{gtfs} data.
+The process of predicting arrival times that incorporate real-time traffic conditions involves three main phases: vehicle modelling to estimate vehicle state and road speeds; network modelling to update network state; and arrival time prediction. The first step, therefore, is the construction of a \emph{transit road network} such that routes can be represented as the physical roads they travel along.
 
-\note{Throughout, remember to use the formula: answer question, support with results, explain relation to literature}
+
+Our application uses stops as the nodes, and road segments are identified for each route by their unique sequence of stops. This is similar to the network described by \citet{Celan_2018,Celan_2017}; however, while they did show that including stops is necessary for accurate arrival prediction, they also demonstrated the need for other potential time barriers---for example roundabouts or pedestrian crossings---which we, as of yet, do not have implemented. Nevertheless, other methods have also used links between stops, often incorporating multiple stops along each link \citep{cn}.
+
+
+Having expressed each route as a sequence of segments which each correspond to a unique one-directional road between stops, it is trivial to assign a vehicles current or previous location to roads throughout the network. In this way, our framework allows the estimation of not only vehicle speeds, but also of the average speed of vehicles along individual roads. We will now discuss the three components which are linked through this road network.
+
+
 
 \subsection{Modelling vehicle state}
 
+In \cref{cha:data}, I described the characteristics of the real-time data obtained from Auckland Transport's public \gls{api}.
 \begin{itemize}
-  \item the data is difficult to work with due to blah blah blah
-  \item the particle filter provides a flexible way of incorporating lots of different sources of uncertainty
-  \item also reduces unnecessary ones, such as map-matching, which solves issues such as looping, etc.
-  \item fine control over PF performance (degeneration rates, etc)
-  \item something about \citet{Hans_2015}
+  \item main issue: waypoints
+  \item reversing bus
+  \item handled by pre-processing observations and attempting to detect such situations ...
+\end{itemize}
 
-  \item GPS error is interesting, and possibly more accurate than expected---we used a na\:ive assumption that it is Gaussian on the ground, but it is not (cite blah blah).
-  \item However, this type of likelihood has not appeared before, at least that we are aware of: usually Normal likelihood is assumed \emph{around the map-matched trip-distance-travelled}. \note{Tom, check what Hans etc did}.
 
-  \item We also implemented likelihood on arrival times, and modelling dwell times. We found a strange, unexpected 9~second period, which will have some procedural cause, but could mean that the arrival time likelihood could be improved (specifically for AT's data).
+The other difficulty with \glspl{rbm} for real-time vehicle location data is the prediction step, particularly when passing a stop or through a \emph{loop}.
+\begin{itemize}
+  \item in both, bus could be in $>1$ place
+  \item particle filter inherently allows for a large range of trajectories, with no constrains on the possible distributions (unlike the KF which assumes normality)
+  \item demonstrated by \citet{Hans_2015}
+  \item they did not appear to use GPS coordinate likelihood (unsure exactly how they did it)
+\end{itemize}
+
+
+We also developed a likelihood function that compares, without introducing any further uncertainty, the particle's location with the vehicle's observed coordinates.
+\begin{itemize}
+  \item we assume normal error ``on the ground''
+  \item likely not the case, but still better than map matching (i.e., nearest point on the path)
+  \item this likelihood has not been seen that we are aware of
+  \item major advantage is that for example in a loop, the bus could be going in or out of the loop, and if there are particles in both locations, they were remain until a further observation is recieved. With the KF, this is not so as a guess has to be made before the likelihood is computed!
+  \item \citep{Cathey_2003,cn}
+\end{itemize}
+
+
+In addition to the vehicle's positional likelihood, we implemented also a likelihood on the vehicle's arrival or departure time from stops.
+\begin{itemize}
+  \item reduce possible number of trajectories, and helps to reduce uncertainty in speed
+  \item however from the dwell time distribution (figure blah) we found an odd phenomenon of an apparent 9~second phasing or period to the observations of arrival/departure time
+  \item therefore not only is there measurement error, but also a systematic error that is not accounted for (in either the arrival/departure likelihood or in the dwell time, later)
+
   \item again, not much literature places this kind of likelihood on arrival time...instead they use e.g., ANN or SVM or other methods, unsure where uncertainty goes
 
-  \item Dwell time model disrupted by the 9-second phenomenon.
-
-  \item We are able to observe real-time vehicle speeds through the network. Similar to previous work, but many of these used historical data/patterns. Or, \emph{link travel times} based solely on arrival/departure observations.
 \end{itemize}
+
+
+Dwell time is a significant component of transit systems, being the time ``lost'' due to stopping to pick up and drop off passengers. Our application currently uses a very simplistic model of bus dwell time, which uses observations from historical arrival and departure times to compute the expectation and variance of dwell time by stop and route. This is adequate for the real-time vehicle model, since only one stop is handled and, once observations are received, the particle filter is able to determine which situation occured (and, if it was not able to, it does not matter---all plausible particles will remain). However, previous research has developed more complex models of bus stop dwell time, often using \emph{passenger demand}; alas, many of these, such as \citet{Shalaby_2004,Hans_2015} had \gls{apc} data available for both the training and real-time modelling of bus stop dwell times. Since this type of data does not typically come with \gls{gtfs}, nor is it available in Auckland, I decided to focus on the travel time model instead.
+
+
+Using a particle filter to estimate vehicle state provides a straightforward way to estimating vehicle travel times along roads. By expressing each route as a sequence of \emph{road segments}, each particle's individual travel time along each individual road can be calculated. Then, using the Dirac delta measure, the vehicle's estimated travel time is obtained with associated uncertainty. This approach means we are able to estimate real-time traffic conditions, similarly to \citet{cn}. Unlike these, however, we use \emph{average vehicle speed} along roads \citep{Celan_2017,Celan_2018}, although they used historical vehicle speeds interpolated from observed vehicle trajectories.
+
+
+The generalised network approach we use removes the route-dependence other methods are restricted by \citep{Yu_2010,Yin_2017,Celan_2018,Celan_2017} allowing any vehicle travelling along a road to contribute to its state. Not only does this mean that road states are estimated from all buses, but (arguably) more importantly, all buses can use the state to make predictions, which is particularly beneficial to routes with low-frequency travelling along roads shared by other routes. I would also point out that routes with large numbers of buses are more likely to be affected by sudden changes in traffic conditions compared to more suburban routes with only a single bus route.
 
 
 \subsection{Estimating real-time traffic conditions}
 
+Given the abilty to \emph{observe} the speeds of vehicles as they travel along roads, it becomes possible to model the transit road network's state in real-time. We implemented a Kalman filter to model the state (average vehicle speed) of roads throughout Auckland's public transport network. Previous research by \citet{Shalaby_2004}(?) demonstrated the ability of the \kf{} to react to real-time traffic events, a result which we were also able to demonstrate. This approach can be contrasted with alternatives which use ``real-time'' information to choose from historical trends, as demonstrated by the likes of \citet{Chen_2014,Julio_2016,Yu_2010,Yu_2011,Celan_2017} who used machine learning methods (\gls{ann} or \gls{svm}) to predict travel times or speeds. \Citet{cn} demonstrated the difficulty of these types of methods to respond to sudden, large increases in travel time (increased congestion during peak times).
+
+
+However, it is still possible to combine the two approaches, which we began exploring at the end of \cref{cha:network_model}. We demonstrated the use of a simple \gls{knn} forecasting method to predict road speeds based on the current state, which was shown to better predict road speed than the na\:ive \emph{current state} prediction. More research is required in this area, however, particularly on the notion of \emph{relationships} between road segments, which is likely to be significant, particularly at peak times. In such cases, a traffic-shockwaves model similar to \citet{Julio_2016} might be appropriate.
+
+
+We did find that road speeds tended to be overestimated, which mostly presented itself when making arrival time predictions. Some of this is due to the lack of any forecasting component, but also due to the issues discussed in the vehicle modelling component: particles tend to travel \emph{faster} and spend longer at stops, which can be amended by implementing a more restrictive likelihood on the arrival and departure time observations.
 \begin{itemize}
-  \item real-time vehicle speed estimates obtained from vehicles traversing the network
-  \item not limited to individual routes---that way more data, particularly for low-frequency routes that share roads
-  \item capable to reacting to real-time traffic events as they happen, rather than relying on historical trends
-  \item \citet{Celan_2018,Celan_2017} use historical speed maps
-  \item \citet{Julio_2016} used historical relationships between adjacent segments
-  \item Others did ... in which real-time link travel times estimated, which differ slightly in generalisability
-  \item uses KF like \citet{Shalaby_2004}, and others (who also showed how it responds in real-time)
-  \item we demonstrated the potential for historical-data to be used in forecasts (this is a quasi-kNN thing, potential for ANN-type methods)
-
-  \item anything unexpected?
-  \item speeds tend to be overestimated
-
-  \item independence between segments not considered, but probably important (particularly at peak time)
-  \item might also be relevant for individual vehicles (one might travel quickly along a road segment/segments for some obscure reason)
+  \item some other people used historical forecasts? what did they find?
 \end{itemize}
+
+
+Regardless, the real-time network state plays a critical role in arrival time prediction, as this has time and again been shown to contribute to uncertainty \citep{Shalaby_2004,Yu_2006,Yu_2010,Yu_2011,Julio_2016}. Not only this, the network state could also be utilised by transit providers to see real-time congestion which may be affecting service punctuality (on-time arrival). This could allow them to provide service alerts for affected routes, or \emph{to be affected} routes (that will be starting once the current route is completed).
 
 
 \subsection{Predicting arrival times}
 
+
+The primary goal of this thesis is to demonstrate how using real-time traffic information can be used to improve the reliability of arrival time prediction.
 \begin{itemize}
-  \item combination of vehicle and network states + dwell time distributions from historical data
-  \item layover adherence is pretty bad, making it difficult to rule out uncertainty past those stops
-  \item overestimated speeds result in more underestimation of arrival times; sometimes not enough uncertainty covered particularly during peak times
-  \item argue that this is better than the other way around, so until above above can be fixed to make things more accurate (the speed esimation and model) we leave as-is
-  \item \citet{Hans_2015} used particle filter to estimate ``arrival times'' for operations research, showed that it was good when lots of uncertainty/trajectory choices
-
-  \item estimating ETA distribution is good because uncertainty is real/cannot be avoided---and people have shown that people can make use of uncertainty in journey planning (e.g., \citet{Fernandes_2018,Mazloumi_2011}).
-
-  \item anything unexpected?
-
-  \item we also presented a (novel?) method of summarizing the arrival time distribution such that it can be distributed (impossible to distribute the full particle distribution because too many particles). \note{Maybe an appendix section on distributing ETAs} - YES! with GTFS extension thingy
-
-  \item \glspl{cdf} can be used to answer journey planning questions, including relationships between trips (assuming, of course, independence)
-
-  \item work e.g., \citet{Yu_2011,Yin_2017} did things with multiple routes/segments that use relationships between segments
-  \item \citet{Celan_2017,Celan_2018} maybe did things with segment relationships?
-  \item \citet{Julio_2016} definitely did
-
-  \item finally: journey planning stuff; we can estimate probabilities of events, but also probabilistic arrival times which could be used as input to dynamic routing methods \citep{Berczi_2017}
+  \item includes vehicle state, network state, and dwell time distributions
+  \item particle filter provides an easy way to obtain the distributions
+  \item I demonstrated a simple method of computing the full CDF of arrival times (in integer minutes) to reduce task complexity
 \end{itemize}
 
 
-\section{Running the application in real-time}
+The advantages of providing a probabilistic distribution of arrival time versus a point estimate is that best versus worst case scenarios can be evaluated. If you are meeting a friend in town for a coffee, the cost of missing the bus is not as high (just text your friend that you are running late). However, if you have a job interview or an apartment viewing you cannot be late for, you want to know with more certainty that the bus will be on time (if not, you might decide to catch a taxi instead, at much higher financial cost). Previous research has suggested that decision-making under uncertainty is feasible \citep{Fernandes_2018}.
+
+
+Of course, the uncertainty is still problematic, and ideally as much as possible should be reduced. Road speed contributes in part to uncertainty, but there is also a significant amount attributed to dwell times, which we have no formal model for yet due to a lack of any reliable data. However, another situation that is problematic is \emph{layovers}, which we saw as being poorly maintained by drivers. This contributes to uncertainty, particularly for a route that is running early: we cannot assume the driver will stop. Thankfully, the particle filter makes this scenario easy to handle by simply allowing each particle an independent chance of waiting (which we obtain from observing historical departure delays). Thus, the ``best'' and ``worst'' case scenarios are when the driver does and does not stop, respectively (at least for passengers waiting for the bus; passengers on the bus may have the opposite definition). This concurs with the discussion by \citet{Hans_2015}, who noted the particle filters ability to sample many plausible trajectories.
+
+
+One issue impacting the predictive performance of our method is the \emph{overestimation} of road speeds. This results in arrival time estimates that are earlier than they should be, which we saw in \cref{cha:etas} with the 60\% quantile having the smallest absolute error, although this can also be attributed to \emph{rounding down}. These issues were particularly present during peak times when traffic conditions are more volatile, when we also noticed that often not enough uncertainty was being included. The upper quantiles of arrival time, notably in relation to journey planning, were often underestimated, in which case we often saw under predictions of the probability of a bus arriving on time. While not ideal, this is still a better predicament to be in than the other way around (in which case arrival time predictions are later than they should be, which can result in passengers missing their bus).
+
+
+The downside of the particle filter is that it approximates the distribution with $\Np=5000$ particles\footnote{That's how many I used for the results presented here.} which is difficult to distribute to commuters. To overcome this limitation, our application uses the fact that \glspl{eta} are usually displayed in minutes to compute the discrete \gls{cdf} of arrival time (in minutes). This allows us to compute the probability of any event rounded to the nearest minute. As far as we know, no other framework allows distribution of the full \gls{cdf} of arrival times rather than pre-selected intervals or quantiles. Work such as that by \citet{Celan_2017,Celan_2018} presents the possibility for more comprehensive journey planning that uses the probabilistic model of arrival times we provide.
+
+
+The combination of the particle filter to model vehicles to estimate their state and, more importantly, travel times along roads, with the real-time network state and dwell time distributions allows our application to predict arrival times more accurately and more reliably than the method currently used by Auckland Transport and likely many other agencies around the world.
+\begin{itemize}
+  \item provides a foundation for more advanced modelling of the various components; particle filter demonstration makes this all possible (mostly)
+  \item more points?
+  \item lead in to complexity and timing (next!)
+\end{itemize}
+
+
+
+\subsection{Running the application in real-time}
+
+As with any real-time application, the main concern---apart, perhaps, from reliability---is computational efficiency: \emph{is it fast enough to be faesible in real-time?} Therefore, we made several important decisions early on, namely using {\tt C++} (through {\tt Rcpp}), which resulted eventually in the R package {\tt transitr}. Our initial goal for an iteration time was \emph{under 30~seconds}, and as I showed in \cref{cha:prediction} our application comes in well under that with most iterations taking 6--10~seconds using 3~cores on my desktop computer. We do have access to an 8~core virtual machine, courtesy of the Center for e-Research and the University of Auckland, but were unable to run the simulations on it due to the security configuration.
+
+
+Our application connects to a public \gls{gtfs} \gls{api} and fetches the data and, 6--10~seconds later, arrival time estimates are available for travellers.\footnote{In theory; currently, because of the server's firewall and security settings, we are working on ways of making the data accessible.} To get an idea of the complexity of the task, lets say there are 1000~vehicles at peak time, each servicing routes with up to 40~or more stops. If we assume that the average number of \emph{remaining stops} per vehicle is 10, then we need to predict arrival times for 10,000 stops during each iteration; at peak time, this is about 1000~predictions per second. \citet{Chang_2010} developed a prediction method that could predict \emph{multiple stops ahead} and they were about to make about 4000~predictions \emph{per minute}.
 
 \begin{itemize}
-  \item needs to run fast so results are available to travellers to make decisions quickly
-  \item target: 30~seconds
-  \item result: 6--10~seconds
-  \item could be even faster on more cores (have access to VM with 8~cores, but unfortunately were unable to run the simulations on it due to configuration security settings)
-
-  \item this means that results are available 6--10~seconds after data received, which is not too bad!
   \item compared to other applications, do we get some timings?
-  \item \citet{Chang_2010} obtained 4000~predictions/minute; we did ... at least 10000, probably more (number of vehicles $\times$ number of remaining stops per vehicle) in 10~seconds!
-  \item but much longer compared to other, simpler methods (who gives timings? report their timings!) \citep{Yu_2006}
-\end{itemize
+\end{itemize}
 
 
 
