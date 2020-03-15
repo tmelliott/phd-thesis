@@ -125,19 +125,21 @@ The combination of the particle filter to model vehicles to estimate their state
 
 \subsection{Running the application in real-time}
 
-As with any real-time application, the main concern---apart, perhaps, from reliability---is computational efficiency: \emph{is it fast enough to be faesible in real-time?} Therefore, we made several important decisions early on, namely using {\tt C++} (through {\tt Rcpp}), which resulted eventually in the R package {\tt transitr}. Our initial goal for an iteration time was \emph{under 30~seconds}, and as I showed in \cref{cha:prediction} our application comes in well under that with most iterations taking 6--10~seconds using 3~cores on my desktop computer. We do have access to an 8~core virtual machine, courtesy of the Center for e-Research and the University of Auckland, but were unable to run the simulations on it due to the security configuration.
+As with any real-time application, the main concern---apart, perhaps, from reliability---is computational efficiency: \emph{is it fast enough to be feasible in real-time?} Therefore, we made several important decisions early on, namely using {\tt C++} (through {\tt Rcpp}), which resulted eventually in the R package {\tt transitr}. Our initial goal for an iteration time was \emph{under 30~seconds}, and as I showed in \cref{cha:prediction} our application comes in well under that with most iterations taking 6--10~seconds using 3~cores on my desktop computer. We do have access to an 8~core virtual machine, courtesy of the Center for e-Research and the University of Auckland, but were unable to run the simulations on it due to the security configuration.
 
 
 Our application connects to a public \gls{gtfs} \gls{api} and fetches the data and, 6--10~seconds later, arrival time estimates are available for travellers.\footnote{In theory; currently, because of the server's firewall and security settings, we are working on ways of making the data accessible.} To get an idea of the complexity of the task, lets say there are 1000~vehicles at peak time, each servicing routes with up to 40~or more stops. If we assume that the average number of \emph{remaining stops} per vehicle is 10, then we need to predict arrival times for 10,000 stops during each iteration; at peak time, this is about 1000~predictions per second. \citet{Chang_2010} developed a prediction method that could predict \emph{multiple stops ahead} and they were about to make about 4000~predictions \emph{per minute}.
 
 \begin{itemize}
   \item compared to other applications, do we get some timings?
+  \item finish with something nice? idk ...
 \end{itemize}
 
 
 
 \section{Future work}
 
+The foundation of our arrival time prediction framework is the \emph{transit network} constructed on top of \gls{gtfs} data.
 \begin{itemize}
   \item construct network: even more generalised
   \begin{itemize}
@@ -145,24 +147,34 @@ Our application connects to a public \gls{gtfs} \gls{api} and fetches the data a
     \item express routes: do these include segments, or just the stops they use?
     \item possibility to import nodes (intersections, etc) from an external source (OpenStreetMap, perhaps; initial attempts at this were a rabbit hole)
   \end{itemize}
-  \item improved vehicle model: likelihood for GPS, handling of arrival time oddities; speed/velocity, odometer readings
-  \item incorporate real-time dwell time models (demand-based) (could start based on historical trend), plus if APC data is available use that
-  \item network model: correlations between segments is going to improve things substantially
-  \item also forecasting/state prediction using historical data/trends; this could use ANN/SVM/kNN type models
-  \item also if lots of historical data is available, could do something similar to \cite{Chen_2014}
+\end{itemize}
+
+
+Using a particle filter to model vehicle behaviour enables a vast array of possibilties, some of which we demonstrated in \cref{cha:vehicle_model}. The main *one* is the likelihood, which can become a fairly complicated issue. We presented the distribution of vehicle distance from the shape path, and one theory for this is \emph{road gauge}, or width. From manual inspection, many of the shape paths run down the center line of the road, so we would expect there to be a short distance between where the bus is and the shape location. For single gauge roads, this would be 1--1.5~meters (based on New Zealand road widths\footnote{}), and 2.5--3~meters for dual gauge roads. These are approximately the peaks we saw in \cref{fig:pf_param_gps}. It may be possible to model this behaviour, such that the actual vehicle location is offset slightly to the left of the shape path. This could enable a much smaller value of \gls{gps} error to be used. Similarly, the arrival time and departure time likelihood could be modified such that the 9~second phasing is accounted for to further reduce the possible range of trajectories.
+
+
+On the other hand, alternative types of data could also be included in the likelihood. Recently,\foonote{As of December, 2019} Auckland Transport began including vehicle speed and odometer readings for some vehicles, which could go a long way to improving the estimation of \emph{average} vehicle speed along roads, particularly for the issue of \emph{overestimated} speed (due to particles ``rushing'' to the stop). Further, such information could assist distinguishing between buses that have and have not stopped at a bus stop. Each trip update (arrival or departure) is associated with a vehicle position, which may contain speed information. If these are combined, we could detect the approximate speed of the vehicle at the time of reporting: if it is zero, this indicates the bus stopped; if it is greater than zero, it indicates that the bus \emph{possibly} did not stop---because of potential delays in detecting itself has arrived or departed.
+
+
+One component of the model that we did not explore much was the dwell time model. In particular, a \emph{real-time} dwell time model could be based on passenger demand and \emph{time since last service}. If available, \gls{apc} data could also be used to improve the dwell time prediction, particularly for arrival time prediction and removing as much uncertainty as possible; at peak time, for example, there is likely a high chance of buses stopping at all stops, versus evening when they usually have only a few passengers.
+
+
+
+In \cref{cha:network_model}, I explained our use of modelling road segments independently. However, this is of course not a realistic assumption, and not only could real-time predictions be improved by modelling them with a dependent model, but so too could the accuracy of the network model itself. For example, observations of vehicle speed along a segment could have implications for adjacent segments, which is similar to the work presented by \citet{Julio_2016}. Or alternatively, methods using particle filters to propose traffic state trajectories based on historical data, similar to the work of \citet{Chen_2014}, which account for historical trends. Either way, I would predict any such improvement would have a positive effect on the accuracy of arrival time prediction, but not necessary on the application timing---the \kf{} in our application takes less than 1~millisecond. Further, in the arrival time prediction component, forecasting each segment for each particle could become a very costly procedure.
+
+
+As I mentioned already, all of these improvements, under our application framework, would automatically be incorporated into the arrival time distributions.
+
+\begin{itemize}
   \item arrival time prediction: incorporating above improvements should be automatic; correlations and forecasts will have the most significant improvments as we demonstrated briefly
   \item JP methods implemented on a server that access ETA distributions to make probabilistic decisions
 \end{itemize}
 
 
-\section{Conclusion}
+\section{Concluding remarks}
 
-\begin{itemize}
-  \item arrival time prediction is hard
-  \item there are lots of sources of uncertainty---some of which can be reduced, but a lot of which cannot
-  \item by modelling as much uncertainty as possible, we improve reliability of arrival times estimates by the definition that the probability of missing the bus is reduced (but also travellers stay informed as the potential wait times)
-  \item our generalised framework can, one day, have ``modular'' features for, e.g., the vehicle model, or likelihood functions, or network forecasts (currently these are C++ functions that would need manual modification)
-  \item incorporating all of this uncertainty in arrival time predictions means journey planning is better able to make decisions (minimise risk, depending on the importance of constraints)
-  \item but finally, for the passenger who has just arrived at the stop, we hope that an ETA that decreases over time, on average, will be more helpful than an ETA that jumps around
-  \item perhaps even having a predicted range will appease some commuters who have a general understanding of Auckland traffic and might, possibly, appreciate knowing the min/max expected arrival times.
-\end{itemize}
+The prediction of transit vehicle arrival time at upcoming stops in real-time is not quite as easy as it seems, and prone to uncertainty entering at all points throughout the process. Some of these uncertainties can be modelled: for example, travel time can be measured in real-time to better predict how long the bus will take, while others are impossible (or too difficult) to model and predict accurately, such as traffic accidents. By using a real-time transit road network, our predictions can, however, react to these events quickly.
+
+
+The more uncertainty that can be modelled, the more reliable any predictions can be, particularly when choosing to convey uncertainty to commuters. In particularly, the \emph{lower quantile}, which is effectively an estimate of \emph{how early the bus might be}, can---for passengers who use the \gls{rti} to make decisions---maximise their chances of catching the bus. Further, it allows us to compute the probabilities of events, from ``the bus arrives on time'' to ``the transfer is successful''. Passengers who wish to make use of this information can, and in doing so, we hope that such results will improve their perception of public transport as previous studies has shown, and indeed increase ridership.
+

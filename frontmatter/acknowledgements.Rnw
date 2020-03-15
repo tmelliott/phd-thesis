@@ -1,0 +1,18 @@
+Thank you to
+
+\begin{itemize}
+    \item Thomas Lumley
+    \item Brendon Brewer (co-supervisor, though your quantity of contribution was minimal, I appreciate that you were available should I have needed help)
+
+    \item Center for e-Research, for providing me with a VM to use and test much of the real-time feasibility of what I was trying to do
+
+    \item to the department, for providing a welcoming and supportive environment over these past 5 yers, and to the university for providing me with 3.5 years of financial support through their doctoral scholarship
+
+    \item to friends within and without the department, providing much-needed humour and reminders that ``we all feel the same way, it's normal''
+
+    \item to the small about of wine that helped to relax and unwind when things got stressful
+
+    \item to my delightful partner Mark: thank you for supporting a broke student
+
+    \item and lastly to two of the most loving and supportive parents. these last two years have been very tough for the two of you, but you were always there if I needed a break or a ride or food.
+\end{itemize}

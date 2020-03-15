@@ -207,11 +207,11 @@ to the examination process.}
 %   QUOTATION PAGE
 %----------------------------------------------------------------------------------------
 
-\vspace*{0.2\textheight}
+% \vspace*{0.2\textheight}
 
-\noindent\enquote{\itshape Thanks to my solid academic training, today I can write hundreds of words on virtually any topic without possessing a shred of information, which is how I got a good job in journalism.}\bigbreak
+% \noindent\enquote{\itshape Thanks to my solid academic training, today I can write hundreds of words on virtually any topic without possessing a shred of information, which is how I got a good job in journalism.}\bigbreak
 
-\hfill Dave Barry
+% \hfill Dave Barry
 
 %----------------------------------------------------------------------------------------
 %   ABSTRACT PAGE
@@ -219,7 +219,7 @@ to the examination process.}
 
 \begin{abstract}
 \addchaptertocentry{\abstractname} % Add the abstract to the table of contents
-The Thesis Abstract is written here (and usually kept to just this page). The page is kept centered vertically so can expand into the blank space above the title too\ldots
+\input{frontmatter/abstract.tex}
 \end{abstract}
 
 %----------------------------------------------------------------------------------------
@@ -228,7 +228,7 @@ The Thesis Abstract is written here (and usually kept to just this page). The pa
 
 \begin{acknowledgements}
 \addchaptertocentry{\acknowledgementname} % Add the acknowledgements to the table of contents
-The acknowledgments and the people to thank go here, don't forget to include your project advisor\ldots
+\input{frontmatter/acknowledgements.tex}
 \end{acknowledgements}
 
 %----------------------------------------------------------------------------------------
@@ -260,7 +260,14 @@ The acknowledgments and the people to thank go here, don't forget to include you
 %   DEDICATION
 %----------------------------------------------------------------------------------------
 
-\dedicatory{For/Dedicated to/To my\ldots}
+\dedicatory{In loving memory of Nana
+
+\vspace{2em}
+Ruvae Jane Tupaea Cottrell
+
+{\normalsize
+17/2/1932 -- 3/3/2020}
+}
 
 %----------------------------------------------------------------------------------------
 %   THESIS CONTENT - CHAPTERS

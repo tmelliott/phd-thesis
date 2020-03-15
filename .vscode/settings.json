@@ -1,4 +1,5 @@
 {
+  "ltex.language": "en-NZ",
   "ltex.en-GB.disabledRules": [
     "OXFORD_SPELLING_ADJECTIVES",
     "OXFORD_SPELLING_ISE_VERBS",
