@@ -1,7 +1,12 @@
 \chapter{\Rt{} transit data}
 \label{cha:data}
 
+\begin{knitrout}\small
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
 
+
+{\ttfamily\noindent\itshape\color{messagecolor}{\#\# Loading required namespace: transitr}}\end{kframe}
+\end{knitrout}
 
 \AT{} operates a fleet of vehicles---including buses, trains, and ferries---to transport passengers around Auckland, New Zealand's largest urban region, from Wellford in the north to Pukekohe in the south \citep{cn}. Serving the region are 1040~routes\footnote{As of 12 August 2019, sourced from \url{https://at.govt.nz/}.}, each providing a service from an \emph{origin} to a \emph{destination} via a specified sequence of \emph{stops} at which passengers may board or alight.
 
@@ -14,7 +19,7 @@ The assignment of routes, trips, and stops is a common occurence in transport sy
 \begin{figure}
 \centering
 \includegraphics[width=0.8\textwidth]{figure/gtfs_feeds.png}
-\caption[Locations of GTFS feeds]{Locations of the 672~\GTFS{} feeds,\\
+\caption[Locations of GTFS feed providers]{Locations of the 672~\GTFS{} feed providers,\\
 sourced from \url{http://transitfeeds.com/} on 12 Feb 2020.}
 \label{fig:gtfs_feeds}
 \end{figure}

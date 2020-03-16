@@ -31,7 +31,7 @@ The assignment of routes, trips, and stops is a common occurence in transport sy
 \begin{figure}
 \centering
 \includegraphics[width=0.8\textwidth]{figure/gtfs_feeds.png}
-\caption[Locations of GTFS feeds]{Locations of the \Sexpr{nlocation}~\GTFS{} feeds,\\
+\caption[Locations of GTFS feed providers]{Locations of the \Sexpr{nlocation}~\GTFS{} feed providers,\\
 sourced from \url{http://transitfeeds.com/} on \Sexpr{transitfeeds_date}.}
 \label{fig:gtfs_feeds}
 \end{figure}
