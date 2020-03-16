@@ -350,7 +350,7 @@ knitr::kable(times,
 @
 
 
-<<eta_dwell_times,echo=FALSE,fig.width=8*.8,fig.height=3,out.width=".8\\textwidth",fig.cap="The \\gls{pdf} of dwell time at bus stop $m$.",fig.align="center">>=
+<<eta_dwell_times,echo=FALSE,fig.width=8*.8,fig.height=3,out.width=".8\\textwidth",fig.cap="The \\gls{pdf} of dwell time at bus stop $m$.",fig.align="center",fig.scap="The \\gls{pdf} of dwell time at a stop">>=
 suppressPackageStartupMessages(library(tidyverse))
 gamma <- 10
 tau <- 20

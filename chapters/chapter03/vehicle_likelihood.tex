@@ -31,7 +31,7 @@ The \pf{} effectively checks to see how plausible the observation is assuming ea
 
 \begin{knitrout}\small
 \definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{figure}
-\includegraphics[width=\maxwidth]{figure/lhood_obs-1} \caption[Observations of vehicle on a simple path]{Observations of vehicle on a simple path. The red points indicate the reported GPS positions, with circles indicating the GPS error associated with each observation. Observation Y1 is easy to map to the route, while Y2 is more complicated and has two plausible, distinct locations.}\label{fig:lhood_obs}
+\includegraphics[width=\maxwidth]{figure/lhood_obs-1} \caption[Observations of a vehicle travelling along a path]{Observations of a vehicle travelling along a path. The red points indicate the reported GPS positions, with circles indicating the GPS error associated with each observation. Observation Y1 is easy to map to the route, while Y2 is more complicated and has two plausible, distinct locations.}\label{fig:lhood_obs}
 \end{figure}
 
 
@@ -90,7 +90,7 @@ multiplying degrees by $\frac{\pi}{180}$.
 
 }
 
-\caption[Equirectangular projection of GPS coordinates onto flat surface, allowing the distance from each particle to the observed location to easily be calculated]{Equirectangular projection of GPS coordinates onto flat surface, allowing the distance from each particle to the observed location to easily be calculated.}\label{fig:gps_projection}
+\caption[Equirectangular projection of GPS coordinates onto a flat surface]{Equirectangular projection of GPS coordinates ({\sc a}) onto a flat surface ({\sc b}), which allows the easy calculation of distance between particles and the vehicle's observed location.}\label{fig:gps_projection}
 \end{figure}
 
 
@@ -130,7 +130,7 @@ can more simply be expressed by
 
 }
 
-\caption[GPS error is assumed to be circular on a map]{GPS error is assumed to be circular on a map.}\label{fig:gps_error}
+\caption[Visualisation of GPS error on a map]{Visualisation of GPS error on a map before ({\sc a}) and after ({\sc b}) the equirectangular projection.}\label{fig:gps_error}
 \end{figure}
 
 
@@ -191,7 +191,7 @@ This is shown visually in \cref{fig:pf_wts}.
 
 }
 
-\caption[The \pf{} estimate of vehicle state after reweighting particles based on the likelihood, or distance from the observed location]{The \pf{} estimate of vehicle state after reweighting particles based on the likelihood, or distance from the observed location.}\label{fig:pf_wts}
+\caption[Particles are reweighted based on their geographic proximity to the vehicle's observed location]{Particles (black points) are reweighted (proportional to size) based on their geographic proximity to the vehicle's observed location (red point).}\label{fig:pf_wts}
 \end{figure}
 
 

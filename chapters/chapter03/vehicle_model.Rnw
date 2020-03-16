@@ -6,7 +6,7 @@ Low-frequency observations lead to high uncertainties of state parameters and di
 
 When deciding which type of model implementation to use, historically the most common for these type of data is the Kalman filter (citations). However, it assumes a Gaussian state distribution, which we have hopefully demonstrated is not the case; instead, we implemented a \emph{particle filter}. Due to its high flexibility, the particle filter can account for a broad set of plausible trajectories (Hans, 2015), which makes it a strong candidate for transit modelling.
 
-<<vehicle_state,echo=FALSE,fig.width=9,fig.height=6,out.width="\\textwidth",fig.cap="Visualisation of vehicle state. The top graph shows the distance travelled, $x$, over time, with points representing observed states $\\Vstate_k, k=0,\\ldots,3$. The gradient of distance over time is speed, $\\dot x$, which is displayed in the lower graph: steeper sections of the top graph correspond to higher speeds, and vice verca. Also included on the right is speed in kilometers per hour (km/h) for reference.",fig.align="center">>=
+<<vehicle_state,echo=FALSE,fig.width=9,fig.height=6,out.width="\\textwidth",fig.cap="Visualisation of vehicle state showing \\emph{distance travelled} and \\emph{speed}. The distance travelled, $x$, over time, includes points representing the observed states $\\Vstate_k, k=0,\\ldots,3$. The gradient of distance over time is speed, $\\dot x$: steeper sections of the top graph correspond to higher speeds, and vice verca. The speed graph also includes a second right-hand axis with speed in kilometers per hour (km/h) for reference.",fig.align="center">>=
 suppressPackageStartupMessages(library(tidyverse))
 t <- 0:9 * 10
 X <- c(0, 10, 100, 200, 400, 480, 500, 510, 600, 700)

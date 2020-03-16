@@ -11,7 +11,7 @@ Essentially, we want to detect where two routes overlap, even partially, so tspe
 % Getting intersection data is not easy, however, and initial attempts at doing so using Open Street Maps \citep{OpenStreetMap_2017} were unsuccessful due to the difficulty in identifying an intersection, and replication of traffic lights (one for each physical light). One possible method to reduce the instances of the second situation is to find road segments that end at the same stop, but have a different origin (or vice versa). Then we travel along the paths until they meet, at which point we place an intersection.
 
 
-<<gtfs_route_id,echo=FALSE>>=
+<<gtfs_route_id,echo=FALSE,message=FALSE>>=
 source("load_gtfs.R")
 con <- dbConnect(SQLite(), "at_gtfs.sqlite")
 rid <- dbGetQuery(con, "SELECT route_id FROM routes WHERE route_short_name='27W' LIMIT 1")$route_id

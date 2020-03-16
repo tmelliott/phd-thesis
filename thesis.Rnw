@@ -67,10 +67,9 @@
 %\usepackage[acronym,nonumberlist,toc,nomain]{glossaries} %Load glossaries package
 \usepackage[acronym,nonumberlist,toc,nomain]{glossaries-extra}
 \makeglossaries
-\GlsXtrEnableEntryUnitCounting
+\GlsXtrEnableEntryCounting
  {abbreviation}% list of categories to use entry counting
  {3}
- {chapter}
 
 \usepackage{soul}
 \newcommand{\note}[2][]{{\ul{#1}~\footnotesize\textcolor{blue}{\emph{[#2]}}}}
