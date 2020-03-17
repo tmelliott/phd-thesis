@@ -52,12 +52,7 @@ There are several components of GTFS that are of particular interest to us: rout
 
 \end{knitrout}
 
-\begin{knitrout}\small
-\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
 
-
-{\ttfamily\noindent\itshape\color{messagecolor}{\#\# Loading required namespace: transitr}}\end{kframe}
-\end{knitrout}
 
 Static \GTFS{} data is typically distributed by transport providers as plain text files, one for each of the components (such as \verb+routes.csv+ and \verb+trips.csv+). Often these are available to download as a single ZIP archive, so the data can easily be loaded into a \emph{relational database}. \Cref{app:gtfs} describes the relational structure of the \GTFS{} database. The R package developed as part of this work provides the \verb+create_gtfs()+ function to do this automatically:
 \begin{knitrout}\small
@@ -116,7 +111,7 @@ Less important for the current work, but essential for reliable \gls{rti}, \emph
 
 In order to distribute vehicle locations, trip updates, and service alerts to passengers quickly and usefully requires more than just a \rt{} board at bus stops. Personal mobile devices have revolutionised the way we live our lives, and developers are constantly creating new apps to assist with everyday activities. Included in these are transit apps, which are capable of passing on \rt{} \GTFS{} data to passengers.
 
-The most common method of distributing \rt{} data is via an \gls{api}. These are, in simple terms, a fixed web address from which developers can request a data file---either JSON or, in the case of some \GTFS{} systems, protobuf \citep{cn}---which can then be parsed and displayed to users. Usually developers need to register for an \emph{\gls{api} key} which helps to control server demand by limiting the number of requests a user can make, or controlled access to specific data. Our R package includes the ability to connect to a \GTFS{}-based \gls{api} easily using the following command:
+The most common method of distributing \rt{} data is via an \gls{api}. These are, in simple terms, a fixed web address from which developers can request a data file---either JSON or, in the case of some \GTFS{} systems, protobuf\footnote{See \url{https://developers.google.com/protocol-buffers}}---which can then be parsed and displayed to users. Usually developers need to register for an \emph{\gls{api} key} which helps to control server demand by limiting the number of requests a user can make, or controlled access to specific data. Our R package includes the ability to connect to a \GTFS{}-based \gls{api} easily using the following command:
 \begin{knitrout}\small
 \definecolor{shadecolor}{rgb}{1, 1, 1}\color{fgcolor}\begin{kframe}
 \begin{alltt}

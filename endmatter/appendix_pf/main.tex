@@ -7,16 +7,17 @@ The particle filter allows us to approximate any distribution by using a sample 
 \section{The Dirac measure}
 \label{app:dirac-delta-measure}
 
-In \cref{sec:recursive-bayes,cha:vehicle_model} we described the particle filter implementation, and noted that we can use the Dirac measure, $\dirac$, to approximate the distribution. We will not got into the theoretical aspects of the function, except to state the following property \citep{cn}:
+In \cref{sec:recursive-bayes,cha:vehicle_model} we described the particle filter implementation, and noted that we can use the Dirac measure, $\dirac$, to approximate the distribution \citep{Benedetto_1996}. We will not got into the theoretical aspects of the function, except to state the following property
+\:
 \begin{equation}
 \label{eq:dirac_property}
 \int_X f(x) \dirac_y(x)\dx = f(y).
 \end{equation}
 
-Let $x$ be an unknown quantity for which we have a sample of $N$ particles $\{x\vi\}_{i=1}^N$ with associated weights $\{w\vi\}_{i=1}^N$. The Dirac delta measure is used to approximate the distribution of $x$ \citep{cn}:
+Let $x$ be an unknown quantity for which we have a sample of $N$ particles $\{x\vi\}_{i=1}^N$ with associated weights $\{w\vi\}_{i=1}^N$. The Dirac delta measure allows the approximattion of the distribution of $x$ as
 \begin{equation}
 \label{eq:dirac_dist}
-p(x) \approx \sum_{i=1}^N w\vi \dirac_{x\vi}(x)
+p(x) \approx \sum_{i=1}^N w\vi \dirac_{x\vi}(x).
 \end{equation}
 
 
@@ -106,3 +107,27 @@ double median = x.at (i).get_speed ();
 \end{lstlisting}
 
 The issue here is the first step, sorting, which has computational complexity of $\mathcal{O}(N\log N)$\footnote{as described by the documentation page for {\tt std::sort}, \url{https://en.cppreference.com/w/cpp/algorithm/sort}}. If we wish to estimate the median distance and the median speed, we need to sort the particles \emph{twice}. In \cref{cha:etas}, we used multiple quantiles for each stop: this requires sorting each vehicle's particles once for each upcoming stop. However, since we use a subsample to compute \glspl{eta} ($N^\star$), the complexity is significantly smaller, $\mathcal{O}(N^\star\log N^\star)$; if we attempted to use all $N$ particles (in the simulation used in \cref{cha:prediction}, we used $N=10000$) the application would have taken far longer.
+
+
+
+\section{Calculating ETA CDFs}
+\label{app:particle-eta-cdf}
+
+It is also possible to summarize the \gls{cdf} by using the definitions in cref{cha:eta} and rounding estimates to minutes. This is the equivalent of computing the modules of an \gls{eta} in seconds with 60. Then we simply tally the number of particles with each \gls{eta}, which is straightforward in \verb_C++_ by incrementing the \verb+eta+th index of the \gls{eta} vector.
+
+
+\begin{lstlisting}
+int Amax, eta;
+std::vector<int> cdf;
+Amax = std::max (state.begin (); state.end ();
+    [](Particle& p) { return p.arrival_times.at (stop_index) % 60; });
+
+// create vector as long as max ETA and set all values to 0:
+cdf.resize (Amax, 0);
+
+for (auto p : state)
+{
+    eta = p.arrival_times.at (stop_index) % 60;
+    cdf[eta]++;
+}
+\end{lstlisting}

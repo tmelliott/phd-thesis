@@ -37,7 +37,7 @@ test:
 # 	@R --slave -e "library(knitr);knit(input='$<', output='$@')" > /dev/null
 
 # create PDF
-$(NAME).pdf: $(NAME).tex $(FILES)
+$(NAME).pdf: $(NAME).tex $(FILES) reflist.bib
 	@echo " * binding thesis"
 	@$(TEX) $(TEXOPTIONS) $<
 
@@ -50,7 +50,7 @@ clean: #$(NAME).tex
 allrefs.bib:
 	ln -s ~/Dropbox/PhD/readings/reflist.bib allrefs.bib
 
-reflist.bib: $(NAME).tex allrefs.bib
+reflist.bib: $(NAME).tex allrefs.bib $(NAME).bbl
 	@cp allrefs.bib $@
 	@$(TEX) $(TEXOPTIONS)
 	@echo " * creating reflist.bib"

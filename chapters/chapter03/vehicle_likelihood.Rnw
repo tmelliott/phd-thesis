@@ -191,7 +191,7 @@ get_stamenmap(bbox, zoom = 18, maptype = "toner-background") %>%
     theme_nothing()
 @
 
-Computing the distance between two GPS coordinates can achieved using several formulae, each with varying levels of accuracy. Since all of the distances are going to be (very) small, the \emph{Equirectangular projection} is sufficiently accurate for computing geographical distances \citep{cn}. This projection transforms the point $\Vobs_1 = \tvec{\Vlon_1, \Vlat_1}$, where latitude $\Vlat$ and longitude $\Vlon$ are in radians (the width of one longitudinal radian depends on latitude) onto a surface with meters on both axes, centered on the point $\Vobs_0 = \tvec{\Vlon_0, \Vlat_0}$ and using the Earth's radius $R = 6.371 \times 10^6$m,
+Computing the distance between two GPS coordinates can achieved using several formulae, each with varying levels of accuracy. Since all of the distances are going to be (very) small, the \emph{Equirectangular projection} is sufficiently accurate for computing geographical distances \citep{Snyder_1998}. This projection transforms the point $\Vobs_1 = \tvec{\Vlon_1, \Vlat_1}$, where latitude $\Vlat$ and longitude $\Vlon$ are in radians (the width of one longitudinal radian depends on latitude) onto a surface with meters on both axes, centered on the point $\Vobs_0 = \tvec{\Vlon_0, \Vlat_0}$ and using the Earth's radius $R = 6.371 \times 10^6$m,
 \begin{equation}
 \label{eq:equirectangular_projection}
 \Vproj{\Vobs_1}{\Vobs_0} =
@@ -317,16 +317,14 @@ resulting in
     \sqrt{(\GPSerrSD z_1)^2 + (\GPSerrSD z_2)^2} =
     \GPSerrSD \sqrt{z_1^2 + z_2^2}
 \end{equation}
-Since the distribution of two squared standard normal random variables is known
-to be $\chi^2$ distributed with 2~degrees of freedom,
-which is itself exponential with rate 0.5
-\citep{cn},
+Since the distribution of two squared standard normal random variables is $\chi^2$ distributed with 2~degrees of freedom,
+which is itself exponential with rate 0.5,
 then
 \begin{equation}
 \label{eq:sum_sq_dist}
 z_1^2 + z_2^2 \sim \Exp{\frac{1}{2}}
 \end{equation}
-which, following the [fact] that if $X \sim \Exp{\theta}$,
+which, since if $X \sim \Exp{\theta}$,
 then $cX \sim \Exp{\frac{\theta}{c}}$,
 the squared distance between points is simply represented as
 \begin{equation}

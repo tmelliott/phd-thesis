@@ -92,7 +92,7 @@ Updating the \kf{} involves taking the predicted state and updating it using \em
 Note that this can be the empty set $\NWobss_{\ell c} = \emptyset$ if no vehicles travel through a segment in the interval.
 
 
-To update the network, we need to account for each observation. One way of doing this would be to combine the observations into a single estimate; however, this involves averaging observations and uncertainties. An alternative is to use an \emph{\infil{}} \citep{cn}, which allows the summation of information from multiple observations. The information filter involves inverting the state uncertainty $\NWstatevar$; however, this is a simple computation due to having a one-dimensional state---if we were to estimate the state of all segments simultaneously, inverting the $L\times L$ uncertainty matrix would be computationally demanding, or even impossible, and we would be unable to use the approach.
+To update the network, we need to account for each observation. One way of doing this would be to combine the observations into a single estimate; however, this involves averaging observations and uncertainties. An alternative is to use an \emph{\infil{}}, which allows the summation of information from multiple observations \citep{Mutambara_2000}. The information filter involves inverting the state uncertainty $\NWstatevar$; however, this is a simple computation due to having a one-dimensional state---if we were to estimate the state of all segments simultaneously, inverting the $L\times L$ uncertainty matrix would be computationally demanding, or even impossible, and we would be unable to use the approach.
 
 
 % To employ the \infil{}, we need to

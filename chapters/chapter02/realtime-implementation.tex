@@ -1,3 +1,5 @@
+
+
 \section{\Rt{} implementation in Rcpp}
 \label{sec:rt-implementation}
 
@@ -9,7 +11,7 @@ Within the C++ component there are two main phases: the setup phase and the mode
 
 Within the program, we use \gls{oop} to represent objects---both static (routes and trips) and \rt{} (vehicles, road segments). These objects contain a lot of \emph{interdependence}; for example, a trip belongs to a route, and a vehicle services trips. Pointers are used in C++ to allow easy access to these relationships without any duplication of information. For example, the route number for a vehicle can be obtained using the following command:
 \begin{knitrout}\small
-\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\definecolor{shadecolor}{rgb}{1, 1, 1}\color{fgcolor}\begin{kframe}
 \noindent
 \ttfamily
 \hlstd{vehicle}\hlopt{.}\hlstd{}\hlkwd{trip\ }\hlstd{}\hlopt{(){-}$>$}\hlstd{}\hlkwd{route\ }\hlstd{}\hlopt{(){-}$>$}\hlstd{}\hlkwd{route\textunderscore short\textunderscore name\ }\hlstd{}\hlopt{();}\hlstd{}\hspace*{\fill}
@@ -19,7 +21,7 @@ Within the program, we use \gls{oop} to represent objects---both static (routes 
 \end{knitrout}
 Pointers are not fixes, so the above example will work even after the vehicle changes to another trip. In addition to retrieving information, pointers can be used to pass information between objects. Later in this thesis, we use vehicle to estimate the average speed of vehicles along individual roads, and then forward these observations on to the appropriate road segment. First, we note that a route follows a sequence of road segments, which we store in C++ using a \verb+std::vector+ containing an ordered sequence of \verb+RouteSegment+ objects, each pointing to the appropriate \verb+Segment+ object. Thus, once a vehicle completes travel along the segment with index \verb+index+, the observed average speed can be passed to directly to the \verb+Segment+ object:
 \begin{knitrout}\small
-\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\definecolor{shadecolor}{rgb}{1, 1, 1}\color{fgcolor}\begin{kframe}
 \noindent
 \ttfamily
 \hlstd{vehicle}\hlopt{.}\hlstd{}\hlkwd{trip\ }\hlstd{}\hlopt{(){-}$>$}\hlstd{}\hlkwd{route\ }\hlstd{}\hlopt{()}\hspace*{\fill}\\
@@ -33,7 +35,7 @@ This data is then handled by the segment, as we describe later in \cref{cha:netw
 
 The main issue with pointers is that, if an object is deleted or moved, a pointer may no longer point to the appropriate object, resuling in a \emph{segmentation fault} and crashing the program at runtime. However, with care, and by checking a pointer is valid before using it, we can avoid such problems. For example, the above would be better written as follows.
 \begin{knitrout}\small
-\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\definecolor{shadecolor}{rgb}{1, 1, 1}\color{fgcolor}\begin{kframe}
 \noindent
 \ttfamily
 \hlstd{Trip}\hlopt{{*}\ }\hlstd{trip\ }\hlopt{=\ }\hlstd{vehicle}\hlopt{.}\hlstd{}\hlkwd{trip\ }\hlstd{}\hlopt{();}\hspace*{\fill}\\

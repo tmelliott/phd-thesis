@@ -31,7 +31,7 @@ The first behaviour to consider is that of any vehicle travelling along a known 
 v_k \sim \TNormal{0}{\Vnoise}{-\Vspeed_{k-1}}{30 - \Vspeed_{k-1}}.
 \end{equation}
 In this case, the noise term is truncated to ensure the new speed is both positive and under 30~m/s, which is 108~km/h (the maximum road speed in Auckland is 100~km/h)
-The resulting transition function, $\Vtrans_{A1}$, can quite simply be implemented by simulating, for each particle, a new speed before calculating the final state using \cref{eq:vehicle_model_newton}. A similar model was used by \citet{Cathey_2003,cn}.
+The resulting transition function, $\Vtrans_{A1}$, can quite simply be implemented by simulating, for each particle, a new speed before calculating the final state using \cref{eq:vehicle_model_newton}. A similar model was used by \citet{Cathey_2003,Dailey_2001}.
 
 % The variance of predicted distance travelled is
 % \begin{equation}
@@ -288,7 +288,7 @@ A bus' wait time at a bus stop is referred to as \emph{dwell time} and consists 
 Phases i and ii are combined with 1a and 1c from above (deceleration and acceleration, respectively) into a single parameter, $\mindwell$, which is assumed constant across all buses, stops, and routes.
 
 
-The service (phase ii) is the time taken for passengers to get on and off the bus, which varies significantly between stop, route, and time of day. There are many ways to model service time, such as an exponential \citep{Hans_2015} or [another reference?]. Here, we present using a truncated normal distribution using the mean and variance of dwell times, truncated at zero. The service time at stop $m$ stop along a route ($m=1,...,M-1$, as dwell time doesn't apply for the last stop) is denoted $\pdwell_m$, which we model by its mean and variance, $\dwell_m$ and $\dwellvar_m$, respectively, estimated from historical data:
+The service (phase ii) is the time taken for passengers to get on and off the bus, which varies significantly between stop, route, and time of day. There are many ways to model service time, from a simple exponential \citep{Hans_2015} to more complex regression models incorporating real-time passenger demand \citep{Shen_2013} or a real-time Kalman filter \citep{Shalaby_2004}. Here, we present using a truncated normal distribution using the mean and variance of dwell times, truncated at zero. The service time at stop $m$ stop along a route ($m=1,...,M-1$, as dwell time doesn't apply for the last stop) is denoted $\pdwell_m$, which we model by its mean and variance, $\dwell_m$ and $\dwellvar_m$, respectively, estimated from historical data:
 \begin{equation}
 \label{eq:stop_dwell_time}
 \pserve_m \sim \TNormal{\dwell_m}{\dwellvar_m}{0}{\infty}
@@ -306,9 +306,9 @@ The total dwell time of a bus at stop $m$ can be expressed as
 \end{equation}
 which, under the particle filtering framework, is straightforward to implement. \Cref{fig:eta_dwell_times} demonstrates the dwell time distribution at a stop.
 
-One other scenario for bus stops is a \emph{layover}, which is when a bus arrives early at a major stop\footnote{This is more common on longer routes in an attempt to keep them to schedule} and waits until the scheduled departure time. In the GTFS stop times table, layovers are denoted by an arrival time early\footnote{This is usually a one-second difference} than the corresponding departure time, as shown in \cref{tab:layover_times}. Again, under the particle filtering framework, this is simple enough to implement: if the particle arrives early, wait until the scheduled departure time before leaving (i.e., adjusting the dwell time). However, it is not always the case that buses will wait for the layover, so we add a probability of adherence, similar to the stopping probability in equation (Bernoulli).
+One other scenario for bus stops is a \emph{layover}, which is when a bus arrives early at a major stop\footnote{This is more common on longer routes in an attempt to keep them to schedule} and waits until the scheduled departure time. In the GTFS stop times table, layovers are denoted by an arrival time early\footnote{This is usually a one-second difference} than the corresponding departure time, as shown in \cref{tab:layover_times}. Again, under the particle filtering framework, this is simple enough to implement: if the particle arrives early, wait until the scheduled departure time before leaving (i.e., adjusting the dwell time). However, it is not always the case that buses will wait for the layover, so we add a probability of adherence, similar to the stopping probability in \cref{eq:stop_pstop}.
 
-<<layover_times,echo=FALSE>>=
+<<layover_times,echo=FALSE,message=FALSE>>=
 
 suppressPackageStartupMessages({
     library(tidyverse)

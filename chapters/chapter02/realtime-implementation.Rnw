@@ -1,3 +1,7 @@
+<<echo=FALSE>>=
+knit_theme$set("earendel")
+@
+
 \section{\Rt{} implementation in Rcpp}
 \label{sec:rt-implementation}
 
