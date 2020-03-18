@@ -119,7 +119,7 @@ The additional parameters $\boldsymbol{w}_k$ and $\boldsymbol{v}_k$ represent \e
 \subsection{\kf{}}
 \label{sec:kf}
 
-Commonly used in vehicle tracking applications, the \kf{} is a very fast, simple estimation method that assumes Gaussian noise and approximates the state by a normal random variable with length $m$ mean vector and $m\times x$ covariance matrix
+Commonly used in vehicle tracking applications, the \kf{} is a very fast, simple estimation method \citep{Anderson_2012} that assumes Gaussian noise and approximates the state by a normal random variable with length $m$ mean vector and $m\times x$ covariance matrix
 \begin{equation}
 \label{eq:kf_estimators}
 \begin{split}
@@ -168,7 +168,7 @@ The simplicity of the \kf{} means that, so long as the number of parameters $m$ 
 \subsection{Particle filter}
 \label{sec:pf}
 
-The other framework we use is the \pf{}, a more generalised, numerical approach to recursive Bayesian modelling. The state is approximated by a sample of $\Np$ particles, each of which is an independent point estimate of the state $\bx\vi_k$ with a weight $w\vi \geq 0$ and $\sum_i w\vi = 1$. The state estimate is expressed using the Dirac delta measure $\dirac$ (see \cref{app:dirac-delta-measure} for details), such that
+The other framework we use is the \pf{}, a more generalised, numerical approach to recursive Bayesian modelling \citep{Gordon_1993}. The state is approximated by a sample of $\Np$ particles, each of which is an independent point estimate of the state $\bx\vi_k$ with a weight $w\vi \geq 0$ and $\sum_i w\vi = 1$. The state estimate is expressed using the Dirac delta measure $\dirac$ (see \cref{app:dirac-delta-measure} for details), such that
 \begin{equation}
 \label{eq:pf_state}
 p(\bx_{k-1} | \boldsymbol{y}_{1:k-1}) \approx
@@ -208,8 +208,8 @@ p(\bx_{k} | \boldsymbol{y}_{1:k}) \approx
 \end{equation}
 
 
-Over time, many of the particle weights will go to zero as they disperse due to the system noise. This leaves only a few particles contributing to the state, which, if none end near the actual vehicle location, will result in all vehicles having likelihoods close to zero. To prevent this situation of particle filter \emph{degeneration}, we perform \emph{importance resampling} (a weighted bootstrap) in which particles are sampled, with replacement, according to their weight. Afterwards, particle weights are reset to $N^{-1}$.
-
+Over time, many of the particle weights will go to zero as they disperse due to the system noise \citep{Doucet_2000}. This leaves only a few particles contributing to the state, which, if none end near the actual vehicle location, will result in all vehicles having likelihoods close to zero. To prevent this situation of particle filter \emph{degeneration}, we perform \emph{importance resampling} (a weighted bootstrap) in which particles are sampled, with replacement, according to their weight. Afterwards, particle weights are reset to $N^{-1}$.
+\note{Discuss effective sample size threshold! \citep{Doucet_2000}}
 
 The advantage of the \pf{} is that it is general, and as we discuss in \cref{sec:vehicle_model}, we can easily create a transition function to describe a complex system, as well as define a likelihood function that accurately defines the relationship between observed and unobserved states.
 
