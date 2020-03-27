@@ -2,9 +2,9 @@
 \chapter{Modelling transit vehicles}
 \label{cha:vehicle_model}
 
-As vehicles travel along their respective routes, they report---in real-time---their geographical position as \gls{gps} coordinates. While these observations of location can be useful on their own, we wish to use them to infer the \emph{speed of the vehicle} which we cannot observe directly.\footnote{At least, not without being on the bus or standing on the roadside with a radar speed gun.} These speeds can then be mapped to physical road segments and used in \cref{cha:network_model} to update the network state.
+As vehicles travel along their respective routes, they report---in real-time---their geo\-graphical position as \gls{gps} coordinates. While these observations of location can be useful on their own, they also allow the inference of \emph{vehicle speed} which we cannot observe directly.\footnote{At least, not without being on the bus or standing on the roadside with a speed radar.} These speeds can then be mapped to physical road segments and used (in \cref{cha:network_model}) to update the network state.
 
-Transit vehicles come in a variety of forms such as trains, trams, and buses. The last of these is the most notable for us since they are most affected by external factors, such as traffic congestion, and are therefore harder to predict. It is for this reason that we have used buses to develop the model presented in this chapter in which we explore the following behaviours:
+Transit vehicles come in a variety of forms such as trains, trams, and buses. The last of these is the most notable for us since they are most affected by external factors, such as traffic congestion, and are therefore harder to predict. It is for this reason that we have used buses to develop the model presented in this chapter, which explores the following behaviours:
 \begin{itemize}
 \item general travel along a known path (including acceleration and deceleration);
 \item bus stops, at which the bus may (or may not) stop;
@@ -123,7 +123,7 @@ p1 / p2
 @
 
 
-It is evident from the behaviours listed above (described in further detail in section \cref{sec:vehicle_model}) that there are many factors involved in determining a bus' trajectory. Many of these factors, such as speed, are unmeasurable (but can be estimated), while others are often unknowable. An example of the latter is whether or not the bus stopped at a bus stop. \Cref{fig:vobs_multimode} shows a series of \emph{distance} observations\footnote{This is just an example to demonstrate the issue at hand.} for three buses passing a stop:
+It is evident from the behaviours listed above (described in further detail in \cref{sec:vehicle_model}) that there are many factors involved in determining a bus's trajectory. Many of these factors, such as speed, are unmeasurable (but can be estimated), while others are often unknowable. An example of the latter is whether or not the bus stopped at a bus stop. \Cref{fig:vobs_multimode} shows a series of \emph{distance} observations\footnote{This is just an example to demonstrate the issue at hand.} for three buses passing a stop:
 \begin{itemize}
 \item bus A stops and reports both its arrival and departure times;
 \item bus B stops, but only reports its departure time;\footnote{This can happen if the arrival bservation is ``lost'' or overwritten by the departure time within the \gls{gtfs} update interval}
