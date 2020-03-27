@@ -71,6 +71,8 @@
  {abbreviation}% list of categories to use entry counting
  {3}
 
+\usepackage{glossaries-prefix}
+
 \usepackage{soul}
 \newcommand{\note}[2][]{{\ul{#1}~\footnotesize\textcolor{blue}{\emph{[#2]}}}}
 
