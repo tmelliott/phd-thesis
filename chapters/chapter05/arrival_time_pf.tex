@@ -1,14 +1,15 @@
 \subsection[Particle filter]{Particle filter (\Fpf{})}
 \label{sec:prediction_arrival_time_pf}
-Each active trip is associated with a single vehicle, itself associated with a set of  $\Np$~particles approximating the vehicle's state. Perhaps the most straightforward method---at least conceptually---of predicting arrival times is to let each particle progress to the end of the route and record its arrival times. Computationally, this is easy to implement but very intensive, significantly increasing iteration time for the application. However, the main reason for needing large $\Np$ (we used 5000 for this demonstration) is due to a lot of uncertainty in the vehicle's location and the need to sample many trajectories to prevent degeneration. Now, only arrival times need to be estimated. It is, therefore, possible to sue $\Np^\star < \Np$~particles to estimate arrival times, providing a significant performance improvement. $\Np^\star$ can be adjusted dynamically, such as by how many stops remain; however, the present application used a fixed value of $\Np^\star = 200$.
+
+Each active trip is associated with a single vehicle, itself associated with a set of  $\Np$~particles approximating the vehicle's state. Perhaps the most straightforward method---at least conceptually---of predicting arrival times is to let each particle progress to the end of the route and record its arrival times at stops along the way. Computationally, this is easy to implement but very intensive, significantly increasing iteration time for the application. However, the main reason for needing large $\Np$ (we use $\Np=5000$ in \cref{cha:vehicle_model}) is due to a lot of uncertainty in the vehicle's location and the need to sample many trajectories to prevent degeneration. Now, only arrival times need to be estimated. It is, therefore, possible to use $\Np^\star < \Np$~particles to estimate arrival times, providing a significant performance improvement. $\Np^\star$ can be adjusted dynamically, such as by how many stops remain; however, the present application used a fixed value of $\Np^\star = 200$.
 
 
-To implement the particle filter forecast method, denoted \Fpf{}, we take a (weighted) subsample of $\Np^\star$ particles at time $\Vtime_k$ (the time of the most recent vehicle observation). For each particle, we calculate the arrival time at each upcoming stop. To do so, each particle samples a speed for segment $\ell$, $v\vi_\ell$, from the network state:
+To implement the particle filter forecast method, denoted \Fpf{}, we take a (weighted) subsample of $\Np^\star$ particles at time $\Vtime_k$ (the time of the most recent vehicle observation). For each particle, we calculate the arrival time at each upcoming stop. To do so, each particle samples a speed $v\vi_\ell$ for segment $\ell$ (which has maximum speed $\MaxSpeed_\ell$) from the network state:
 \begin{equation}
 \label{eq:pred_seg_speed}
-v\vi_\ell \sim \TNormal{\RouteNWstateseg_\ell}{\RouteNWstatevarseg_\ell^2 + \NWvar_\ell^2}{0}{\MaxSpeed},
+v\vi_\ell \sim \TNormal{\RouteNWstateseg_\ell}{\RouteNWstatevarseg_\ell^2 + \NWvar_\ell^2}{0}{\MaxSpeed_\ell}.
 \end{equation}
-which could be modified if correlations are specified. It is then an iterative process of computing arrival times.
+This could, of course, be altered if correlations are specified. It is then an iterative process of computing arrival times.
 
 \paragraph{Step 1: complete the current segment}
 If the particle is at a stop, the (remaining) dwell time is sampled from the dwell time distribution (this is the same as in \cref{cha:vehicle_model}), and the particle's departure time is stored. If the particle is not at a stop, and $\SegProg_k > 0$, then the time to completion of the current segment $\ell$ with speed ${v\vi_\ell}^\star$ is
@@ -16,7 +17,7 @@ If the particle is at a stop, the (remaining) dwell time is sampled from the dwe
 \label{eq:particle_curseg_tt}
 \tilde b\vi = \frac{(1 - \SegProg_k) \Tseglen_\ell}{{v\vi_\ell}^\star}.
 \end{equation}
-When the bus is near the end of the segment (less than 200~m remaining), the particle's current speed is used, otherwise the speed is simulated from \cref{eq:pred_seg_speed}:
+When the bus is near the end of the segment (less than 200~m remaining), the particle's current speed is used, otherwise, the speed is simulated from \cref{eq:pred_seg_speed}:
 \begin{equation}
 \label{eq:particle_speed_decision}
 {v\vi_\ell}^\star = \begin{cases}
@@ -24,33 +25,34 @@ v\vi_\ell & (1-\SegProg_k)\Tseglen_\ell > 200,\\
 \Vspeed\vi_k & \text{otherwise}.
 \end{cases}
 \end{equation}
-The overall travel time so far is stored as $\Delta\vi = \tilde b\vi$.
+The overall \emph{travel-time-so-far} is stored as $\Delta\vi = \tilde b\vi$.
 
 
 \paragraph{Step 2: compute arrival time at the next stop}
-If the bus is not at a stop, segment speeds are forecasted using the current network state and the time travelled so far by the particle, $\Delta\vi$. In \cref{sec:nw_hist_model}, I demonstrated the possiblity of using historical data to make forecasts, which could be used at this stage. However, as the infrastructure was not yet developed at the time of writing, we simulate a speed from the following distribution instead, where $P_\text{max}$ is the maximum variance (we used the overall variance of speeds along each segment from the data used in \cref{cha:vehicle_model}):
+If the bus is not at a stop, segment speeds are forecast using the current network state and the particle's travel-time-so-far, $\Delta\vi$. In \cref{sec:nw_hist_model}, I demonstrated the possibility of using historical data to make forecasts, which could be used at this stage. However, as this infrastructure was not available at the time of writing, we simulate a speed from the following distribution instead, where $P_\text{max}$ is the maximum variance (we used the overall variance of speeds along each segment from the data used in \cref{cha:vehicle_model}):
 \begin{equation}
 \label{sec:particle_travel_time_pred}
 b\vi_j \sim
 \Normal{\hat\RouteNWstateseg_j}{
-  (\RouteNWstatevarseg_j + \Delta\vi\NWnoise)^2 + \NWvar_j^2)\wedge P_\text{max}
+  \left[(\RouteNWstatevarseg_j + \Delta\vi\NWnoise)^2 + \NWvar_j^2\right]
+  \wedge P_\text{max}
 },
 \end{equation}
-Travel time so far is incremented by $b\vi_j$. This setup allows forecasts for segments that are further away to increase in variability.
+Travel-time-so-far is incremented by $b\vi_j$. This set-up allows forecasts for segments that are further away to increase in variability.
 
 
 \paragraph{Step 3: compute stop dwell time}
-Once the particle arrives at the next stop, its dwell time is sampled from the dwell time distribution (\cref{sec:vehicle_model_nodes}). If the stop is a \emph{layover}, and the particle arrives before the scheduled departure time, then with probability 0.6 (\cref{fig:layover_observance}) the particle waits to depart, otherwise it departs after the sampled wait time.
+Once the particle arrives at the next stop, its dwell time is sampled from the dwell time distribution (\cref{sec:vehicle_model_nodes}). If the stop is a \emph{layover}, and the particle arrives before the scheduled departure time, then with probability 0.6 (\cref{fig:layover_observance}) the particle waits to depart, otherwise, it leaves after the sampled wait time.
 
 \paragraph{Step 4: repeat steps 2--3}
 This occurs until the particle reaches the end of the route.
 
 \paragraph{Step 5: obtain arrival time distributions}
-Having obtained arrival times for all $\Np^\star$ particles, the predictive distribution for stop $j$---as in \cref{cha:vehicle_model}---is simply
+Having obtained arrival times for all $\Np^\star$ particles, the predictive distribution for stop $j$---as in \cref{cha:vehicle_model}---is
 \begin{equation}
 \label{eq:particle_predictive_dist}
 p(\Tarr_j | \Tripr_k, \RouteNWstate_\Tripr) \approx
 \sum_{i=1}^{\Np^\star} \Pwt \dirac_{\Tarr_j\vi}\left(\Tarr_j\right)
 = \frac{1}{\Np^\star}\sum_{i=1}^{\Np^\star} \dirac_{\Tarr_j\vi}\left(\Tarr_j\right)
 \end{equation}
-since all weights are equal. Estimates or quantiles are obtained from the particle approximation of the distribution of arrival times---for example, the mean, median, or a 90\% credible interval. As discussed in \cref{app:particle-summaries}, computing quantiles is a computationally demanding task for large numbers of particles due to the necessity to sort the particles in order from earliest to latest arrival times. Using $\Np^\star < \Np$ helps to reduce this complexity, but particles need to be re-sorted at each stop. In \cref{cha:etas} I demonstrate an alternative, computationally simpler method of computing quantiles.
+Blah, since all weights are equal. Estimates or quantiles are obtained from the particle approximation of the distribution of arrival times---for example, the mean, median, or a 90\% credible interval. As discussed in \cref{app:particle-summaries}, computing quantiles is a computationally demanding task for large numbers of particles due to the sorting of particles in order from earliest to latest arrival times. Using $\Np^\star < \Np$ helps to reduce this complexity, but particles need to be re-sorted at each stop. In \cref{cha:etas} I demonstrate an alternative, computationally simpler method of computing quantiles.

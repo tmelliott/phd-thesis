@@ -125,7 +125,7 @@ napprox(1, pi = 0.8, mu = 30, sigma = 20, t = c(30, 5)) +
     theme(legend.position = "bottom") & labs(colour = "")
 @
 
-A mixture of normal distributions can approximate the arrival time distribition \citep{Wang_2012} by expressing the mean and uncertainty as vectors $\tilde\mu$ and $\tilde\sigma^2$, respectively, along with a third vector $\tilde\pi$ denoting the $\tilde N$ mixture weights\footnote{We are using the tilde over parameters, e.g., $\tilde x$, to help distinguish them from others used throughout the thesis}, such that
+A mixture of normal distributions can approximate the arrival time distribution \citep{Wang_2012} by expressing the mean and uncertainty as vectors $\tilde\mu$ and $\tilde\sigma^2$, respectively, along with a third vector $\tilde\pi$ denoting the $\tilde N$ mixture weights,\footnote{I place a tilde over parameters related to the normal approximation, e.g., $\tilde x$, to help distinguish them from others used throughout the thesis.} such that
 \begin{equation}
 \label{eq:ch5:mixture_weight_spec}
 \tilde\pi_i > 0, i = 1, \ldots, \tilde N
@@ -141,7 +141,7 @@ z_i \sim \Normal{\tilde\mu_i}{\tilde\sigma^2_i}.
 \end{equation}
 
 
-Each component $i$ has an indicator $I_{im} = \{0,1\}$ of whether or not it stopped at stop $m$, so the total dwell time has mean and variance
+Each component $i$ has an indicator $I_{im} = \{0,1\}$ of whether it stopped at stop $m$, so the total dwell time has mean and variance
 \begin{equation}
 \label{eq:mixture_dwell_times}
 \tilde\mu_i = \sum_{m=j}^{j+n} I_{im} \dwell_m\quad\text{and}\quad
@@ -165,7 +165,7 @@ where
 \end{equation}
 
 
-The mixture approximation works well for a few stops ahead, but after some time the mixture weights become small and the components combine, as shown in \cref{fig:normal_approx}. To prevent $\tilde N$ from becoming too large, the full distribution is simplified into a single component with mean and variance
+The mixture approximation works well for a few stops ahead, but after some time the mixture weights become small, and the components combine, as shown in \cref{fig:normal_approx}. To prevent $\tilde N$ from becoming too large, the full distribution is simplified into a single component with mean and variance
 \begin{equation}
 \label{eq:mixture_mean}
 \begin{split}
@@ -178,7 +178,7 @@ The mixture approximation works well for a few stops ahead, but after some time 
   \sum_{i=1}^{\tilde N} \tilde\pi_i \tilde\mu_i
 \end{split}
 \end{equation}
-and
+and variance
 \begin{equation}
 \label{eq:mixture_variance}
 \begin{split}
@@ -188,10 +188,10 @@ and
 &= \sum_{\ell=j}^{j+n-1} \Var{\RouteNWstateseg_\ell} +
   \sum_{i=1}^{\tilde N} \tilde\pi_i^2 \Var{z_i} \\
 &= \sum_{\ell=j}^{j+n-1} \hat\RouteNWstatevarseg_\ell +
-  \sum_{i=1}^{\tilde N} \tilde\pi_i \tilde\sigma_i^2
+  \sum_{i=1}^{\tilde N} \tilde\pi_i \tilde\sigma_i^2,
 \end{split}
 \end{equation}
-respectively, assuming segment travel time and dwell time are independent---assuming otherwise makes this model impossible to work with; indeed, this model versus the particle filter (which makes no such assumption) is effectively testing the viability of this assumption.
+assuming segment travel time and dwell time are independent---assuming otherwise makes this model impossible to work with. Indeed, this model versus the particle filter (which makes no such assumption) is effectively testing the viability of this assumption.
 
 
 An optimisation is used to obtain quantiles $q_\alpha$ such that
@@ -201,6 +201,6 @@ An optimisation is used to obtain quantiles $q_\alpha$ such that
   p\left(\alpha \leq \Tarr_m | \tilde\pi, \tilde\mu, \tilde\sigma^2, \RouteNWstate\right) - q_\alpha
 \right]^2 = 0.
 \end{equation}
-This is straightforward using Brent's Algorithm \citep{Brent_1971}, implemented in the Boost \textsf{C++} library.
+This is straightforward using Brent's Algorithm \citep{Brent_1971}, implemented in the \pkg{Boost} \Cpp{} library.
 
-When the 2.5\%, 50\%, and 97.5\% quantiles for the single approximation are within 30~seconds of the same quantiles computed for the mixture distribution, the mixture is replaced with one single component with mean and variance defined in \cref{eq:mixture_mean,eq:mixture_variance}. In some situations, the mixture may not converge into a single distribution quick enough, so to prevent the number of components $\tilde N$ from exceeding $2^8=256$, all components with weights less than a predefined threshold (we used $\frac{1}{2}\max_i(\pi_i)$) are combined into a single component.
+When the 2.5\%, 50\%, and 97.5\% quantiles for the single approximation are within 30~seconds of the same quantiles computed for the mixture distribution, the mixture is replaced with one single component with mean and variance defined by \cref{eq:mixture_mean,eq:mixture_variance}. In some situations, the mixture may not converge into a single distribution quick enough, so to prevent the number of components $\tilde N$ from exceeding $2^8=256$, all components with weights less than a predefined threshold (we used $\frac{1}{2}\max_i(\pi_i)$) are combined into a single component.
