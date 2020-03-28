@@ -15,7 +15,7 @@ p(\mat{X}\cond{}\mat{Y}) =
     p(\mat{Y})
 },
 \end{equation}
-using, for example, \pgls{mcmc} algorithm. This is usually a computationally intensive procedure and takes much longer than 30~seconds to converge.
+using, for example, \agls{mcmc} algorithm. This is usually a computationally intensive procedure and takes much longer than 30~seconds to converge.
 
 
 In a real-time application, the columns of $\mat{Y}$ are observed sequentially, so that at time $t_k$ we have observed

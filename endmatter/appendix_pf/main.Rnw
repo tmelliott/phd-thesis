@@ -34,6 +34,11 @@ Using \cref{eq:dirac_property,eq:dirac_dist} we can now compute, for example, th
 
 
 
+\section{Calcualting particle coordinates}
+\label{app:pf_measurement_fun}
+
+Lalala
+
 
 \section{Resampling}
 \label{app:particle-resampling}
