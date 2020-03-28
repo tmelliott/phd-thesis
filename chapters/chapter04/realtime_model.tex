@@ -1,28 +1,32 @@
-\section{\Rt{} network model}
+\section{Real-time network model}
 \label{sec:nw_realtime}
 
-For a real-time application, time is the primary constraint. Therefore, we begin by presenting a Kalman filter implementation of the model described above, which, as previously discussed, is a highly efficient estimation method. From \cref{sec:kf} we know we need the transition and measurement matrices. The measurement matrix (\cref{sec:kf} on \cpageref{sec:kf}) is unity since the observations are now directly observations of the state we are estimating,
+Due to the time constraints of real-time applications, our framework uses a Kalman filter to implement the model described above, which, as previously discussed, is a highly efficient estimation method. This requires the transition and measurement matrices as described in \cref{sec:kf} on \cpageref{sec:kf}. The measurement matrix is the identity matrix $\mat{I}$ since the data are now direct observations of the underlying state (average vehicle speed):
 \begin{equation}
 \label{eq:kf_meas_identity}
 \NWstate_{\ellc} = \mat{H}\Vtt_{\ellc} + w_{\ellc} = \Vtt_{\ellc} + w_{\ellc}
 \end{equation}
-So, assuming that $\NWvar_{\ellc}$ and $\NWnoise_{\ell}$ are known, we have everything we need to implement a Kalman filter on $\NWstate_{\ellc}$.
+We also use the identity matrix for the transition matrix $\mat{F}$ as our best guess of the current traffic state is the previous state. So, assuming that $\NWvar_{\ellc}$ and $\NWnoise_{\ell}$ are known, for now, we have everything needed to implement a Kalman filter on $\NWstate_{\ellc}$.
 
 
 \subsection{Predict step}
 \label{sec:kf_predict}
 
-In the examples presented, we use a stationary transition function, that is, $F_c = 1$, which implies an assumption that traffic speed is constant over short time periods (less than five~minutes). The estimated state therefore has mean
+In the examples presented, we use a stationary transition function, that is, $\mat{F}_c = 1$, which implies an assumption that traffic speed is constant over short periods (less than five~minutes). The vector of all segment speed observations up to and including time $t_{c}$ is defined as
+\begin{equation}\label{eq:all_seg_obs}
+\NWobs_{\ell,1:c}^{\boldsymbol{\cdot}} = \bigcup_{t=1}^{c} \bigcup_{v\in V_{\ell,t}} \NWobs_{\ell,t}^v,
+\end{equation}
+where $V_{\ellc}$ is the set of all vehicles traversing segment $\ell$ at time $t_c$. Then the estimated segment state, conditional on all observations up to time $t_{c-1}$, has mean
 \begin{equation}\label{eq:ch4:nw_state_mean_est}
 \hat\NWstate_{\ellc|c-1} =
-    \E{\NWstate_{\ellc} | \NWobs_{\ell \boldsymbol{\cdot}}^{\boldsymbol{\cdot}}}
+    \E{\NWstate_{\ellc} \cond{} \NWobs_{\ell,1:c-1}^{\boldsymbol{\cdot}}}
 \end{equation}
 and variance
 \begin{equation}\label{eq:ch4:nw_state_var_est}
 \NWstatevar_{\ellc|c-1} =
-    \Var{\NWstate_{\ellc} | \NWobs_{\ell \boldsymbol{\cdot}}^{\boldsymbol{\cdot}}}
+    \Var{\NWstate_{\ellc} \cond{} \NWobs_{\ell,1:c-1}^{\boldsymbol{\cdot}}},
 \end{equation}
-which are predicted using
+which are predicted using the following equations:
 \begin{equation}
 \label{eq:nw_kf_predict}
 \begin{split}
@@ -30,9 +34,9 @@ which are predicted using
     \hat\NWstate_{
 \ellc-1|c-1} \\
 \NWstatevar_{c|c-1} &= \NWstatevar_{c-1|c-1} + \left(\NWtdiff_c\NWnoise_c\right)^2
-\end{split}
+\end{split}.
 \end{equation}
-This prediction is shown in \cref{fig:nw_kf1}. Alternatively, were forecast information available, we could use a transition matrix $\mat F_c$ to describe how traffic might change over time, which is shown in \cref{fig:nw_kf2}.
+This prediction is shown in \cref{fig:nw_kf1}. Alternatively, were forecast information available, we could use a transition matrix $\mat F_c$ to describe how traffic might change over time, as is shown in \cref{fig:nw_kf2}.
 
 
 \begin{knitrout}\small
@@ -53,36 +57,28 @@ This prediction is shown in \cref{fig:nw_kf1}. Alternatively, were forecast info
 \subsection{Update step}
 \label{sec:kf_update}
 
-Updating the \kf{} involves taking the predicted state and updating it using \emph{observations} of vehicle speeds along road segments. These we obtain from the \pf{} (\cref{sec:vehicle_speeds}). However, it is possible to have multiple observations per road segment in one update period, as it is common for buses to travel one behind the other, particularly along bus lanes. Therefore, for each individual road segment, we have a vector of observations, one for each vehicle $v \in V_{\ell c}$ passing through that segment in the time interval $(t_{c-1}, t_c]$,
+Updating the \kf{} involves taking the predicted state and updating it using \emph{observations} of vehicle speeds along road segments. These are obtained from the \pf{} (\cref{sec:vehicle_speeds}). However, it is possible to have multiple observations per road segment in one update period, as it is common for buses to travel one behind the other, particularly along bus lanes. Therefore, we have a vector of observations passing through segment $\ell$ in the time interval $(t_{c-1}, t_c]$,
 \begin{equation} \label{eq:nw_seg_obs}
-\NWobss_{\ell c} = \bigcup_{v\in V_{\ell c}} \NWobss_{\ell c}^v.
+\NWobss_{\ell c} = \bigcup_{v\in V_{\ell c}} \NWobss_{\ell c}^v,
 \end{equation}
-Note that this can be the empty set $\NWobss_{\ell c} = \emptyset$ if no vehicles travel through a segment in the interval.
+which can be the empty set $\NWobss_{\ell c} = \emptyset$ if no vehicles travel through the segment in the interval.
 
 
-To update the network, we need to account for each observation. One way of doing this would be to combine the observations into a single estimate; however, this involves averaging observations and uncertainties. An alternative is to use an \emph{\infil{}}, which allows the summation of information from multiple observations \citep{Mutambara_2000}. The information filter involves inverting the state uncertainty $\NWstatevar$; however, this is a simple computation due to having a one-dimensional state---if we were to estimate the state of all segments simultaneously, inverting the $L\times L$ uncertainty matrix would be computationally demanding, or even impossible, and we would be unable to use the approach.
+When updating the network, each observation must be accounted for. One way would be to combine the observations into a single estimate; however, this involves averaging observations and uncertainties. An alternative is to use an \emph{\infil{}}, which allows the summation of information from multiple observations \citep{Mutambara_2000}. The information filter involves inverting the state uncertainty $\NWstatevar$; however, this is a simple computation due to having a one-dimensional state---if we were to estimate the state of all segments simultaneously, inverting the $L\times L$ uncertainty matrix would be computationally demanding, or even impossible, and we would be unable to use the approach.
 
 
-% To employ the \infil{}, we need to
-% \begin{enumerate}
-% \item transform the state space into information space,
-% \item transform the observations into information,
-% \item update the information space using the observation information, and
-% \item back-transform the updated information space to the original state space.
-% \end{enumerate}
 
-
-The first step involves converting the predicted state vector and covariance matrix into information space by inversion of the covariance matrix, which leads to the information matrix
+The first step converts the predicted state vector and covariance matrix into information space by inversion of the covariance matrix, leading to the information matrix
 \begin{equation}\label{eq:nw_if_inf_matrix}
 \NWinfmat_{\ellc|c-1} = \NWstatevar_{\ellc|c-1}^{-1}
 \end{equation}
 and information vector
 \begin{equation}\label{eq:nw_if_inf_vector}
-\hat\NWinfvec_{\ellc|c-1} = \NWstatevar_{\ellc|c-1}^{-1} \hat\NWstate_{c|c-1}
+\hat\NWinfvec_{\ellc|c-1} = \NWstatevar_{\ellc|c-1}^{-1} \hat\NWstate_{c|c-1}.
 \end{equation}
 
 
-Converting the observations into information follows the same formula. Note first that the error needs to account for both measurement error and between-vehicle error, which, since these are assumed Gaussian and independent, the total variance is simply the sum of the two respective variances. The observation information matrix is therefore
+Converting the observations into information follows the same formula. Note first that the error needs to account for both measurement error and between-vehicle variation, which are assumed Gaussian and independent, so the total variance is their sum. The observation information matrix is
 \begin{equation}\label{eq:nw_if_inf_obsmatrix}
 \NWobsinfmat_{\ellc}^v = \frac{1}{\NWvar_{\ellc}^2 + (\NWerr_{\ellc}^v)^2}
 \end{equation}
@@ -90,7 +86,7 @@ and the observation information vector is
 \begin{equation}\label{eq:nw_if_inf_obsvector}
 \hat\NWobsinfvec_{\ellc}^v = \frac{\hat\NWobs_{\ellc}^v}{
     \NWvar_{\ellc}^2 + (\NWerr_{\ellc}^v)^2
-}
+}.
 \end{equation}
 Combining these by summation over vehicles yields the complete information matrix and vector for the time period $(t_{c-1},t_c]$, which are, respectively,
 \begin{equation}\label{eq:nw_if_obsupdate_matrix}
@@ -98,18 +94,18 @@ Combining these by summation over vehicles yields the complete information matri
 \end{equation}
 and
 \begin{equation}\label{eq:nw_if_obsupdate_vector}
-\NWobsinfvec_{\ellc} = \sum_{v \in V_{\ellc}} \NWobsinfvec_{\ellc}^v
+\NWobsinfvec_{\ellc} = \sum_{v \in V_{\ellc}} \NWobsinfvec_{\ellc}^v.
 \end{equation}
 
 
 
-The state update is now just a case of adding the total information,
+The state update is now just a case of adding the observation information in \cref{eq:nw_if_inf_obsmatrix,eq:nw_if_inf_obsvector} to the predicted state information in \cref{eq:nw_if_inf_matrix,eq:nw_if_inf_vector}:
 \begin{equation}
 \label{eq:nw_if_update}
 \begin{split}
 \NWinfmat_{\ellc|c} &= \NWinfmat_{\ellc|c-1} + \NWobsinfmat_{\ellc} \\
 \hat\NWinfvec_{\ellc|c} &= \hat\NWinfvec_{\ellc|c-1} + \NWobsinfvec_{\ellc}
-\end{split}
+\end{split}.
 \end{equation}
 Note that, in situations where no data is observed for a given segment, the information for that segment is zero, so there is no further change to the predicted state value. This could be useful at peak hour, for example, if the transition function predicts changes based on historical trends.
 
@@ -123,7 +119,7 @@ Finally, we back-transform the information into the state space,
 \end{split}.
 \end{equation}
 
-The main constraint on the model is the dependence on $\NWvar_{\ellc}$ and $\NWnoise_{\ellc}$; however, before we consider the estimation of these values, we will first apply the Kalman filter model to the simulated data (for which the parameter values are known).
+The primary constraint on the model is the dependence on $\NWvar_{\ellc}$ and $\NWnoise_{\ellc}$; however, before considering the estimation of these values, we apply the Kalman filter model to the simulated data in \cref{fig:nw_sim_data} for which the parameter values are known.
 
 
 \begin{knitrout}\small
@@ -140,10 +136,10 @@ The main constraint on the model is the dependence on $\NWvar_{\ellc}$ and $\NWn
 
 \end{knitrout}
 
-The \kf{} was fitted to the simulated data using the same values of $\NWnoise$ and $\NWvar$ that were used to generate the data, with the estimates of $\hat\NWstate_{c|c}$ shown by solid blue and red lines in \cref{fig:nw_simdata_fit1}, respectively, along with the associated uncertainty as estimated by $\NWstatevar_{c|c}$, with the simulated true mean shown by a dashed black line. We see that the 95\% credible interval mostly captures the true value of $\NWstate_{c}$. \Cref{fig:nw_simdata_fit2} shows the posterior estimate of $\hat\NWstate_{c|c}$ along with the posterior predictive distribution of $\NWobs_c^m$; that is, using the 95\% region defined by the sum of $\NWstatevar_{c|c}$ and $\NWvar^2$, the latter of which is known from the simulation. 99.8\% of the observation points lie within the 95\% predictive region, which affirms that, given we know the network parameters $\NWnoise$ and $\NWvar$, we can recover the underlying network state using a \kf{}.
+The \kf{} was fitted to the simulated data using the same values of $\NWnoise$ and $\NWvar$ that were used to generate the data, with the estimate of $\NWstate_{\ell,1:c}$ shown by the solid red line in \cref{fig:nw_simdata_fit1} along with the associated uncertainty as estimated by $\NWstatevar_{\ell,1:c}$ (shaded region). A dashed black line represents the simulated true mean. We see that the 95\% credible region contains the true values of $\NWstate_{\ell,1:c}$. \Cref{fig:nw_simdata_fit2} shows the posterior estimate of $\NWstate_{\ell,1:c}$ along with the posterior predictive distribution of $\NWobs_c^m$; that is, using the 95\% region defined by the sum of $\NWstatevar_{\ell,1:c}$ and $\NWvar^2$, the latter of which is known for the simulation. 99.8\% of the observations lie within the 95\% predictive region. Given the network parameters $\NWnoise$ and $\NWvar$ are known, the underlying network state can be recovered using a \kf{}.
 
 
 \subsection{Limitations of the implementations}
 \label{sec:kf-limits}
 
-The main limitation of using the information filter is the need to calculate the inverse of the covariance matrix. If we want to improve our model by including segment interactions, the dimensionality of $\NWstatevar$ would quickly become too large to easily compute $\NWstatevar^{-1}$. Thus, the method presented here is only appropriate for independent segments. Fortunately, however, using the \kf{} instead would not be too difficult a task, since most of the time only one vehicle will pass through a segment during an interation, and in cases where there is more than one we can average the estimates and their errors.
+The main limitation of using the information filter is the need to calculate the inverse of the covariance matrix. If we want to improve the model by including segment interactions, the dimensionality of $\NWstatevar$ would quickly become too large to compute $\NWstatevar^{-1}$ easily. Thus, the method presented here is only appropriate for independent segments. Fortunately, however, using the \kf{} instead would not be too difficult a task, since most of the time, only one vehicle will pass through a segment during an iteration. In cases where there is more than one, the estimates and their errors could be combined using a sample mean and variance, for example.

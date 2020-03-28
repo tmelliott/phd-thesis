@@ -3,20 +3,24 @@
 \label{sec:nw_par_est}
 
 
-To use the Kalman in any meaningful way, we first need to estimate the system noise, $\NWnoise_\ell$, and between-vehicle variance, $\NWvar_{\ellc}$. To estimate values for these parameters, we fit the same model from \cref{sec:nw_model} to the historical data shown in \cref{fig:tt_figure} using \gls{mcmc} sampling methods as implemented by JAGS \citep{JAGS}.
+To use the \kf{} in any meaningful way, we first need to estimate the system noise, $\NWnoise_\ell$, and the between-vehicle variance, $\NWvar_{\ellc}$. To estimate values for these parameters, we fit the same model from \cref{sec:nw_model} to the historical data shown in \cref{fig:tt_figure} using \gls{mcmc} sampling methods as implemented by \prog{JAGS} \citep{JAGS}.
 
 
-For the first step in the modelling process, we fit the following hierarchical model:
-\begin{align}
+The first step in the modelling process fits the following hierarchical model:
+\begin{equation}
 \label{eq:nw_model_simple}
+\left\{
+\begin{split}
 \Vttobs_{\ellc}^m &\sim \Normal{\Vtt_{\ellc}^m}{(\Vtterr_{\ellc}^m)^2} &
 \NWstate_{\ell,0} &\sim \Uniform{0}{\MaxSpeed_\ell} \nonumber \\
 \Vtt_{\ellc}^m &\sim \TNormal{\NWstate_{\ellc}}{\NWvar_{\ell}^2}{0}{\MaxSpeed_\ell} &
 \NWvar_\ell &\sim \GammaD{0.01}{0.01} \\
 \NWstate_{\ellc} &\sim \TNormal{\NWstate_{\ell-1,c}}{(\NWtdiff_c \NWnoise_{\ell})^2}{0}{\MaxSpeed_\ell} &
 \NWnoise &\sim \GammaD{0.01}{0.01} \nonumber
-\end{align}
-For the observation error, as in the previous section, we assumed this to be constant for all observations, $\Vtterr_{\ellc}^m = 0.8$~\gls{mps} (which is about 10~km/h). The model implementation was performed from R using the \verb+rjags+ package \citep{rjags}. The model output was processed using the \verb+tidybayes+ package \citep{tidybayes} and graphed using \verb+ggplot2+ \citep{ggplot2}. The \verb+coda+ package was used to assess the model's convergence results \citep{coda}.
+\end{split}
+\right. .
+\end{equation}
+The observation error, as in the previous section, is assumed to be constant for all observations, $\Vtterr_{\ellc}^m = 0.8$~\gls{mps} (which is about 10~km/h). The model implementation was performed from \Rstats{} using the \pkg{rjags} package \citep{rjags}. The model output was processed using the \pkg{tidybayes} package \citep{tidybayes} and graphed using \pkg{ggplot2} \citep{ggplot2}. The \pkg{coda} package was used to assess the model's convergence results \citep{coda}.
 
 
 \subsection{Simulated data}
@@ -36,7 +40,7 @@ For the observation error, as in the previous section, we assumed this to be con
 \end{knitrout}
 
 
-To assess the model, we start by fitting it to the simulated data (\cref{fig:nw_sim_data}), for which we know the values of $\NWnoise$ and $\NWvar$. Traceplots of the model parameters are shown in \cref{fig:nw_model_sim_results}, with the true values overlaid with a dashed line, show that the chains mixed well. \Cref{tab:nw_model_sim_smry} gives a summary of the simulation values and their posterior estimates, along with convergence statistics. The 95\% credible intervals for the two parameters contain the true values, so there is nothing to suggest the model is inadequate for modelling the simulated data and estimating the network parameters.
+To assess the model, we start by fitting it to the simulated data (\cref{fig:nw_sim_data}), for which we know the values of $\NWnoise$ and $\NWvar$. Trace plots of the model parameters shown in \cref{fig:nw_model_sim_results}, with the true values overlaid with a dashed line, show that the chains mixed well. \Cref{tab:nw_model_sim_smry} gives a summary of the simulation values and their posterior estimates, along with convergence statistics. The 95\% credible intervals for the two parameters contain the true values, so there is nothing to suggest the model is inadequate for modelling the simulated data and estimating the network parameters.
 
 
 \begin{table}
@@ -62,7 +66,7 @@ $\NWvar$ & 0.8 & 0.75 & 0.64 & 0.75 & 0.86 & 1.001\\
 
 
 
-Having shown that the JAGS model is a valid way of estimating the network parameters $\NWnoise$ and $\NWvar$, the real travel time data from \cref{fig:tt_figure} was modelled. Traceplots of the network parameters, as shown in \cref{fig:nw_model_n1_view}, show again that the chains mixed well, which is reaffirmed by the convergence results in \cref{tab:nw_model_fit_smry}. Not shown here are the summaries of the $\NWstate$'s (there are 187 of them), however the Gelman diagnostic $\hat R$ was less than 1.03 for all of them, indicating they reached convergence.
+Having shown that the \prog{JAGS} model is a valid way of estimating the network parameters $\NWnoise$ and $\NWvar$, we model the real travel time data from \cref{fig:tt_figure}. Trace plots of the network parameters, as shown in \cref{fig:nw_model_n1_view}, show again that the chains mixed well, which is reaffirmed by the convergence results in \cref{tab:nw_model_fit_smry}. Not shown here are the summaries of the $\NWstate$'s (there are 187 of them); however, the Gelman diagnostic $\hat R$ was less than 1.03 for all of them, indicating they reached convergence.
 
 \begin{knitrout}\small
 \definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{figure}
@@ -93,7 +97,7 @@ $\NWvar$ & 1.79 & 1.63 & 1.78 & 1.96 & 1.001\\
 
 
 
-To assess the adequacy of these parameters, we fit the \kf{} to the same data\footnote{We are more thorough in the next section, which includes data from two weeks for testing and training.} to see how well the mean and predictive distributions fit the data. The estimate $\hat\NWstate_{\ellc|\ellc}$, along with their associated uncertainty, are shown in \cref{fig:nw_model_n1_kf1}, where we see that the mean approximately follows the center of the data. The predictive vehicle speed distribution, which accounts for both $\NWstatevar_{\ellc}$ and vehicle variation, $\NWvar_{\ellc}$, is shown in \cref{fig:nw_model_n1_kf2}, which shows most of the points contained within the 95\% posterior predictive region.
+To assess the adequacy of these parameters, we fit the \kf{} to the same data\footnote{In the next section we use two weeks of data, one for each of testing and training.} to see how well the mean and predictive distributions fit the data. The estimates of $\NWstate_{\ell,1:c}$, along with associated uncertainties, are shown in \cref{fig:nw_model_n1_kf1}, where we see that the mean approximately follows the center of the data. The predictive vehicle speed distribution, which accounts for both $\NWstatevar_{\ell,1:c}$ and vehicle variation, $\NWvar_{\ell}$, is shown in \cref{fig:nw_model_n1_kf2}, and shows most of the points contained within the 95\% posterior predictive region.
 
 
 \begin{knitrout}\small
@@ -112,7 +116,7 @@ To assess the adequacy of these parameters, we fit the \kf{} to the same data\fo
 
 
 
-Finally, the timing comparison, displayed in \cref{tab:nw_model_n1_timecomp}. The hierarchical model fit using JAGS took about 2700 times as long as the \kf{} implementation. So, even if we reduced the number of chains, the number of iterations, and tried to speed up the JAGS model, the \kf{} would still be significantly faster.
+Finally, the timing comparison is displayed in \cref{tab:nw_model_n1_timecomp}. The hierarchical model fit using \prog{JAGS} took about 2700 times as long as the \kf{} implementation. So, even if we reduced the number of chains, the number of iterations, and tried to speed up the \prog{JAGS} model, the \kf{} would still be significantly faster.
 
 
 \begin{table}
@@ -137,12 +141,14 @@ Kalman filter & 0.044 & 0.000 & 0.046\\
 
 
 
-To assess how effective this method is for estimating $\NWvar$ and $\NWnoise$, we selected five other road segments around Auckland and repeated the above process. However, instead of fitting the same model independently over segments,  we use a hierarchical Bayesian model on the parameters, since it seems reasonable that, while they wont be the same over all segments, there will be an underlying population distribution. This will allow us to obtain estimates of the parameter values without explicitly needing to model every road (of which there are 8,151).
+To assess how effective our approach is for estimating $\NWvar$ and $\NWnoise$, we selected five other road segments around Auckland. However, instead of fitting the same model independently to each segment,  we use a hierarchical Bayesian model on the parameters, since it seems reasonable that, while they will not be the same for all segments, there will be an underlying population distribution. This allows us to obtain estimates of the parameter values without explicitly needing to model every road (of which there are 8,151).
 
 
-The following hierarchical model was used:
-\begin{align*}
+The hierarchical model used to estimate the network parameters is:
+\begin{equation}
 \label{eq:tt_hist_hier}
+\left\{
+\begin{split}
 \Vttobs_{\ellc}^m &\sim \Normal{\Vtt_{\ellc}^m}{\left(\Vtterr_{\ellc}^m\right)^2} &
 \NWstate_{\ell0} &\sim \Normal{0}{10^2} \\
 \Vtt_{\ellc}^m &\sim \TNormal{\NWstate_{\ellc}}{\NWvar_{\ell}^2}{0}{\MaxSpeed_\ell} &
@@ -151,8 +157,10 @@ The following hierarchical model was used:
 \sigma_\psi &\sim \GammaD{0.001}{0.001} \\
 \log\left(\NWvar_{\ell}\right) &\sim \Normal{\mu_\psi}{\sigma_\psi^2} &
 q &\sim \GammaD{0.001}{0.001}
-\end{align*}
-We initially attempted to fit a hierarchical segment noise parameter $\NWnoise_{\ell}$ with hyperparameters, but the values were all approximately equal for all segments and convergence was very slow (100,000's of iterations). Instead we have opted for a single common system noise parameter across all segments. The speed data for six segments on two consecutive Tuesdays is shown in \cref{fig:nw_model_n2_segplots}, with the locations of the roads displayed in \cref{fig:nw_seg_maps}.
+\end{split}
+\right. .
+\end{equation}
+We initially attempted to fit a hierarchical segment noise parameter $\NWnoise_{\ell}$ with hyperparameters, but the values were all approximately equal for all segments and convergence was very slow (100,000's of iterations). Instead, we opted for a single common system noise parameter across all segments. The speed data for six segments on two consecutive Tuesdays is shown in \cref{fig:nw_model_n2_segplots}, with the locations of the roads displayed in \cref{fig:nw_seg_maps}.
 
 \begin{knitrout}\small
 \definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{figure}
@@ -215,10 +223,10 @@ $q$ & 0.0014 & 0.0012 & 0.0014 & 0.0017 & 1.02\\
 
 
 
-The model was fit using JAGS to the first day of data for the six segments, while the second was reserved for testing the validity of the estimated parameters. Each of the four chains were run with a 100,000~iteration burn-in phase, followed by 50,000 iterations with a thinning interval of 50. Traceplots of the top-level parameters are displayed in \cref{fig:nw_model_n2_diag}, which demonstrate good mixing of the chains. \Cref{tab:nw_model_n2_smry} shows the posterior mean and quantiles for these parameters, along with their Gelman convergence diagnostic.
+The model was fit using \prog{JAGS} to the first day of data for the six segments, while the second was reserved for testing the validity of the estimated parameters. Each of the four chains was run with a 100,000~iteration burn-in phase, followed by 50,000 iterations with a thinning interval of 50. Trace plots of the top-level parameters are displayed in \cref{fig:nw_model_n2_diag}, which demonstrates good mixing of the chains. \Cref{tab:nw_model_n2_smry} shows the posterior mean and quantiles for these parameters, along with their Gelman convergence diagnostics.
 
 
-Traceplots for the segment-specific variance parameter are shown in \cref{fig:nw_model_n2_diag_2}, and also demonstrate good mixing. The Gelman convergence diagnostic is again very close to unity, indicating that running the chain for longer would not decrease the posterior variance by much.
+Trace plots for the segment-specific variance parameters are shown in \cref{fig:nw_model_n2_diag_2}, and also demonstrate good mixing. The Gelman convergence diagnostic is again very close to unity, indicating that running the chain for longer would not decrease the posterior variance by much.
 
 
 
@@ -236,7 +244,7 @@ Traceplots for the segment-specific variance parameter are shown in \cref{fig:nw
 \end{knitrout}
 
 
-The posterior mean of $\NWvar$ for each segment was used along with the population parameters to fit the \kf{} as before. \Cref{fig:nw_model_n2_kf} shows the original data overlayed with a posterior sample of $\NWstate$'s, along with the next week's data with results from the \kf{}, including the 95\% credible region for the mean travel time, along with the 95\% posterior predictive region for individual vehicle travel times.
+The \kf{} was fit to each segment using the posterior mean of $\NWvar_\ell$ and the population parameters. \Cref{fig:nw_model_n2_kf} shows the original data superimposed with a posterior sample of $\NWstate$'s, along with the next week's data with results from the \kf{}, including the 95\% credible region for the mean travel time and the 95\% posterior predictive region for individual vehicle travel times.
 
 
 
@@ -252,4 +260,4 @@ The posterior mean of $\NWvar$ for each segment was used along with the populati
 
 \end{knitrout}
 
-The results show that the $\NWstate$ values estimated with JAGS nicely fit the data, as do the \kf{} estimates. The posterior predictive region covers most of the points, and is not excessively large, in all of the segments.
+The results show that the $\NWstate$ values estimated with \prog{JAGS} nicely fit the data, including peak congestion, as do the \kf{} estimates. The posterior predictive region covers most of the observations for all the segments.
