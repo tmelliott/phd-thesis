@@ -16,15 +16,15 @@ a vector containing the current real-time average traffic speed along all $L$ ro
 Vehicles travelling along road segment $\ell$ at time $t_c$ have an underlying average speed of $\NWstate_{\ellc}$~seconds, which changes with an average rate of $\NWnoise_\ell$ m/s$^2$. Assuming the underlying road state is a Markov process, the model for the evolution of traffic speed along a road with a maximum velocity (speed) of $\MaxSpeed_\ell$~\gls{mps} is
 \begin{equation}\label{eq:nw_state_markov}
 \NWstate_{\ellc} \sim
-\TNormal{\mathcal{F}_c(\NWstate_{\ellc-1})}{(\NWtdiff_c \NWnoise_c)^2}{0}{\MaxSpeed_\ell},
+\TNormal{\mathcal{F}_c(\NWstate_{\ellc-1})}{(\NWtdiff_c \NWnoise_\ell)^2}{0}{\MaxSpeed_\ell},
 \end{equation}
 where $\NWtdiff_c = t_c - t_{c-1}$ is the time since the last update. This model allows traffic speed to follow temporal trends through the time-dependent transition function $\mathcal{F}_c$ (peak hour traffic, for example) as well as react to real-time events, such as accidents or weather events.
 
 
-As already mentioned, there are many factors which can affect the speed of a vehicle along a given road segment. To encapsulate this uncertainty, we introduce a single parameter $\NWvar_{\ellc}$, which describes the \emph{between-vehicle variability}, or the width of the distribution at the top of \cref{fig:nw_model_hierarchy}. The true average speed of bus $m$ along road segment $\ell$ at time $t_c$ is denoted $\Vtt_{\ellc}^m$, and is assumed to be an observation from the population distribution with mean $\NWstate_{\ellc}$ and variance $\NWvar_{\ellc}^2$, again truncated appropriately:
+As already mentioned, there are many factors which can affect the speed of a vehicle along a given road segment. To encapsulate this uncertainty, we introduce a single parameter $\NWvar_{\ell}$, which describes the \emph{between-vehicle variability}, or the width of the distribution at the top of \cref{fig:nw_model_hierarchy}. The true average speed of bus $m$ along road segment $\ell$ at time $t_c$ is denoted $\Vtt_{\ellc}^m$, and is assumed to be an observation from the population distribution with mean $\NWstate_{\ellc}$ and variance $\NWvar_{\ell}^2$, again truncated appropriately:
 \begin{equation}\label{eq:nw_vehicle_tt}
 \Vtt_{\ellc}^m \sim
-\TNormal{\NWstate_{\ellc}}{\NWvar_{\ellc}^2}{0}{\MaxSpeed_\ell}.
+\TNormal{\NWstate_{\ellc}}{\NWvar_{\ell}^2}{0}{\MaxSpeed_\ell}.
 \end{equation}
 
 
@@ -38,7 +38,7 @@ Once a vehicle has traversed a segment, we estimate its average speed as $\Vttob
 To assess the model, we performed a simulation where all the parameter values are known (based off of the values estimated in \cref{sec:nw_par_est}). \Cref{fig:nw_sim_data} shows the three stages of the model hierarchy.
 
 
-<<nw_sim_data,echo=FALSE,fig.width=8*.8,fig.height=2,fig.align="center",out.width="0.8\\textwidth",fig.cap="Simulated data showing average vehicle speed along a road. The right hand axis is shown as a guide for readers not familiar with speeds measured in meters per second.",fig.subcap=c('Underlying average vehicle speed', 'Actual bus speeds (averaged over road segment)', 'Observed average bus speeds, with vertial lines representing measurement error.'),fig.ncol=1,fig.sep=rep("\\\\", 4)>>=
+<<nw_sim_data,echo=FALSE,fig.width=8*.8,fig.height=2,fig.align="center",out.width="0.8\\textwidth",fig.cap="Simulated data of average vehicle speed along a road segment. The right hand axis is shown as a guide for readers not familiar with speeds measured in meters per second.",fig.subcap=c('Underlying average speed along segment', 'Average speeds of individual buses', 'Observed average speeds of buses, with vertial lines to denote measurement error.'),fig.ncol=1,fig.sep=rep("\\\\", 4)>>=
 source("scripts/sim_data.R")
 sim <- get_simulation(mu = 50, q = 0.002, phi = 0.8*3.6^2, e = 10, beta0 = 30)
 

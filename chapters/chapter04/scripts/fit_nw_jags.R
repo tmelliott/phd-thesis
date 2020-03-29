@@ -11,7 +11,7 @@ segdata <-
         N = nrow(tts),
         M = length(unique(t30)),
         mu = 60 / 3.6,
-        E = 0.8
+        E = 0.2
     )
 
 

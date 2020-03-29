@@ -12,7 +12,7 @@ atzip <- file.path(wd, "at_gtfs.zip")
 if (requireNamespace("transitr")) {
     if (!file.exists(db)) {
         nw <- transitr::create_gtfs(atzip, db = db)
-        transitr::construct(nw)
+        z <- transitr::construct(nw)
     }
     nw <- transitr::load_gtfs(db)
 } else {

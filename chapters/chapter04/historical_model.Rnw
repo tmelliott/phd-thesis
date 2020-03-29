@@ -6,7 +6,7 @@ The model presented in \cref{sec:nw_model,sec:nw_realtime,sec:nw_par_est} is ade
 
 In \cref{nw_par_est_real}, I showed that most roads have a ``peak effect'' in the morning or the evening, while some exhibit both. It seems reasonable therefore to have a model which allows a segment to have zero, one, or two peaks, each with varying magnitude (the size of the decrease in speed) and width (how long the peak period is). The temporal location of these peaks is likely to be related, but variable: some roads will experience peak traffic earlier than others, for example.
 
-<<tt_week0_load,cache=TRUE,echo=FALSE,fig.height=8,fig.width=8,fig.align="center",out.width="\\textwidth",fig.cap="Vehicle speeds along six roads over one week, coloured by the day of the week.">>=
+<<tt_week0_load,cache=TRUE,echo=FALSE,fig.height=8,fig.width=8,fig.align="center",out.width="\\textwidth",fig.cap="Vehicle speeds along six road segments over one week, coloured by the day of the week.",fig.scap="Vehicle speeds along six road segments over one week">>=
 library(ggplot2)
 source("scripts/load_week_data.R")
 
@@ -103,7 +103,7 @@ save(seg_fits, file = "data/seg_fits.rda")
 
 
 
-<<tt_week0_grid,cache=TRUE,echo=FALSE,message=FALSE,warning=FALSE,fig.height=10,fig.width=8,fig.align="center",out.width="\\linewidth",fig.cap="Predicted speeds (lighter is faster) in 30 minutes from the current time, given the current state (y-axis).">>=
+<<tt_week0_grid,cache=TRUE,echo=FALSE,message=FALSE,warning=FALSE,fig.height=10,fig.width=8,fig.align="center",out.width="\\linewidth",fig.cap="Speed maps to predict segment speed in 30~minutes given the current average speed (y-axis) and time (x-axis).",fig.scap="Speed maps to predict segment speed in 30~minutes given the current state">>=
 library(ggplot2)
 library(tidyverse)
 load("data/seg_fits.rda")
@@ -152,7 +152,7 @@ The next step is to evaluate the predictive power of this approach. We do this b
 
 
 
-<<tt_week1_load,cache=TRUE,echo=FALSE,message=FALSE,warning=FALSE,fig.height=8,fig.width=8,fig.align="center",out.width="\\linewidth",fig.cap="Vehicle speeds along six roads over the course of two weeks, showing only week days.">>=
+<<tt_week1_load,cache=TRUE,echo=FALSE,message=FALSE,warning=FALSE,fig.height=8,fig.width=8,fig.align="center",out.width="\\linewidth",fig.cap="Vehicle speeds along six roads over the course of two weeks, showing only week days, for training (left) and testing (right).",fig.scap="Vehicle speeds along six roads over of two weeks.">>=
 library(ggplot2)
 source("scripts/load_week_data.R")
 load("data/seg_fits.rda")
@@ -175,7 +175,7 @@ bind_rows(
 
 @
 
-<<tt_week1_pred,cache=TRUE,message=FALSE,warning=FALSE,echo=FALSE,fig.height=8,fig.width=8,fig.align="center",out.width="\\linewidth",fig.cap="Forecasted average vehicle speeds in 30 minutes versus actual average speed in 30 minutes along segments.">>=
+<<tt_week1_pred,cache=TRUE,message=FALSE,warning=FALSE,echo=FALSE,fig.height=8,fig.width=8,fig.align="center",out.width="\\linewidth",fig.cap="Forecasts of average vehicle speeds in 30 minutes versus actual average speed in 30 minutes along segments. The line of equality (red) indicates a perfect prediction. The closer the best fit line (blue) is to the line of equality, the better the forecasts.">>=
 suppressPackageStartupMessages({
     library(ggplot2)
     library(purrr)
@@ -236,7 +236,7 @@ egg::ggarrange(
         facet_wrap(segment_id~., scales = "free", ncol = 1) +
         # scale_colour_brewer(palette = "Dark2") +
         # scale_colour_viridis_c() +
-        xlab("Predicted speed (m/s)") +
+        xlab("Speed orecast (m/s)") +
         ylab("Observed speed (m/s)") +
         theme_classic() +
         theme(legend.position = "none", strip.background = element_blank()) +
@@ -247,7 +247,7 @@ egg::ggarrange(
         facet_wrap(segment_id~., scales = "free", ncol = 1) +
         # scale_colour_brewer(palette = "Dark2") +
         # scale_colour_viridis_c() +
-        xlab("Predicted speed (m/s)") +
+        xlab("Speed orecast (m/s)") +
         ylab("Observed speed (m/s)") +
         theme_classic() +
         theme(strip.background = element_blank()) +
