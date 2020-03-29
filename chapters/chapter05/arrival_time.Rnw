@@ -22,7 +22,7 @@ ggplot(layoverdat, aes(current_delay / 60)) +
         binwidth = 1,
         center = 0.5
     ) +
-    xlab("Dwell time (min)") +
+    xlab("Departure delay (min)") +
     ylab("Proportion") +
     theme_classic() +
     geom_vline(xintercept = 0, lty = 2)
