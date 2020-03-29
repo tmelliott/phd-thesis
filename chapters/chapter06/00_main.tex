@@ -1,16 +1,16 @@
 
 \chapter{Arrival time prediction for journey planning}
 \label{cha:etas}
-Arrival time prediction is most often used to provide commuters with a countdown while they wait for their bus, and has been shown to reduce experienced wait time \citep{TCRP_2003}. However, research has also shown that passengers who use \gls{rti} have shortened wait times \citep{Lu_2017}, demonstrating that, if reliable, passengers can use \gls{rti} to better plan their commutes. In this chapter, we shift our focus from the probabilistic view of arrival time estimation in \cref{cha:prediction} to a practical one.
+Arrival time prediction is most often used to provide commuters with a countdown while they wait for their bus, and has been shown to reduce experienced wait time \citep{TCRP_2003}. However, research has also shown that passengers who use \gls{rti} have shortened actual wait times \citep{Lu_2017}, demonstrating that, if reliable, passengers can use \gls{rti} to better plan their commutes. In this chapter, we shift our focus from the probabilistic view of arrival time estimation in \cref{cha:prediction} to a practical one.
 
 
-Accurately predicting the arrival time of a transit vehicle is a decidedly difficult problem. There are several known sources of variability---traffic lights and intermediate bus stops, for example---but also countless others which we cannot model. \citet{Mazloumi_2011} proposed a method of finding prediction intervals of arrival time using neural networks. More recently, \citet{Fernandes_2018} explored methods for displaying uncertainty, such as by using quantile dot plots, providing travellers with a way of making informed decisions. We will examine the use of a single point estimate in an attempt to balance reliability and accuracy and compare this with the use of an interval estimate to convey uncertainty.
+Accurately predicting the arrival time of a transit vehicle is a decidedly difficult problem. There are several known sources of variability---traffic lights and intermediate bus stops, for example---but also countless others which we cannot model. \citet{Mazloumi_2011} proposed a method of finding prediction intervals of arrival time using neural networks. More recently, \citet{Fernandes_2018} explored methods for displaying uncertainty, which included using quantile dot plots, to provide travellers with a means of making informed decisions. We examine the use of a single point estimate in an attempt to balance reliability and accuracy and compare this with the use of an interval estimate to convey uncertainty.
 
 
-Another desirable aspect of \gls{rti} is journey planning: given an origin and a destination, and optionally one or more constraints, what is the optimal route (or routes for journeys requiring multiple \emph{legs}). \Citet{Berczi_2017} developed an approach to journey planning that uses a \emph{probabilistic model} of arrival times to decide between competing options. Since the initial selection of candidate options is a complicated topic (see \citet{Hame_2013a,Hame_2013b,Zheng_2016} for methods of doing so) we do not consider this problem in this work. Instead, we use the results from \cref{cha:prediction} to decide between pre-selected options.
+Another desirable aspect of \gls{rti} is journey planning: given an origin and a destination, and optionally one or more constraints, what is the optimal route (or routes for journeys requiring multiple \emph{legs}). \Citet{Berczi_2017} developed an approach to journey planning that uses a \emph{probabilistic model} of arrival times to decide between competing options. Since the initial selection of candidate options is a complicated topic (see \citet{Hame_2013a,Hame_2013b,Zheng_2016} for methods of doing so) we do not consider this problem here. Instead, we use the results from \cref{cha:prediction} to decide between pre-selected options.
 
 
-Both the arrival time estimates (point and interval) and journey planning decisions use the arrival time distributions estimated in chapter 5. First, however, we need to express the distribution of arrival times in a form that is easy to work with and distribute. The first consideration is that \glspl{eta} are typically displayed in minutes as integers, so any estimates first need to be rounded. Take, for example, an \gls{eta} of 105~seconds, or 1.75~minutes, which we can choose to round up to 2~minutes, or down to 1~minute. We use Bayesian posterior predictive probabilities to estimate the median arrival time $a_{0.5}$ such that $\Pr{A \geq a_{0.5}} = 0.5$. If we round 1.75 in the above example to $\hat a_{0.5} = 2$~minutes, then the equality is incorrect: the probability that the actual arrival time $A$ is later than the estimated arrival time $\hat a_{0.5}$ is \emph{less} than 50\%. However, if we round \emph{down} to $\hat a_{0.5} = 1$~minute, then, although the equality is still invalid, the probability that the bus arrives after $\hat a_{0.5}$ is \emph{greater than} 50\%.
+Both the arrival time estimates (point and interval) and journey planning decisions use the arrival time distributions estimated in chapter 5. First, however, we need to express the distribution of arrival times in a form that is easy to work with and distribute. The first consideration is that \glspl{eta} are typically displayed in minutes as integers, so any estimates first need to be rounded. Take, for example, an \gls{eta} of 105~seconds, or 1.75~minutes, which we may round up to 2~minutes, or down to 1~minute. We use Bayesian posterior predictive probabilities to estimate the median arrival time $a_{0.5}$ such that $\Pr{A \geq a_{0.5}} = 0.5$. If we round 1.75 in the above example to $\hat a_{0.5} = 2$~minutes, then the equality is incorrect: the probability that the actual arrival time $A$ is later than the estimated arrival time $\hat a_{0.5}$ is, in fact, \emph{less} than 50\%. However, if we round \emph{down} to $\hat a_{0.5} = 1$~minute, then, although the equality remains invalid, the probability that the bus arrives after $\hat a_{0.5}$ is \emph{greater than} 50\%.
 
 
 To compute the \gls{cdf} of integer-valued arrival times, we first convert each particle's arrival time $\Tarr\vi$ to minutes and round down, which is the equivalent of taking its modulus with 60:
@@ -18,16 +18,16 @@ To compute the \gls{cdf} of integer-valued arrival times, we first convert each 
 \label{eq:particle_eta_modulus}
 \breve\Tarr\vi = \Tarr\vi \mod 60.
 \end{equation}
-Next we tally the number of particles with each arrival time $a$ and calculate the probability of the bus arriving in the interval $[a,a+1)$:
+Next, we tally the number of particles with each arrival time $a$ and calculate the probability of the bus arriving in the interval $[a a+1)$,
 \begin{equation}
 \label{eq:pf_pdf_arrivaltime}
 \Pr{A \in [a, a+1)} =
-\frac{1}{N^\star} \sum_{i=1}^{N^\star} I_{\breve\Tarr\vi = a}
+\frac{1}{N^\star} \sum_{i=1}^{N^\star} I_{\breve\Tarr\vi = a},
 \end{equation}
-where $I_{a=b}$, the indicator, is 1 if $a$ equals $b$, or zero otherwise. Computationally, this is significantly easier than computing quantiles, since the latter involves sorting the particles (see \cref{app:particle-summaries}), whereas tallying integers can be performed with a single, unsorted pass over the particle vector.
+where $I_{a=b}$, the indicator, is 1 if $a$ equals $b$, and zero otherwise. Computationally, this is significantly easier than computing quantiles, since the latter involves sorting the particles (see \cref{app:particle-summaries}), whereas tallying integers can be performed with a single, unsorted pass over the particle vector. This provides significant performance enhancements, remembering that quantiles require sorting of particles at every stop.
 
 
-By using \cref{eq:pf_pdf_arrivaltime}, we can express the \gls{cdf} as
+\Cref{eq:pf_pdf_arrivaltime} lets us express the \gls{cdf} as
 \begin{equation}
 \label{eq:pf_cdf_arrivaltime}
 \Pr{A < a} = \sum_{x=0}^{x=a-1} \Pr{A \in [x, x+1)}.
