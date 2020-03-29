@@ -38,7 +38,7 @@ There are several components of GTFS that are of particular interest to us: rout
 
 
 
-<<gtfs_nw,echo=FALSE,message=FALSE,fig.width=8,fig.height=5,out.width="\\textwidth",fig.align="center",fig.cap="Diagram showing the main components of a GTFS feed for a single \\emph{route}, showing two \\emph{trips} (A and B) travelling along the route's \\emph{shape} path. The numbered squares represents \\emph{stops}, and the scheduled arrival times of each trip at stop 5 are displayed in the \\emph{stop times} box.",fig.scap="Diagram of the main components of a GTFS feed">>=
+<<gtfs_nw,echo=FALSE,message=FALSE,fig.width=8,fig.height=5,out.width="\\textwidth",fig.align="center",fig.cap="The main components of a GTFS feed for a single \\emph{route} with two \\emph{trips} (A and B) travelling along a \\emph{shape} path. The numbered squares represent \\emph{stops}, and the scheduled arrival times of each trip at stop 5 are displayed in the \\emph{stop times} box.",fig.scap="The main components of a GTFS feed">>=
 suppressPackageStartupMessages(library(tidyverse))
 load("gtfs_shape.rda")
 load("gtfs_stops.rda")

@@ -13,7 +13,7 @@ Transit vehicles come in a variety of forms such as trains, trams, and buses. Th
 \end{itemize}
 
 
-<<vobs_multimode,echo=FALSE,fig.width=8,fig.height=4,out.width="\\textwidth",fig.align="center",fig.cap="Uncertainty in whether or not a bus stops can lead to multimodality in its speed dsitribution. Top: observations (points) with possible trajectories which fit the data. The horizontal dashed line represents the location of the stop, and the vertical dotted line indicates the time point at which we wish to estimate vehicle speed. Bottom: estimated speed distribution at the indicated time (dotted vertical line top graph).",fig.scap="Demonstration of multimodality in vehicle state">>=
+<<vobs_multimode,echo=FALSE,fig.width=8,fig.height=4,out.width="\\textwidth",fig.align="center",fig.cap="Uncertainty in whether or not a bus stops can lead to multimodality in its speed dsitribution. Top: observations (points) with possible trajectories which fit the data. The horizontal dashed line represents the location of the stop, and the vertical dotted line indicates the time point at which vehicle speed is estimated. Bottom: estimated speed distribution at the time indicated in the top graph.",fig.scap="Demonstration of multimodality in vehicle state">>=
 suppressPackageStartupMessages(library(tidyverse))
 library(patchwork)
 vd <- tibble(

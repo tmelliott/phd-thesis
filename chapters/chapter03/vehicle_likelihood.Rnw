@@ -30,7 +30,7 @@ The \pf{} effectively checks to see how plausible the observation is assuming ea
 \subsubsection{GPS vehicle locations}
 \label{sec:lhood_gps}
 
-<<lhood_obs,message=FALSE,echo=FALSE,fig.height=3,fig.width=8,fig.cap="Observations of a vehicle travelling along a path. The red points indicate the reported GPS positions, with circles indicating the GPS error associated with each observation. Observation Y1 is easy to map to the route, while Y2 is more complicated and has two plausible, distinct locations.",cache=TRUE>>=
+<<lhood_obs,message=FALSE,echo=FALSE,fig.height=3,fig.width=8,fig.cap="Observations of a vehicle travelling along a path. The red points indicate the reported GPS positions, with circles indicating the GPS error associated with each observation. Observation Y1 is easy to map to the route, while Y2 is more complicated: it could be \\emph{entering} or \\emph{exiting} the loop.",cache=TRUE>>=
 # function from Y to X = h'(Y)
 library(tidyverse)
 
@@ -170,7 +170,7 @@ For the \gls{gps} location update, the inherent \gls{gps} error, $\GPSerr$, need
 \end{equation}
 which is simply a deterministic function given the route's path, $\ShapePath$, a sequence of latitude-longitude pairs and the cumulative distance along the line. Details are given in \cref{app:pf_measurement_fun}. Once the geographical position of the particle is obtained, it can be compared to the observed vehicle location, as shown in \cref{fig:gps_dist}.
 
-<<gps_dist,echo=FALSE,message=FALSE,cache=TRUE,fig.width=8,fig.height=4,out.width="0.8\\textwidth",fig.align="center",fig.cap="GPS distance between two points. The vehicle's reported location is shown in orange; one particle estimate of it's location is in black. The desired distance is denoted by the red line.">>=
+<<gps_dist,echo=FALSE,message=FALSE,cache=TRUE,fig.width=8,fig.height=4,out.width="0.8\\textwidth",fig.align="center",fig.cap="GPS distance between two points. The vehicle's reported location is shown in orange; one particle estimate of its location is in black. The desired distance is denoted by the red line.">>=
 library(ggmap)
 
 Yx <- tibble(
@@ -188,7 +188,8 @@ get_stamenmap(bbox, zoom = 18, maptype = "toner-background") %>%
     geom_segment(aes(lng, lat, xend = Yx$lng[1], yend = Yx$lat[1]),
         data = Yx[2,], position = position_nudge(x = 0.00008, y = -0.00006),
         colour = "red",
-        arrow = arrow(angle = 90, length = unit(0.01, 'native'), ends = "both")) +
+        lwd = 1.5,
+        arrow = arrow(angle = 90, length = unit(0.02, 'native'), ends = "both")) +
     theme_nothing()
 @
 
@@ -209,7 +210,7 @@ Now the distance between the points is easily computed using the \emph{euclidean
 \end{equation}
 as shown visually in \cref{fig:gps_projection}. Note that conversion from degrees to radians is achieved by multiplying degrees by $\frac{\pi}{180}$.
 
-<<gps_projection,echo=FALSE,message=FALSE,cache=TRUE,fig.width=4,fig.height=3.5,out.width="0.49\\textwidth",fig.align="center",fig.cap="Equirectangular projection of GPS coordinates ({\\sc a}) onto a flat surface ({\\sc b}), which allows the easy calculation of distance between particles and the vehicle's observed location.",fig.scap="Equirectangular projection of GPS coordinates onto a flat surface",fig.subcap=c("GPS coordinates","Projected points")>>=
+<<gps_projection,echo=FALSE,message=FALSE,cache=TRUE,fig.width=4,fig.height=3.5,out.width="0.49\\textwidth",fig.align="center",fig.cap="Equirectangular projection of GPS coordinates ({\\sc a}) onto a flat surface ({\\sc b}), which allows the easy calculation of distance between a particle (black) and the vehicle's observed location (orange).",fig.scap="Equirectangular projection of GPS coordinates onto a flat surface",fig.subcap=c("GPS coordinates","Projected points")>>=
 xr <- extendrange(range(Yx$lng), f = 0.2)
 
 ggplot(Yx, aes(lng, lat)) +
@@ -267,7 +268,7 @@ Now that spherical observations can be compared on a flat surface, we assume tha
 \end{equation}
 and is shown graphically in \cref{fig:gps_projection2}.
 
-<<gps_error,echo=FALSE,message=FALSE,cache=TRUE,fig.width=4,fig.height=4,out.width="0.49\\textwidth",fig.align="center",fig.cap="Visualisation of GPS error on a map before ({\\sc a}) and after ({\\sc b}) the equirectangular projection.",fig.subcap=c("GPS map error", "Projected error"),fig.scap="Visualisation of GPS error on a map">>=
+<<gps_error,eval=FALSE,echo=FALSE,message=FALSE,cache=TRUE,fig.width=4,fig.height=4,out.width="0.49\\textwidth",fig.align="center",fig.cap="Visualisation of GPS error on a map before ({\\sc a}) and after ({\\sc b}) the equirectangular projection.",fig.subcap=c("GPS map error", "Projected error"),fig.scap="Visualisation of GPS error on a map">>=
 xr <- Yx$lng[1] + 0.002 * c(-1, 1)
 yr <- Yx$lat[1] + 0.001 * c(-1, 1)
 bbox <- c(xr[1], yr[1], xr[2], yr[2])
@@ -327,10 +328,10 @@ p(\Vobs_k | \Vstate\vi_k) =
         - \frac{\dist{\Vobs_k, \Vmeas(\Vstate\vi_k)}^2}{2\GPSerr}
     \right\},
 \end{equation}
-allowing the particles to be reweighted using \cref{eq:vehicle_pf_reweight}, as shown visually in \cref{fig:pf_wts} (bigger particles have greater weight).
+allowing the particles to be reweighted using \cref{eq:vehicle_pf_reweight}, as shown visually in \cref{fig:pf_wts} (darker particles have greater weight).
 
 
-<<pf_wts,echo=FALSE,message=FALSE,cache=TRUE,dependson="lhood_obs",fig.width=8,fig.height=3,fig.align="center",fig.cap="Particles (black points) are reweighted (proportional to size) based on their geographic proximity to the vehicle's observed location (red point).",fig.scap="Particles are reweighted based on their geographic proximity to the vehicle's observed location">>=
+<<pf_wts,echo=FALSE,message=FALSE,cache=TRUE,dependson="lhood_obs",fig.width=8,fig.height=3,fig.align="center",fig.cap="Particles (black points) are reweighted (darker particles have more weight) based on their geographic proximity to the vehicle's observed location (red cross). There is no need to decide if the bus is going into or coming out of the loop.",fig.scap="Particles are reweighted based on their geographic proximity to the vehicle's observed location">>=
 proj <- function(x, path) {
     d <- c(0, path %>% as.matrix %>%
         apply(2, diff) %>%
@@ -349,7 +350,7 @@ proj <- function(x, path) {
 }
 
 set.seed(10)
-dx <- runif(10, 1.2, 2.1)
+dx <- runif(30, 4.5, 12)
 dy <- t(sapply(dx, proj, path = path))
 colnames(dy) <- c("x", "y")
 dy <- as_tibble(dy)
@@ -359,14 +360,19 @@ dy <- as_tibble(dy)
 #     geom_point(aes(x, y), data = dy, col = "black")
 
 wt <- rep(1 / length(dx), length(dx))
-dxY <- apply(dy, 1, function(x) sqrt(sum((x - Y[1,c('lng', 'lat')])^2)))
-wt <- wt * dexp(dxY, 5)
+dxY <- apply(dy, 1, function(x) sqrt(sum((x - Y[2,c('lng', 'lat')])^2)))
+wt <- wt * dexp(dxY, 1)
 wt <- wt / sum(wt)
 
+dy$wt <- wt
+
 plh +
-    geom_point(data = Y[1,], col = "orangered") +
-    geom_point(aes(x, y), data = dy, col = "black",
-        size = wt * length(wt) * 2)
+    geom_point(aes(x, y, colour = wt),
+        data = dy
+        #size = wt * length(wt) * 2
+    ) +
+    geom_point(data = Y[2,], col = "orangered", pch = 4, size = 3, stroke = 2) +
+    scale_colour_gradient(low = "gray80", high = "black", guide = FALSE)
 
 @
 
@@ -417,7 +423,7 @@ p(\Vobs_k | \Vstate\vi_k) =
 \end{equation}
 allowing the particle sample to be reweighted according to the temporal difference in arrival and departure times as demonstrated in \cref{fig:tu_update}.
 
-<<tu_update,echo=FALSE,fig.width=8*.8,fig.height=4,out.width="0.8\\textwidth",fig.align="center",fig.cap="Particle's travelling past an intermediate stop with an arrival time observation (red point). Solid lines represent particles that stopped, while dashed lines indicate the particle drove straight past the stop. The lines are coloured by their resepective weights according to the likelihood based on the observed arrival time (red dot), where greyer lines have less weight.">>=
+<<tu_update,echo=FALSE,fig.width=8*.8,fig.height=4,out.width="0.8\\textwidth",fig.align="center",fig.cap="Particles travelling past a stop with an arrival time observation (red point). Solid lines represent particles that stopped, while dashed lines indicate particles that did not. Darker lines represent particles with biiger weights according to the arrival time likelihood.",fig.scap="Particles are weighted by their arrival time at a stop">>=
 suppressPackageStartupMessages(library(tidyverse))
 set.seed(444)
 

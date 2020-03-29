@@ -58,7 +58,7 @@ The goal of the simulation is to estimate the vehicle's average speed along seve
 
 \begin{knitrout}\small
 \definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{figure}
-\includegraphics[width=\linewidth]{figure/sim1_graph-1} \caption[Simulated vehicle trajectory, with five full road segments, along with simulated observations with three sampling techniques]{Simulated vehicle trajectory, with five full road segments, along with simulated observations with three sampling techniques.}\label{fig:sim1_graph}
+\includegraphics[width=\linewidth]{figure/sim1_graph-1} \caption[Vehicle trajectory with sampled observations for simulation A]{A simulated vehicle trajectory (top left) for simulation A along five road segments (dashed grey lines). Observations are sampled using three techniques (see text).}\label{fig:sim1_graph}
 \end{figure}
 
 
@@ -66,7 +66,7 @@ The goal of the simulation is to estimate the vehicle's average speed along seve
 
 \begin{knitrout}\small
 \definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{figure}
-\includegraphics[width=\linewidth]{figure/sim1_pf-1} \caption[Simulation results for the three models (rows) applied to the data from three sampling methods (columns), using $\Np=2000$ particles]{Simulation results for the three models (rows) applied to the data from three sampling methods (columns), using $\Np=2000$ particles. The standard deviation of the particle travel times is represented as error bars, though in many cases the error is too small to display.}\label{fig:sim1_pf}
+\includegraphics[width=\linewidth]{figure/sim1_pf-1} \caption[Results for simulation A]{Simulation A results for the three models (A1, A2, A3) applied to the data from three sampling methods using $\Np=2000$ particles. Shown is the travel time prediction error along with its standard deviation.}\label{fig:sim1_pf}
 \end{figure}
 
 
@@ -82,7 +82,7 @@ To further examine the comparative performance of the models, we repeated the si
 
 \begin{knitrout}\small
 \definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{figure}
-\includegraphics[width=\linewidth]{figure/sim1_pf_full-1} \caption[Speed estimation results for 100 simulations]{Speed estimation results for 100 simulations. In each the vehicle trajectory is simulated using a different seed, and the speed estimate is taken as the mean of the particle speeds along each segment.}\label{fig:sim1_pf_full}
+\includegraphics[width=\linewidth]{figure/sim1_pf_full-1} \caption[Results for simulation A replicated 100~times]{Speed estimation results for 100 simulations. In each the vehicle trajectory was simulated using a different seed and speed estimated by the mean of the particles, which is compared to the true speed using \gls{rmse}.}\label{fig:sim1_pf_full}
 \end{figure}
 
 \begin{table}
@@ -126,10 +126,7 @@ In the previous simulation, we assumed the vehicle travelled along the route wit
 
 \begin{knitrout}\small
 \definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{figure}
-\subfloat[The simulated data.\label{fig:sim2_graph1}]{\includegraphics[width=.49\linewidth]{figure/sim2_graph-1} }
-\subfloat[10~s sampling.\label{fig:sim2_graph2}]{\includegraphics[width=.49\linewidth]{figure/sim2_graph-2} }\newline
-\subfloat[30~s sampling.\label{fig:sim2_graph3}]{\includegraphics[width=.49\linewidth]{figure/sim2_graph-3} }
-\subfloat[Observations at bus stops and intersections.\label{fig:sim2_graph4}]{\includegraphics[width=.49\linewidth]{figure/sim2_graph-4} }\caption[Simulated vehicle trajectory, with five road segments and three intermediate stops]{Simulated vehicle trajectory, with five road segments and three intermediate stops.}\label{fig:sim2_graph}
+\includegraphics[width=\linewidth]{figure/sim2_graph-1} \caption[Vehicle trajectory with sampled observations for simulation B]{A simulated vehicle trajectory (top left) for simulation B along five road segments (dashed grey lines) with four stops (dotted orange lines). Observations are sampled using three techniques (see text).}\label{fig:sim2_graph}
 \end{figure}
 
 
@@ -140,19 +137,19 @@ The results of the second simulation are shown in \cref{fig:sim2_pf}, where we s
 
 \begin{knitrout}\small
 \definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{figure}
-\includegraphics[width=\linewidth]{figure/sim2_pf-1} \caption[Simulation results for the three models (rows) applied to the data from three sampling methods (columns), using $\Np=2000$ particles]{Simulation results for the three models (rows) applied to the data from three sampling methods (columns), using $\Np=2000$ particles. [details].}\label{fig:sim2_pf}
+\includegraphics[width=\linewidth]{figure/sim2_pf-1} \caption[Results for simulation B]{Simulation B results for the three models (B1, B2, B3) applied to the data from three sampling methods using $\Np=2000$ particles. Shown is the travel time prediction error along with its standard deviation.}\label{fig:sim2_pf}
 \end{figure}
 
 
 \end{knitrout}
 
 
-Repeating the simulation 100~times with different vehicle trajectories, we can better compare the models (\cref{fig:sim2_pf_full}). Uncertainties are now much higher, on average, particularly under low-frequency sampling. The models all perform similarly, though A3 has the worst accuracy overall. \Cref{tab:sim2_pf_full} compares the estimates numerically using \gls{rmse} and \gls{mae}, where we see that within each sampling method the errors are similar. Models A1 and A2 perform similarly, while A3 is again consistently worse except under high-frequency sampling.
+Repeating the simulation 100~times with different vehicle trajectories, we can better compare the models (\cref{fig:sim2_pf_full}). Uncertainties are now much higher, on average, particularly under low-frequency sampling. The models all perform similarly, though B3 has the worst accuracy overall. \Cref{tab:sim2_pf_full} compares the estimates numerically using \gls{rmse} and \gls{mae}, where we see that within each sampling method the errors are similar. Models B1 and B2 perform similarly, while B3 is again consistently worse except under high-frequency sampling.
 
 
 \begin{knitrout}\small
 \definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{figure}
-\includegraphics[width=\maxwidth]{figure/sim2_pf_full-1} \caption[Speed estimation results for 100 simulations]{Speed estimation results for 100 simulations. In each the vehicle trajectory is simulated using a different seed, and the speed estimate is taken as the mean of the particle speeds along each segment.}\label{fig:sim2_pf_full}
+\includegraphics[width=\maxwidth]{figure/sim2_pf_full-1} \caption[Results for simulation B replicated 100~times]{Speed estimation results for 100 simulations. In each the vehicle trajectory was simulated using a different seed and speed estimated by the mean of the particles, which is compared to the true speed using \gls{rmse}.}\label{fig:sim2_pf_full}
 \end{figure}
 
 \begin{table}
@@ -164,17 +161,17 @@ Repeating the simulation 100~times with different vehicle trajectories, we can b
 \toprule
 Sampling method & Model & RMSE (m/s) & MAE (m/s)\\
 \midrule
-Uniform (10s) & A1 & 2.56 & 1.40\\
- & A2 & 2.51 & 1.35\\
- & A3 & 2.34 & 1.35\\
+Uniform (10s) & B1 & 2.56 & 1.40\\
+ & B2 & 2.51 & 1.35\\
+ & B3 & 2.34 & 1.35\\
 \midrule
-Uniform (30s) & A1 & 2.34 & 1.58\\
- & A2 & 2.43 & 1.63\\
- & A3 & 2.90 & 2.14\\
+Uniform (30s) & B1 & 2.34 & 1.58\\
+ & B2 & 2.43 & 1.63\\
+ & B3 & 2.90 & 2.14\\
 \midrule
-Nodes & A1 & 2.15 & 1.31\\
- & A2 & 2.36 & 1.35\\
- & A3 & 2.70 & 1.57\\
+Nodes & B1 & 2.15 & 1.31\\
+ & B2 & 2.36 & 1.35\\
+ & B3 & 2.70 & 1.57\\
 \bottomrule
 \end{tabular}
 \end{table}

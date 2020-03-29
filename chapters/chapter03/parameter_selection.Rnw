@@ -11,7 +11,7 @@ The \gls{gps} or \emph{measurement} error used in the model has a strong effect 
 
 
 
-<<pf_param_gps,cache=TRUE,message=FALSE,echo=FALSE,fig.width=8,fig.height=3,fig.cap="Distribution of distance from observation to nearest point on the route, truncated to 10~m.">>=
+<<pf_param_gps,cache=TRUE,message=FALSE,echo=FALSE,fig.width=8,fig.height=3,fig.cap="Distribution of distance from observation to nearest point on the route, truncated to 10~m.",fig.scap="Distribution of distance from observation to route.">>=
 suppressPackageStartupMessages(library(tidyverse))
 
 dfile <- "data/distances.rda"
@@ -151,7 +151,7 @@ We can observe a large proportion of dwell times at stops by compiling all those
 \Vdwell_{srm} = \Vdep_{srm} - \Varr_{srm}.
 \end{equation}
 
-<<observed_dwell,cache=TRUE,message=FALSE,warning=FALSE,echo=FALSE,fig.width=8,fig.height=3,out.width="\\linewidth",fig.cap="Distribution of dwell times observed over the course of five days, truncated at one minute.">>=
+<<observed_dwell,cache=TRUE,message=FALSE,warning=FALSE,echo=FALSE,fig.width=8,fig.height=3,out.width="\\linewidth",fig.cap="Distribution of dwell times observed over the course of five days, truncated at one minute. Here we see the ``9-second'' phenomenon.",fig.scap="Distribution of dwell times at stops and the ``9-second'' phenomenon">>=
 library(tidyverse)
 dwellfile <- "data/dwell.rda"
 if (file.exists(dwellfile)) {

@@ -11,7 +11,7 @@ In \cref{sec:literature}, I reported how arrival time prediction is greatly impr
 The main goal of the network is to detect where any two routes overlap, even partially. There are several possible approaches to this, but the simplest is to look at common subsequences of bus stops. Of course, stops do not make optimal node locations because routes do not diverge \emph{physically} at stops---that would require locating \emph{intersections}. However, due to difficulties in finding intersections from either the \gls{gtfs} data or outside information, we opted to use bus stops for this work. \Cref{fig:gtfs_route_network} shows a simple route diagram with several overlapping routes. We see that each link between stops is common across routes, but routes that merge at intersections do not merge in the network until they reach a common stop.
 
 
-<<gtfs_route_network,echo=FALSE,message=FALSE,fig.width=8*.6,fig.height=4,out.width="0.6\\textwidth",fig.align="center",fig.cap="Simplified network diagram with road segments constructed from stop sequences. Top: routes are coloured individually. Bottom: road segments are sized by the number of associated routes.">>=
+<<gtfs_route_network,echo=FALSE,message=FALSE,fig.width=8*.6,fig.height=3.5,out.width="0.6\\textwidth",fig.align="center",fig.cap="A simplified transit network with road segments (edges) connecting stops (nodes). Top: three routes with common subsequences of stops. Bottom: the widths of road segments represents the number of routes using them. There remains some segment overlap since routes merge at stops, not intersections.">>=
 library(tidyverse)
 
 stops <- tibble(
@@ -85,7 +85,7 @@ dbDisconnect(con)
 One other issue with \AT{}'s \GTFS{} data is that all object IDs are \emph{versioned}. That is, instead of a route having an ID of \verb+\Sexpr{gsub("-.+", "", rid)}+, the date and version number are appended to it: \verb+\Sexpr{rid}+. This is the same for the IDs of trips, shapes, and stops, making it challenging to transfer existing segments based on stops from previous versions of the \gls{api} and requiring an additional step to remove the version information from the raw data.
 
 
-The algorithm we implemented uses only bus stops but can extend to intersections, if available. Each stop along a route is assessed to see if any nodes already exist in that location to avoid the versioning issue mentioned above. If so, the route is assigned the existing node; otherwise, a new node is created and assigned instead. Road segments are defined by unique one-way connections between two stops: there can only be one segment going from node $A$ to node $B$ (the reverse is considered a different segment). The network is constructed by the \pkg{transitr} package's \verb+construct()+ function:
+The algorithm we implemented uses only bus stops but can extend to intersections, if available. Each stop along a route is assessed to see if any nodes already exist in that location to avoid the versioning issue mentioned above. If so, the route is assigned the existing node; otherwise, a new node is created and assigned instead. Road segments are defined by unique one-way connections between two stops: there can only be one segment going from node $A$ to node $B$ (the reverse is considered a different segment). The network is constructed within \pkg{transitr}:
 <<transitr_construct_network,cache=TRUE,size="small">>=
 library(transitr)
 nw <- load_gtfs("at_gtfs.sqlite") %>% construct()
