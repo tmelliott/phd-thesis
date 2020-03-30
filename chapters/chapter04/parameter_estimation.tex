@@ -45,7 +45,7 @@ To assess the model, we start by fitting it to the simulated data (\cref{fig:nw_
 
 \begin{table}
 
-\caption{\label{tab:nw_model_sim_smry}Simulation MCMC results. The multivariate $\hat R$, including for all of the $\NWstate$ parameters, was 1.04, indicating that convergence had been achieved after 15,000 iterations.}
+\caption[MCMC results for the Bayesian model fitted to the simulated travel time data]{\label{tab:nw_model_sim_smry}MCMC results for the Bayesian model fitted to the simulated travel time data. The multivariate $\hat R$, including for all of the $\NWstate$ parameters, was 1.04, indicating that convergence had been achieved after 15,000 iterations.}
 \centering
 \begin{tabular}[b]{llllllr}
 \toprule
@@ -83,7 +83,7 @@ Having shown that the \prog{JAGS} model is a valid way of estimating the network
 
 \begin{table}
 
-\caption{\label{tab:nw_model_fit_smry}MCMC results for the average segment speeds. The multivariate $\hat R$, including for all of the $\NWstate$ parameters, was 1.08, indicating that convergence had been achieved after 15,000 iterations.}
+\caption[MCMC results for the Bayesian model fitted to the road segment travel time data]{\label{tab:nw_model_fit_smry}MCMC results for the Bayesian model fitted to the road segment travel time data. The multivariate $\hat R$, including for all of the $\NWstate$ parameters, was 1.08, indicating that convergence had been achieved after 15,000 iterations.}
 \centering
 \begin{tabular}[b]{lllllr}
 \toprule
@@ -121,14 +121,14 @@ Finally, the timing comparison is displayed in \cref{tab:nw_model_n1_timecomp}. 
 
 \begin{table}
 
-\caption{\label{tab:nw_model_n1_timecomp}Timing results (seconds).}
+\caption[Comparison of the timings for the MCMC and \kf{} estimation methods]{\label{tab:nw_model_n1_timecomp}Comparison of the timings for the MCMC and \kf{} estimation methods. Times are reported in seconds.}
 \centering
 \begin{tabular}[b]{lrrr}
 \toprule
   & User & System & Total\\
 \midrule
-JAGS & 123.264 & 0.004 & 123.273\\
-Kalman filter & 0.044 & 0.000 & 0.046\\
+JAGS & 124.828 & 0 & 124.847\\
+Kalman filter & 0.052 & 0 & 0.056\\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -207,7 +207,7 @@ We initially attempted to fit a hierarchical segment noise parameter $\NWnoise_{
 
 \begin{table}
 
-\caption{\label{tab:nw_model_n2_smry}MCMC results for the top-level parameters for the hierarchical segment model. The multivariate $\hat R$, including for all of the $\NWstate$ parameters, was 2.03.}
+\caption[MCMC results for the hierarchical Bayesian model fitted to six road segments to estimate the top-level variance parameters]{\label{tab:nw_model_n2_smry}MCMC results for the hierarchical Bayesian model fitted to six road segments to estimate the top-level variance parameters. The multivariate $\hat R$, including for all of the $\NWstate$ parameters, was 2.03.}
 \centering
 \begin{tabular}[b]{lllllr}
 \toprule

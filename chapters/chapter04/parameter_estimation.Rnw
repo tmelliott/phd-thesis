@@ -83,9 +83,10 @@ smry <- tibble(
 knitr::kable(smry,
     # digits = 3,
     booktabs = TRUE,
-    caption = sprintf("Simulation MCMC results. The multivariate $\\hat R$, including for all of the $\\NWstate$ parameters, was %.2f, indicating that convergence had been achieved after 15,000 iterations.",
+    caption = sprintf("MCMC results for the Bayesian model fitted to the simulated travel time data. The multivariate $\\hat R$, including for all of the $\\NWstate$ parameters, was %.2f, indicating that convergence had been achieved after 15,000 iterations.",
         coda::gelman.diag(sim_samples)$mpsrf
     ),
+    caption.short = "MCMC results for the Bayesian model fitted to the simulated travel time data",
     escape = FALSE,
     valign = "b",
 )
@@ -157,9 +158,10 @@ smry <- tibble(
 knitr::kable(smry,
     # digits = 2,
     booktabs = TRUE,
-    caption = sprintf("MCMC results for the average segment speeds. The multivariate $\\hat R$, including for all of the $\\NWstate$ parameters, was %.2f, indicating that convergence had been achieved after 15,000 iterations.",
+    caption = sprintf("MCMC results for the Bayesian model fitted to the road segment travel time data. The multivariate $\\hat R$, including for all of the $\\NWstate$ parameters, was %.2f, indicating that convergence had been achieved after 15,000 iterations.",
         coda::gelman.diag(n1_samples)$mpsrf
     ),
+    caption.short = "MCMC results for the Bayesian model fitted to the road segment travel time data",
     escape = FALSE,
     valign = "b",
 )
@@ -289,7 +291,8 @@ dimnames(time_tab) <- list(
 )
 kable(time_tab,
     booktabs = TRUE,
-    caption = "Timing results (seconds).",
+    caption = "Comparison of the timings for the MCMC and \\kf{} estimation methods. Times are reported in seconds.",
+    caption.short = "Comparison of the timings for the MCMC and \\kf{} estimation methods",
     valign = "b"
 )
 @
@@ -623,9 +626,10 @@ restbl <-
 knitr::kable(restbl,
     digits = 2,
     booktabs = TRUE,
-    caption = sprintf("MCMC results for the top-level parameters for the hierarchical segment model. The multivariate $\\hat R$, including for all of the $\\NWstate$ parameters, was %.2f.",
+    caption = sprintf("MCMC results for the hierarchical Bayesian model fitted to six road segments to estimate the top-level variance parameters. The multivariate $\\hat R$, including for all of the $\\NWstate$ parameters, was %.2f.",
         gd$mpsrf
     ),
+    caption.short = "MCMC results for the hierarchical Bayesian model fitted to six road segments to estimate the top-level variance parameters",
     escape = FALSE,
     valign = "b",
 )

@@ -229,7 +229,7 @@ s00 %>%
     kable(
         format = "latex",
         booktabs = TRUE,
-        caption = "RMSE of average speed estimation",
+        caption = "RMSE and MAE of average speed estimation for simulation A for three models and three sampling techniques.",
         escape = FALSE,
         linesep = ""
     ) %>%
@@ -456,7 +456,7 @@ s00 %>%
     kable(
         format = "latex",
         booktabs = TRUE,
-        caption = "RMSE of average speed estimation",
+        caption = "RMSE and MAE of average speed estimation for simulation B for three models and three sampling techniques.",
         escape = FALSE,
         linesep = ""
     ) %>%

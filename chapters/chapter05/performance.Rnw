@@ -94,7 +94,8 @@ kable(
     tbl_times,
     align = "lrlrl",
     booktabs = TRUE,
-    caption = "Time taken, in milliseconds, during various parts of the program, running on a single core."
+    caption = "Average timings of the six components of each iteration, running on three cores, along with average total iteration time. Wall clock is the real-world time passed, and CPU time is the processing time, all reported in milliseconds.",
+    caption.short = "Average timings of the six components of each iteration, running on three cores, along with average total iteration time",
 ) %>%
     row_spec(6, extra_latex_after = "\\midrule") %>%
     kableExtra::kable_styling(font_size = 8)

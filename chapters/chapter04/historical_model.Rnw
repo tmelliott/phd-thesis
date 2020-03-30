@@ -273,9 +273,9 @@ Further work is needed to improve the forecasting abilities of our model. Howeve
 kable(
     tibble(
         Method = c("Simple", "Forecast"),
-        RMSE = round(c(RMSE_equal, RMSE_forecast), 2)
+        `RMSE (m/s)` = round(c(RMSE_equal, RMSE_forecast), 2)
     ),
     booktabs = TRUE,
-    caption = "RMSE results comparing the predictive performance of the two models, in meters per second."
+    caption = "RMSE results comparing the predictive performance of two forecast methods for predicting road state in 30~minutes."
 )
 @

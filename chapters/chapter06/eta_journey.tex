@@ -72,7 +72,7 @@ Based on the arrival results alone, I would choose to walk to option A as it has
 \begin{knitrout}\small
 \definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{table}
 
-\caption{\label{tab:eta_journey_results}Journey planning.}
+\caption[Predicted outcomes for the route selection journey planning problem]{\label{tab:eta_journey_results}Predicted outcomes for the route selection journey planning problem. The particle filter provides probabilities of success, while the schedule-delay provides only binary (``Yes'' or ``No'') predictions. The observed outcome is displayed on the right.}
 \centering
 \fontsize{8}{10}\selectfont
 \begin{tabular}[t]{lllrrllll}
@@ -111,7 +111,7 @@ The \glspl{cdf} allow easy calculation of the predicted probability of success i
 
 \begin{table}
 
-\caption{\label{tab:eta_journey_results_avg}Schedule-delay prediction results over all journeys, with the displayed values representing the proportion of outcomes in each cell (rows are conditioned by the schedule-delay prediction of Yes or No. }
+\caption[Schedule-delay prediction results for all journeys]{\label{tab:eta_journey_results_avg}Schedule-delay prediction results for all journeys, with the displayed values representing the proportion of outcomes in each cell (rows are conditioned by the schedule-delay prediction).}
 \centering
 \fontsize{8}{10}\selectfont
 \begin{tabular}[t]{llllll}
@@ -198,7 +198,7 @@ which is easily computed from the arrival time \glspl{cdf} obtained from \cref{e
 \begin{knitrout}\small
 \definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{table}
 
-\caption{\label{tab:eta_journey_transfer_res}Transfer probabilities}
+\caption[Predicted outcomes for the transfer journey planning problem. The particle filter provides probabilities of a successful transfer]{\label{tab:eta_journey_transfer_res}Predicted outcomes for the transfer journey planning problem. The particle filter provides probabilities of a successful transfer from a trip on leg 1 to a trip on leg 2. The schedule-delay method predicts only a binary (``Yes'' or ``No'') outcome. The observed outcome is displayed on the right.}
 \centering
 \fontsize{8}{10}\selectfont
 \begin{tabular}[t]{llrll}
@@ -239,7 +239,7 @@ The particle filter predicts transfer probabilities with reasonable accuracy: lo
 
 \begin{table}
 
-\caption{\label{tab:eta_journey_transfer_many}Results of running the transfer prediction problem over the course of the day. Rows represent the predicted outcome (No, the transfer will be made, or Yes, it will) and the numbers represent the proportion of predictions with each observed outcome. The schedule-delay rule is binary, while the particle filter results are based on transfer probability of at least 0.5, 0.8, or 0.95 (as indicated).}
+\caption[Summary of the results of all predictions between 9:00~am and 3:00~pm]{\label{tab:eta_journey_transfer_many}Summary of the results of all predictions between 9:00~am and 3:00~pm. Rows represent the predicted outcome (No, the transfer will be made, or Yes, it will) and the numbers represent the proportion of predictions with each observed outcome. The schedule-delay rule is binary, while the particle filter results are based on transfer probability of at least 0.5, 0.8, or 0.95 (as indicated).}
 \centering
 \fontsize{8}{10}\selectfont
 \begin{tabular}[t]{llllllllllll}

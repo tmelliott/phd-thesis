@@ -16,7 +16,7 @@ Additionally, we want to compare the reliability of the various forecast methods
 \begin{knitrout}\small
 \definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{table}
 
-\caption{\label{tab:model_results_rmse}Predictive model comparison of RMSE and MAE, in seconds, MAPE (\%), and PICP (\%).}
+\caption[Comparison of the predictive performance of the four methods after estimating arrival times for a full day of historical data]{\label{tab:model_results_rmse}Comparison of the predictive performance of the four methods after estimating arrival times for a full day of historical data. RMSE, MAE, and MAPE measure the accuracy of the mean or median, and PICP measures the accuracy of the distribution: the nominal coverage is 85\% (PICP is not available for the schedule-delay method).}
 \centering
 \fontsize{8}{10}\selectfont
 \begin{tabular}[t]{lrrrr}
@@ -136,7 +136,7 @@ The three statistics we compare across the methods are:
 \begin{knitrout}\small
 \definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{table}
 
-\caption{\label{tab:model_results_pr_miss}The probability of catching a bus given a passenger arrives by the mean/median ($\mathbb{P}_m$) and lower quantile ($\mathbb{P}_\ell$), along with the expected waiting time, in minutes, given arrival by the lower quantile, for each of the for forecast methods.}
+\caption[Comparison of the reliability of the four prediction methods based on the results of estimating arrival times for a full day of historical data]{\label{tab:model_results_pr_miss}Comparison of the reliability of the four prediction methods based on the results of estimating arrival times for a full day of historical data. $\mathbb{P}_m$ and $\mathbb{P}_\ell$ are proportions of observed events, and $\mathbb{E}_\ell$ and its associated interval are based on the mean and quantiles.}
 \centering
 \fontsize{8}{10}\selectfont
 \begin{tabular}[t]{lrrrl}

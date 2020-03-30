@@ -323,7 +323,8 @@ dbDisconnect(con)
 knitr::kable(times,
   format = "latex",
   booktabs = TRUE,
-  caption = "Arrival times for a trip with layover stops marked with an asterix ($\\star$).",
+  caption = "Arrival times for a trip with a layover stop (marked with an asterix, $\\star$). This is indicated in the \\gls{gtfs} data by a departure time later than the arrival (in this case the difference is one second).",
+  caption.short = "Arrival times for a trip with a layover",
   escape = FALSE,
   linesep = ""
 ) %>%
