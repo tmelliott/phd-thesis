@@ -23,7 +23,7 @@ p(x) \approx \sum_{i=1}^N w\vi \dirac_{x\vi}(x).
 \end{equation}
 
 
-Using \cref{eq:dirac_property,eq:dirac_dist} we can now compute, for example, the mean, $f(x) = x$,
+Using \cref{eq:dirac_property,eq:dirac_dist} we can now compute, for example, the mean, using $f(x) = x$,
 \begin{equation}
 \label{eq:dirac_mean}
 \begin{split}
@@ -177,7 +177,7 @@ while (wt < 0.5) wt += x.at (i++).get_weight ();
 double median = x.at (i).get_speed ();
 \end{lstlisting}
 
-The issue here is the first step, sorting, which has computational complexity of $\mathcal{O}(N\log N)$\footnote{as described by the documentation page for \verb+std::sort+, \url{https://en.cppreference.com/w/cpp/algorithm/sort}}. If we wish to estimate the median distance and the median speed, we need to sort the particles \emph{twice}. In \cref{cha:etas}, we used multiple quantiles for each stop: this requires sorting each vehicle's particles once for each upcoming stop. However, since we use a subsample to compute \glspl{eta} ($N^\star$), the complexity is significantly less, $\mathcal{O}(N^\star\log N^\star)$; if we attempted to use all $N$ particles (in the simulation used in \cref{cha:prediction}, we used $N=10000$) the application would have taken far longer.
+The issue here is the first step, sorting, which has computational complexity of $\mathcal{O}(N\log N)$.\footnote{Described on the documentation page for \texttt{std::sort}, \url{https://en.cppreference.com/w/cpp/algorithm/sort}.} If we wish to estimate the median distance and the median speed, we need to sort the particles \emph{twice}. In \cref{cha:etas}, we used multiple quantiles for each stop: this requires sorting each vehicle's particles once for each upcoming stop. However, since we use a subsample to compute \glspl{eta} ($N^\star$), the complexity is significantly less, $\mathcal{O}(N^\star\log N^\star)$; if we attempted to use all $N$ particles (in the simulation used in \cref{cha:prediction}, we used $N=10000$) the application would have taken far longer.
 
 
 

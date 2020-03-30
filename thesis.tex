@@ -188,8 +188,10 @@
 \usepackage{hyperref}
 \usepackage[noabbrev]{cleveref} % capitalise option
 
-%%%%%%%%%%% THIS HIDES UNREFERRENCED EQUATIONS ...
-\usepackage{autonum}
+%%%%%%%%%%% THIS HIDES UNREFERRENCED EQUATIONS ... BREAKS BIBLATEXXXX
+%\expandafter\def\csname ver@etex.sty\endcsname{3000/12/31}
+%\undef\ifempty
+%\usepackage{autonum}
 
 \usepackage{subfig}
 

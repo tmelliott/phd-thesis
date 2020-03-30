@@ -7,7 +7,7 @@ Now that we have estimated the necessary vehicle states and their respective tra
 Estimation of average road speed is performed by first computing the \emph{travel time} along each road segment as the bus traverses the network. To do so, we record the time when the vehicle starts and ends each segment, $\Vsegstart_\ell$ and $\Vsegend_\ell$, respectively, and take the difference to obtain the travel time in seconds. By using a particle filter, we record these values for each particle as it is transitioned to each new state. Finally, transforming to average speed uses the length of the segment, $\Tseglen_\ell$, in meters, and the standard speed formula ($\text{speed} = \frac{\text{distance}}{\text{time}}$):
 \begin{equation}
 \label{eq:vehicle_avg_speed}
-\Vtt\vi_\ell = \frac{\Tseglen_\ell}{\Vsegend\vi_\ell - \Vsegstart\vi_\ell}.
+\Vtt\vi_\ell = \frac{\Tseglen_\ell}{{\Vsegend}\vi_\ell - {\Vsegstart}\vi_\ell}.
 \end{equation}
 
 
