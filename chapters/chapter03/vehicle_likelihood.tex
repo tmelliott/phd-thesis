@@ -45,7 +45,7 @@ The \pf{} effectively checks to see how plausible the observation is assuming ea
 For the \gls{gps} location update, the inherent \gls{gps} error, $\GPSerr$, needs to be filtered out to get better estimates of the vehicle's state. Examples of positions are shown in \cref{fig:lhood_obs}. A particle's likelihood should represent the \emph{geographical closeness} of the estimated position to the vehicle's reported position. Therefore, we want the likelihood to depend on the \emph{distance between the observed and predicted} vehicle locations. The first step to computing the likelihood is therefore to calculate the \gls{gps} position of the \emph{particle}, $\Ppos\vi_k$, by using the \emph{measurement function},
 \begin{equation}
 \label{eq:pf_measurement_fun}
-\Ppos\vi_k = \Vmeas(\Vstate\vi_k, \ShapePath)z
+\Ppos\vi_k = \Vmeas(\Vstate\vi_k, \ShapePath)
 \end{equation}
 which is simply a deterministic function given the route's path, $\ShapePath$, a sequence of latitude-longitude pairs and the cumulative distance along the line. Details are given in \cref{app:pf_measurement_fun}. Once the geographical position of the particle is obtained, it can be compared to the observed vehicle location, as shown in \cref{fig:gps_dist}.
 
