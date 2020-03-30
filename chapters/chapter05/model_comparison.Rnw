@@ -11,7 +11,7 @@ Additionally, we want to compare the reliability of the various forecast methods
 
 <<model_colours,echo=FALSE,cache=TRUE>>=
 pal <- RColorBrewer::brewer.pal(4, "Set1")
-names(pal) <- c("pf", "normal", "historical", "gtfs")
+names(pal) <- c("pf", "normal", "historical", "schedule-delay")
 options(knitr.kable.NA = '')
 @
 
@@ -155,7 +155,7 @@ The main finding of \cref{tab:model_results_rmse} is that the normal approximati
 We would expect arrival time predictions for a given stop to become more accurate as the bus approaches. To assess this, arrival time estimates were binned into one-minute intervals, and for each, the summary statistics were estimated, which are displayed in \cref{fig:model_results_rmse_time}. Note the use of log scales for \gls{rmse}, \gls{mae}, and \gls{mape}.
 
 
-<<model_results_rmse_time,warning=FALSE,echo=FALSE,cache=TRUE,dependson=c("model_results_load","model_colours"),cache.lazy=FALSE,fig.width=8,fig.height=4,out.width="\\textwidth",fig.cap="Model comparative statistics as a function of time until arrival. Note the log-scale for RMSE, MAE, and MAPE.">>=
+<<model_results_rmse_time,warning=FALSE,echo=FALSE,cache=TRUE,dependson=c("model_results_load","model_colours"),cache.lazy=FALSE,fig.width=8,fig.height=4,out.width="\\textwidth",fig.cap="Model comparative statistics as a function of time until arrival. Note the log-scale for RMSE, MAE, and MAPE. The dashed line in the graph of PICP indicates the nominal coverage of 85\\%.">>=
 # tidyverse is loaded!
 res_min <- eta_results %>%
     mutate(
@@ -201,7 +201,7 @@ plot_rmse <- plot_base +
     geom_path(aes(y = pf_rmse, colour = "pf")) +
     geom_path(aes(y = normal_rmse, colour = "normal")) +
     geom_path(aes(y = hist_rmse, colour = "historical")) +
-    geom_path(aes(y = gtfs_rmse, colour = "gtfs")) +
+    geom_path(aes(y = gtfs_rmse, colour = "schedule-delay")) +
     scale_y_continuous(
         "RMSE (s)",
         trans = "log10"
@@ -212,7 +212,7 @@ plot_mae <- plot_base +
     geom_path(aes(y = pf_mae, colour = "pf")) +
     geom_path(aes(y = normal_mae, colour = "normal")) +
     geom_path(aes(y = hist_mae, colour = "historical")) +
-    geom_path(aes(y = gtfs_mae, colour = "gtfs")) +
+    geom_path(aes(y = gtfs_mae, colour = "schedule-delay")) +
     scale_y_continuous(
         "MAE (s)",
         trans = "log10"
@@ -222,7 +222,7 @@ plot_mape <- plot_base +
     geom_path(aes(y = 100 * pf_mape, colour = "pf")) +
     geom_path(aes(y = 100 * normal_mape, colour = "normal")) +
     geom_path(aes(y = 100 * hist_mape, colour = "historical")) +
-    geom_path(aes(y = 100 * gtfs_mape, colour = "gtfs")) +
+    geom_path(aes(y = 100 * gtfs_mape, colour = "schedule-delay")) +
     scale_y_continuous(
         "MAPE (%)",
         trans = "log10"
@@ -341,7 +341,7 @@ The \gls{picp} is not available for \Fsched{} since that method only provides po
 \Cref{fig:model_results_rmse_stopn} shows the \gls{rmse}, \gls{mae}, \gls{mape}, and \gls{picp} grouped by stop sequence. The first stop is excluded since arrival times are only predicted once the bus begins the trip. Early stops along a route seldom have long until the bus arrives since \glspl{eta} are only made once the trip starts. Stop sequence is truncated to 50 (\Sexpr{round(100 * mean(trip_lengths$n_stop <= 50))}\% of trips have fewer than that many stops).
 
 
-<<model_results_rmse_stopn,warning=FALSE,echo=FALSE,cache=TRUE,dependson=c("model_results_load","model_colours"),cache.lazy=FALSE,fig.width=8,fig.height=4,out.width="\\textwidth",fig.cap="Model comparative statistics as a function of stop sequence.">>=
+<<model_results_rmse_stopn,warning=FALSE,echo=FALSE,cache=TRUE,dependson=c("model_results_load","model_colours"),cache.lazy=FALSE,fig.width=8,fig.height=4,out.width="\\textwidth",fig.cap="Model comparative statistics as a function of stop sequence. RMSE, MAE, and MAPE once more use a log-scale. The dashed line in the graph of PICP indicates 85\\% nominal coverage.">>=
 # library(patchwork)
 # tidyverse is loaded!
 res_stop <- eta_results %>%
@@ -389,7 +389,7 @@ plot_rmse <- plot_base +
     geom_path(aes(y = pf_rmse, colour = "pf")) +
     geom_path(aes(y = normal_rmse, colour = "normal")) +
     geom_path(aes(y = hist_rmse, colour = "historical")) +
-    geom_path(aes(y = gtfs_rmse, colour = "gtfs")) +
+    geom_path(aes(y = gtfs_rmse, colour = "schedule-delay")) +
     scale_y_continuous(
         "RMSE (s)",
         trans = "log10"
@@ -400,7 +400,7 @@ plot_mae <- plot_base +
     geom_path(aes(y = pf_mae, colour = "pf")) +
     geom_path(aes(y = normal_mae, colour = "normal")) +
     geom_path(aes(y = hist_mae, colour = "historical")) +
-    geom_path(aes(y = gtfs_mae, colour = "gtfs")) +
+    geom_path(aes(y = gtfs_mae, colour = "schedule-delay")) +
     scale_y_continuous(
         "MAE (s)",
         trans = "log10"
@@ -410,7 +410,7 @@ plot_mape <- plot_base +
     geom_path(aes(y = 100 * pf_mape, colour = "pf")) +
     geom_path(aes(y = 100 * normal_mape, colour = "normal")) +
     geom_path(aes(y = 100 * hist_mape, colour = "historical")) +
-    geom_path(aes(y = 100 * gtfs_mape, colour = "gtfs")) +
+    geom_path(aes(y = 100 * gtfs_mape, colour = "schedule-delay")) +
     scale_y_continuous(
         "MAPE (%)",
         trans = "log10"
@@ -489,7 +489,7 @@ Both \gls{rmse} and \gls{mae} increase with stop sequence for all models. \Fnorm
 Observations were binned into 15-minute intervals and summary statistics calculated for each. The results, displayed in \cref{fig:model_results_rmse_timeofday}, differ from those seen previously, now revealing the peak-hour traffic effect. There is a single morning peak at around 8~am (school and work begin at about the same time) and two evening peaks: one for schools at about 3~pm, and another for workers at around 5~pm.
 
 
-<<model_results_rmse_timeofday,warning=FALSE,echo=FALSE,cache=TRUE,dependson=c("model_results_load","model_colours"),cache.lazy=FALSE,fig.width=8,fig.height=4,out.width="\\textwidth",fig.cap="Model comparative statistics as a function of time of day.">>=
+<<model_results_rmse_timeofday,warning=FALSE,echo=FALSE,cache=TRUE,dependson=c("model_results_load","model_colours"),cache.lazy=FALSE,fig.width=8,fig.height=4,out.width="\\textwidth",fig.cap="Model comparative statistics as a function of time of day. RMSE, MAE, and MAPE use log-scales, and the dashed line in the graph of PICP indicates 85\\% nominal coverage.">>=
 res_timeofday <- eta_results %>%
     mutate(
         hour = timestamp %>% format("%H") %>% as.integer,
@@ -536,7 +536,7 @@ plot_rmse <- plot_base +
     geom_path(aes(y = pf_rmse, colour = "pf")) +
     geom_path(aes(y = normal_rmse, colour = "normal")) +
     geom_path(aes(y = hist_rmse, colour = "historical")) +
-    geom_path(aes(y = gtfs_rmse, colour = "gtfs")) +
+    geom_path(aes(y = gtfs_rmse, colour = "schedule-delay")) +
     scale_y_continuous(
         "RMSE (s)",
         trans = "log10"
@@ -547,7 +547,7 @@ plot_mae <- plot_base +
     geom_path(aes(y = pf_mae, colour = "pf")) +
     geom_path(aes(y = normal_mae, colour = "normal")) +
     geom_path(aes(y = hist_mae, colour = "historical")) +
-    geom_path(aes(y = gtfs_mae, colour = "gtfs")) +
+    geom_path(aes(y = gtfs_mae, colour = "schedule-delay")) +
     scale_y_continuous(
         "MAE (s)",
         trans = "log10"
@@ -557,7 +557,7 @@ plot_mape <- plot_base +
     geom_path(aes(y = 100 * pf_mape, colour = "pf")) +
     geom_path(aes(y = 100 * normal_mape, colour = "normal")) +
     geom_path(aes(y = 100 * hist_mape, colour = "historical")) +
-    geom_path(aes(y = 100 * gtfs_mape, colour = "gtfs")) +
+    geom_path(aes(y = 100 * gtfs_mape, colour = "schedule-delay")) +
     scale_y_continuous(
         "MAPE (%)",
         trans = "log10"
@@ -741,7 +741,7 @@ The concept behind examining the accuracy of the lower quantile, $\mathbb{P}_\el
 Since \Fsched{} provides only a point estimate, we cannot compare it directly to the other methods, in particular, \Fpf{}. To do so, we can \emph{indirectly} compare these methods by proposing that a passenger arrives $x$~minutes before the arrival time predicted by \Fsched{}, similar to the method described by \citet{Cathey_2003}, and calculating the probability of capture and expected wait time. The resulting curves for arriving 4--12~minutes before the stated arrival are shown in \cref{fig:model_results_pr_gtfs}, with the values for the other three methods overlaid as dashed lines.
 
 
-<<model_results_pr_gtfs,echo=FALSE,message=FALSE,warning=FALSE,cache=TRUE,dependson=c("model_results_load","model_results_pr_miss"),cache.lazy=FALSE,fig.width=8,fig.height=3,out.width="\\textwidth",fig.align="center",fig.cap="GTFS equivalent">>=
+<<model_results_pr_gtfs,echo=FALSE,message=FALSE,warning=FALSE,cache=TRUE,dependson=c("model_results_load","model_results_pr_miss"),cache.lazy=FALSE,fig.width=8,fig.height=3,out.width="\\textwidth",fig.align="center",fig.cap="Capture probability and expected wait times for a traveller arriving $x$ minutes before the schedule-delay prediction. The relevant values for the three other methods are displayed by dashed lines.",fig.scap="Capture probability and expected wait times for schedule-delay predictions">>=
 # the equivalent values for GTFS
 ers <- eta_results %>% select(timestamp, stop_sequence, time_until_arrival, gtfs_eta)
 smrys <- do.call(rbind,
@@ -763,7 +763,7 @@ plot_base <- ggplot(smrys, aes(min_before)) +
     theme_classic(base_family = "Helvetica") +
     scale_colour_manual(values = pal, name = "model") +
     scale_x_continuous(
-        name = "Time before GTFS ETA (minutes)",
+        name = "Time before schedule-delay ETA (minutes)",
         breaks = seq(4, 12, by = 2)
     )
 
@@ -780,16 +780,16 @@ plotA <- plot_base +
         aes(yintercept = 100 * pr_smry$hist_lower_catch, colour = "historical"),
         lty = 2
     ) +
-    geom_path(aes(y = 100 * gtfs_catch, colour = "gtfs")) +
+    geom_path(aes(y = 100 * gtfs_catch, colour = "schedule-delay")) +
     #ylab(expression("\u2119"["\u2113"]~"(%)"))
-    ylab(expression(P["\u2113"]~"(%)"))
+    ylab(expression(P[l]~"(%)"))
 
 plotB <- plot_base +
     geom_hline(aes(yintercept = pr_smry$pf_wait / 60, colour = "pf"), lty = 2) +
     geom_hline(aes(yintercept = 10 * NA, colour = "normal"), lty = 2) +
     geom_hline(aes(yintercept = pr_smry$hist_wait / 60, colour = "historical"), lty = 2) +
-    geom_path(aes(y = gtfs_wait / 60, colour = "gtfs")) +
-    ylab(expression(E["\u2113"]~"(%)"))
+    geom_path(aes(y = gtfs_wait / 60, colour = "schedule-delay")) +
+    ylab(expression(E[l]~"(minutes)"))
 
 library(patchwork)
 plotA + plotB + plot_layout(guides = "collect") &
@@ -811,7 +811,7 @@ We can also consider the reverse: a passenger would need to arrive no more than 
 \Cref{fig:model_results_pr_time} shows $\mathbb{P}_m$, $\mathbb{P}_\ell$, and $\mathbb{E}_\ell$ computed at one-minute intervals for each of the four methods. \Fsched{} used a lower bound of $\hat\Tarr - 300$ (6~minutes before the point estimate). For the expected wait time, 5\% and 90\% quantiles are displayed as shaded regions. The dotted line in the expected waiting time graph represents the maximum possible waiting time; that is, the waiting time for a passenger already at the stop, given the bus is 10~minutes away, is 10~minutes.
 
 
-<<model_results_pr_time,echo=FALSE,message=FALSE,warning=FALSE,cache=TRUE,dependson=c("model_results_load","model_results_pr_miss"),cache.lazy=FALSE,fig.width=8,fig.height=4,out.width="\\textwidth",fig.cap="Summary values by time until arrival.">>=
+<<model_results_pr_time,echo=FALSE,message=FALSE,warning=FALSE,cache=TRUE,dependson=c("model_results_load","model_results_pr_miss"),cache.lazy=FALSE,fig.width=8,fig.height=4,out.width="\\textwidth",fig.cap="Capture probabilities and expected wait times for the models by time until the bus's actual arrival. Expected wait time (right) includes a shaded region for the 5 and 90\\% quantiles of wait times.">>=
 pr_smry_time <- eta_results %>%
     mutate(
         # bus arrives after point estimate
@@ -867,16 +867,16 @@ plotA <- plot_base +
     geom_path(aes(y = pf_catch, colour = "pf")) +
     geom_path(aes(y = normal_catch, colour = "normal")) +
     geom_path(aes(y = hist_catch, colour = "historical")) +
-    geom_path(aes(y = gtfs_catch, colour = "gtfs")) +
-    ylab("P[m]")
+    geom_path(aes(y = gtfs_catch, colour = "schedule-delay")) +
+    ylab(expression(P[m]))
 
 plotB <- plot_base +
     #geom_hline(yintercept = 0.975, lty = 2) +
     geom_path(aes(y = pf_lower_catch, colour = "pf")) +
     geom_path(aes(y = normal_lower_catch, colour = "normal")) +
     geom_path(aes(y = hist_lower_catch, colour = "historical")) +
-    geom_path(aes(y = gtfs_lower_catch, colour = "gtfs")) +
-    ylab("P[l]")
+    geom_path(aes(y = gtfs_lower_catch, colour = "schedule-delay")) +
+    ylab(expression(P[l]))
 
 plotC <- plot_base +
     #geom_abline(lty = 3) +
@@ -908,16 +908,16 @@ plotC <- plot_base +
         aes(
             ymin = pmin(30, pmin(min, gtfs_wait_lower / 60)),
             ymax = pmin(30, pmin(min, gtfs_wait_upper / 60)),
-            fill = "gtfs"
+            fill = "schedule-delay"
         ),
         alpha = 0.2
     ) +
     geom_path(aes(y = pmin(min, pf_wait / 60), colour = "pf")) +
     geom_path(aes(y = pmin(min, normal_wait / 60), colour = "normal")) +
     geom_path(aes(y = pmin(min, hist_wait / 60), colour = "historical")) +
-    geom_path(aes(y = pmin(min, gtfs_wait / 60), colour = "gtfs")) +
+    geom_path(aes(y = pmin(min, gtfs_wait / 60), colour = "schedule-delay")) +
     scale_y_continuous(
-        "E[l] (m)",
+        expression(E[l] (m)),
         limits = c(0, 30)
     ) +
     theme(legend.position = "none") +
@@ -950,7 +950,7 @@ Finally, we examine the expected waiting time, given a passenger arrives at the 
 The same values were computed by stop sequence and displayed in \cref{fig:model_results_pr_stop}. \Fhist{} achieves the target probability of 50\%, while \Fpf{} is slightly above at about 60\%. Most notable is the steady decline in the reliability of \Fsched{}, dropping to about a one in three chance of catching the bus after stop 40 (assuming you arrive at the predicted \gls{eta}).
 
 
-<<model_results_pr_stop,echo=FALSE,message=FALSE,warning=FALSE,cache=TRUE,dependson=c("model_results_load","model_results_pr_miss"),cache.lazy=FALSE,fig.width=8,fig.height=4,out.width="\\textwidth",fig.cap="Summary values by stop sequence.">>=
+<<model_results_pr_stop,echo=FALSE,message=FALSE,warning=FALSE,cache=TRUE,dependson=c("model_results_load","model_results_pr_miss"),cache.lazy=FALSE,fig.width=8,fig.height=4,out.width="\\textwidth",fig.cap="Capture probabilities and expected wait times for the models by stop sequence. Expected wait time (right) includes a shaded region for the 5 and 90\\% quantiles of wait times.">>=
 pr_smry_stop <- eta_results %>%
     mutate(
         # bus arrives after point estimate
@@ -1006,15 +1006,15 @@ plotA <- plot_base +
     geom_path(aes(y = pf_catch, colour = "pf")) +
     geom_path(aes(y = normal_catch, colour = "normal")) +
     geom_path(aes(y = hist_catch, colour = "historical")) +
-    geom_path(aes(y = gtfs_catch, colour = "gtfs")) +
-    ylab("P[m]")
+    geom_path(aes(y = gtfs_catch, colour = "schedule-delay")) +
+    ylab(expression(P[m]))
 
 plotB <- plot_base +
     geom_path(aes(y = pf_lower_catch, colour = "pf")) +
     geom_path(aes(y = normal_lower_catch, colour = "normal")) +
     geom_path(aes(y = hist_lower_catch, colour = "historical")) +
-    geom_path(aes(y = gtfs_lower_catch, colour = "gtfs")) +
-    ylab("P[l]")
+    geom_path(aes(y = gtfs_lower_catch, colour = "schedule-delay")) +
+    ylab(expression(P[l]))
 
 plotC <- plot_base +
     geom_ribbon(
@@ -1045,15 +1045,15 @@ plotC <- plot_base +
         aes(
             ymin = pmin(30, gtfs_wait_lower / 60),
             ymax = pmin(30, gtfs_wait_upper / 60),
-            fill = "gtfs"
+            fill = "schedule-delay"
         ),
         alpha = 0.2
     ) +
     geom_path(aes(y = pf_wait / 60, colour = "pf")) +
     geom_path(aes(y = normal_wait / 60, colour = "normal")) +
     geom_path(aes(y = hist_wait / 60, colour = "historical")) +
-    geom_path(aes(y = gtfs_wait / 60, colour = "gtfs")) +
-    ylab("E[l] (m)") + ylim(0, 30) +
+    geom_path(aes(y = gtfs_wait / 60, colour = "schedule-delay")) +
+    ylab(expression(E[l]~(m))) + ylim(0, 30) +
     theme(legend.position = "none") +
     scale_fill_manual(values = pal, name = "model")
 
@@ -1077,7 +1077,7 @@ Moving on to the lower 2.5\% quantile, $\mathbb{P}_\ell$, we expect 97.5\% proba
 The probabilities and expected waiting time were calculated for 15~minute intervals for each of the models, as shown in \cref{fig:model_results_pr_timeofday}. The peak hour effects are one more visible and associated with an increased probability of arriving before the bus under \Fpf{} for both the median and 2.5\% quantile. For \Fsched{}, the probability of arriving before the bus decreases slightly during peak time. In the evening, we see the performance of \Fpf{} drop rapidly, likely due to the much-reduced probability of stopping (many evening services have low occupancy). Future work implementing more specific dwell time models could help to improve this.
 
 
-<<model_results_pr_timeofday,echo=FALSE,message=FALSE,warning=FALSE,cache=TRUE,dependson=c("model_results_load","model_results_pr_miss"),cache.lazy=FALSE,fig.width=8,fig.height=4.5,out.width="\\textwidth",fig.cap="Summary values by time of day.">>=
+<<model_results_pr_timeofday,echo=FALSE,message=FALSE,warning=FALSE,cache=TRUE,dependson=c("model_results_load","model_results_pr_miss"),cache.lazy=FALSE,fig.width=8,fig.height=4.5,out.width="\\textwidth",fig.cap="Capture probabilities and expected wait times for the models by time of day. Expected wait time (right) includes a shaded region for the 5 and 90\\% quantiles of wait times.">>=
 pr_smry_timeofday <- eta_results %>%
     mutate(
         # bus arrives after point estimate
@@ -1134,15 +1134,15 @@ plotA <- plot_base +
     geom_path(aes(y = pf_catch, colour = "pf")) +
     geom_path(aes(y = normal_catch, colour = "normal")) +
     geom_path(aes(y = hist_catch, colour = "historical")) +
-    geom_path(aes(y = gtfs_catch, colour = "gtfs")) +
-    ylab("P[m]")
+    geom_path(aes(y = gtfs_catch, colour = "schedule-delay")) +
+    ylab(expression(P[m]))
 
 plotB <- plot_base +
     geom_path(aes(y = pf_lower_catch, colour = "pf")) +
     geom_path(aes(y = normal_lower_catch, colour = "normal")) +
     geom_path(aes(y = hist_lower_catch, colour = "historical")) +
-    geom_path(aes(y = gtfs_lower_catch, colour = "gtfs")) +
-    ylab("P[l]")
+    geom_path(aes(y = gtfs_lower_catch, colour = "schedule-delay")) +
+    ylab(expression(P[l]))
 
 plotC <- plot_base +
     geom_ribbon(
@@ -1173,15 +1173,15 @@ plotC <- plot_base +
         aes(
             ymin = pmin(30, gtfs_wait_lower / 60),
             ymax = pmin(30, gtfs_wait_upper / 60),
-            fill = "gtfs"
+            fill = "schedule-delay"
         ),
         alpha = 0.2
     ) +
     geom_path(aes(y = pf_wait / 60, colour = "pf")) +
     geom_path(aes(y = normal_wait / 60, colour = "normal")) +
     geom_path(aes(y = hist_wait / 60, colour = "historical")) +
-    geom_path(aes(y = gtfs_wait / 60, colour = "gtfs")) +
-    ylab("E[l] (m)") + ylim(0, 30) +
+    geom_path(aes(y = gtfs_wait / 60, colour = "schedule-delay")) +
+    ylab(expression(E[l] (m))) + ylim(0, 30) +
     theme(legend.position = "none") +
     scale_fill_manual(values = pal, name = "model")
 

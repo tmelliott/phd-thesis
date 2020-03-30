@@ -70,7 +70,7 @@ if (file.exists(qfile)) {
 }
 @
 
-<<eta_overall_results,echo=FALSE,cache=TRUE,dependson="eta_load",fig.width=8*.7,fig.height=5,out.width=".7\\textwidth",fig.align="center",fig.cap="Comparison of summary statistics for various quantiles of the predictive distribution, and the currently deployed schedule-delay (SD) method. Results are displayed for all day average, and off-peak (between 9h30 and 14h30).">>=
+<<eta_overall_results,echo=FALSE,cache=TRUE,dependson="eta_load",fig.width=8*.7,fig.height=5,out.width=".7\\textwidth",fig.align="center",fig.cap="Comparison of the summary statistics for various quantiles of the predictive distribution (PFX uses the X\\% quantile) and the currently deployed schedule-delay (SD) method. Results are obtained using off-peak data (between 9h30 and 14h30).",fig.scap="Comparison of the summary statistics for various quantiles of the predictive distribution and the scheudle-delay method">>=
 
 offpeak_times <- paste(
   format(as.POSIXct(q90$timestamp[1], origin = "1970-01-01"), "%Y-%m-%d"),
@@ -276,7 +276,7 @@ To estimate $\Pr{\text{catch}}$ and $\E{\text{wait}\cond{}\text{catch}}$ we use 
 The overall wait time shows little difference between predictors for trips with a headway less than 10~minutes, but the methods quickly disperse as headway increases beyond this. However, we see that it is possible to maintain an expected wait time below 10~minutes by choosing appropriate quantiles. For low-frequency routes, the most reliable estimate would be the 5\% or 25\% quantile to minimise the probability of missing the bus. As a comparison, the same values were calculated based on the schedule-delay predictions, and are shown in \cref{fig:eta_headway_results} as dashed black lines. We see that, in most cases, it is the equivalent to using $q=0.75$, resulting in a 50\% chance of catching the bus. Consequently, the total expected waiting time is about 50\% of the headway.
 
 
-<<eta_headway_results,message=FALSE,warning=FALSE,echo=FALSE,cache=TRUE,dependson="eta_load",fig.width=8,fig.height=5,out.width="\\textwidth",fig.align="center",fig.cap="Capture probabilities and expected wait times by trip headway (time until the next trip) by using varying quantiles as point estimates of arrival time, and assuming the passenger arrives at the specified time. The dashed black line represents the same values using the schedule-delay prediction.">>=
+<<eta_headway_results,message=FALSE,warning=FALSE,echo=FALSE,cache=TRUE,dependson="eta_load",fig.width=8,fig.height=5,out.width="\\textwidth",fig.align="center",fig.cap="Capture probabilities and expected wait times by trip headway (time until the next trip) using varying quantiles as point estimates of arrival time. Wait times assume the passenger arrives at the specified time. The dashed black line represents the same values using the schedule-delay prediction.",fig.scap="Capture probabilities and expected wait times by trip headway">>=
 
 # Use headway to estimate cost of missing the bus
 # (just simple start-of-route headway, nothing too complex)

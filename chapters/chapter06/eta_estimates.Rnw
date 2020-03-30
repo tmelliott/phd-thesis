@@ -11,7 +11,7 @@ The method for obtaining estimates from the \glspl{cdf} from \cref{eq:pf_pdf_arr
 \Cref{fig:eta_calc_quantile} shows a single \gls{cdf} with a horizontal line at $q = 0.5$, where the solution to \cref{eq:eta_calc_quantile} is the maximum of the values below this line (the red points) which is, in this case, $\hat\Teta_{0.5} = 11$.
 
 
-<<eta_calc_quantile,echo=FALSE,fig.width=8*.6,fig.height=2.5,out.width=".6\\textwidth",fig.cap="Quantile estimation from a CDF. ETA values with quantiles below the desired threshold are coloured red; the maximum of these is the quantile value.",fig.align="center">>=
+<<eta_calc_quantile,echo=FALSE,fig.width=8*.6,fig.height=2.5,out.width=".6\\textwidth",fig.cap="Quantile estimation from a CDF. ETA values with quantiles below the desired threshold (0.5) are coloured red; the maximum of these is the desired quantile value.",fig.align="center">>=
 
 suppressPackageStartupMessages(library(tidyverse))
 d <- tibble(

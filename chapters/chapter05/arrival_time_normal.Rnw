@@ -3,7 +3,7 @@
 
 Due to the computational demand of the particle filter, significant speed improvements can be obtained by using a normal approximation instead. The network state is a multivariate normal random variable, so the issue lies with stop dwell times having a point mass at zero, resulting in a mixture predictive distribution. For each stop the vehicle passes, there are twice as many components, so after $m$ stops, there are $2^m$ components. However, these regularly converge after a few stops, as shown in \cref{fig:normal_approx}.
 
-<<normal_approx,cache=TRUE,echo=FALSE,fig.width=8,fig.height=4,fig.cap="Normal approximation for a series of stops ahead. The true distribution is shown by the histogram with the underlying components (dashed curves). The vertical lines represent the quantiles computed using the sampled data, the normal mixture (using the optimisation formula), or a single normal approximation.",out.width="\\textwidth",fig.align="center">>=
+<<normal_approx,cache=TRUE,echo=FALSE,fig.width=8,fig.height=5,fig.cap="Normal approximation for 1, 2, 3, and 8 stops ahead. The full distribution is shown by the histogram with each components superimposed (dashed curves). The vertical lines represent the quantiles (2.5, 50, and 97.5\\%) computed using the samples (blue), the normal mixture (red), and a single normal approximation (green). The green curve is the single normal approximation.",out.width="\\textwidth",fig.align="center">>=
 suppressPackageStartupMessages(library(tidyverse))
 napprox <- function(n, pi = rep(0.8, n), t = c(80, 15),
                     mu = rep(20, n), sigma = rep(5, n)) {
@@ -98,12 +98,14 @@ napprox <- function(n, pi = rep(0.8, n), t = c(80, 15),
     ## prettify the plot
     px <- px +
         theme_classic() +
+        theme(plot.title = element_text(size = 10)) +
         scale_x_continuous(
             "ETA (minutes)",
             breaks = function(x) pretty(x / 60) * 60,
             labels = function(x) x / 60
         ) +
-        scale_y_continuous("Probability density")
+        scale_y_continuous("Probability density") +
+        ggtitle(sprintf("%d stop%s", n, ifelse(n == 1, "", "s")))
 
     px
 }

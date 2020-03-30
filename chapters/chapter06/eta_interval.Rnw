@@ -67,7 +67,7 @@ if (file.exists(qfile)) {
 In this section, we consider symmetric prediction intervals of the form $(\Teta_{\alpha/2}, \Teta_{1-\alpha/2})$ where $\alpha \in (0,1)$ gives a $100(1-\alpha)$\% interval. Note that although these intervals are symmetric in probability, they are most often asymmetric on the arrival time scale, particularly when the bus is near and the distribution is right-skewed, as shown in \cref{fig:eta_dist_skew}. In contrast, a Kalman filter implementation assumes Gaussian errors, so a symmetric interval is also symmetric around the mean as shown in, often leading to incorrect intervals (potentially even an \gls{eta} below zero).
 
 
-<<eta_dist_skew,echo=FALSE,cache=TRUE,fig.width=8,fig.height=3,out.width="\\textwidth",fig.align="center",fig.cap="Symmetry of arrival time intervals. Symmetric intervals on the probabilty scale map to asymmetric under the particle filter (left), and symmetric intervals under the Kalman filter (right).">>=
+<<eta_dist_skew,echo=FALSE,cache=TRUE,fig.width=8,fig.height=3,out.width="\\textwidth",fig.align="center",fig.cap="Symmetry of arrival time prediction intervals. Symmetric intervals on the probabilty scale map to asymmetric intervals on the arrival time scale under the particle filter (left), and symmetric intervals on the arrival time scale under the Kalman filter (right).">>=
 
 suppressPackageStartupMessages(library(tidyverse))
 
@@ -137,7 +137,7 @@ p_pf + p_kf
 @
 
 
-<<eta_cis,echo=FALSE,cache=TRUE,dependson="eta_ci_load",fig.width=8,fig.height=2.5,out.width="\\textwidth",fig.align="center",fig.cap="ETA CIs">>=
+<<eta_cis,echo=FALSE,cache=TRUE,dependson="eta_ci_load",fig.width=8,fig.height=2.5,out.width="\\textwidth",fig.align="center",fig.cap="Evaluation of the observed coverage (left), lower bound (middle), and width (right) of various prediction intervals using the particle filter arrival time CDF. The dotted line indicates the nominal value.", fig.scap="Evaluation of prediction intervals from the particle filter arrival time CDF">>=
 # coverage prob
 offpeak_times <- paste(
   format(as.POSIXct(int99$timestamp[1], origin = "1970-01-01"), "%Y-%m-%d"),

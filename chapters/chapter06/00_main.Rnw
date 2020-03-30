@@ -34,7 +34,7 @@ where $I_{a=b}$, the indicator, is 1 if $a$ equals $b$, and zero otherwise. Comp
 \end{equation}
 \Cref{fig:eta_cdf} displays the \gls{cdf} for a single stop. The remainder of this chapter explores the reliability and usefulness of various summary statistics to convey this distribution to commuters.
 
-<<eta_cdf,echo=FALSE,fig.width=8*.6,fig.height=2.5,out.width=".6\\textwidth",fig.cap="CDF of arrival time.",fig.align="center">>=
+<<eta_cdf,echo=FALSE,fig.width=8*.6,fig.height=2.5,out.width=".6\\textwidth",fig.cap="CDF of arrival time after rounding particle estimates down to the nearest minute.",fig.align="center">>=
 suppressPackageStartupMessages(library(tidyverse))
 d <- tibble(
     t = 7:20,
@@ -47,7 +47,7 @@ ggplot(d, aes(t, cumsum(n))) +
   theme_classic() +
   scale_x_continuous("Arrival time, a (minutes)") +
   scale_y_continuous(
-    "# particles arriving within a min",
+    "# particles arriving\nin less than a minutes",
     sec.axis = sec_axis(~. / 200,
       name = "Pr(A < a)"
     )

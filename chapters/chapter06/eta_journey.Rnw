@@ -11,7 +11,7 @@ So far we have been concerned with the arrival time of a bus at a single stop wi
 Dynamic routing---the selection of candidate trips and real-time assessment of which is \emph{optimal}---is in itself a difficult problem to solve \citep{Hame_2013a,Hame_2013b,Zheng_2016}. There also exist implementations which can take a probabilistic model of arrival time (such as obtained from our \glspl{cdf}) as input to determine the optimal route (including the selection of candidate routes), such as proposed by \citet{Berczi_2017}. Therefore, for this section, we only consider choosing between pre-selected candidate journey options using the arrival time \glspl{cdf} obtained using our \pf{} model. These are compared to the results one might obtain using the currently deployed schedule-delay predictions, which only provide a binary (``Yes'' or ``No'') prediction.
 
 
-<<eta_journey_arrival_prep,echo=FALSE,cache=TRUE,message=FALSE,fig.height=5,out.width="\\textwidth",fig.cap="Route options",fig.align="center">>=
+<<eta_journey_arrival_prep,echo=FALSE,cache=TRUE,message=FALSE,fig.height=5,out.width="\\textwidth",fig.cap="Route options for a passenger travelling from `Start' to `End'. Both options involve a short walk at either end of the journey.",fig.align="center",fig.scap="Route options for a passenger travelling from origin to desination">>=
 
 suppressPackageStartupMessages({
   library(tidyverse)
@@ -160,7 +160,8 @@ In this scenario, a passenger lives within walking distance of two major roads, 
 We can provide information relating to these questions using the \glspl{cdf} of arrival time at the start and end stops. Walking times at either end of the journey can also be accounted for.
 
 
-<<eta_journey_arrival,echo=FALSE,cache=TRUE,dependson="eta_journey_arrival_prep",message=FALSE,fig.width=8,fig.height=5,out.width="\\textwidth",fig.cap="ETA predictions for two route options. The coloured curves represent the CDF of arrival time for individual trips made at 7~am. The vertical black lines indicate the estimated walking time (according to Google Maps) from the Start location to each stop.",fig.align="center">>=
+<<eta_journey_arrival,echo=FALSE,cache=TRUE,dependson="eta_journey_arrival_prep",message=FALSE,fig.width=8,fig.height=5,out.width="\\textwidth",fig.cap="ETA predictions of bus arrivals at origin stops for two route options. The coloured curves represent the CDFs of arrival time for individual trips made at 1:20~pm. The vertical black lines indicate the estimated walking time (according to Google Maps) from the Start location to each stop.",fig.align="center">>=
+
 
 con <- dbConnect(SQLite(), "data/eta_quantiles.sqlite")
 trip_etas <- con %>% tbl("etas")
@@ -278,7 +279,7 @@ if (format(TSTART, "%H:%M") != "13:20") {
 \Cref{fig:eta_journey_arrival} displays the \glspl{cdf} of all active trips\footnote{Our application currently only estimates arrival times for active trips.} along the two route options at \Sexpr{format(TSTART, TIME_FMT)} when the passenger is ready to leave home (solid line), with dashed lines representing the passenger's arrival time at the stops (accounting for walking time). Below each \gls{cdf}, which are coloured by route number, is a label indicating the trip's start time (the simplest method of distinguishing trips). For option A, there appears to be a minimal chance of catching the 1:05~pm 25B, but a good chance of catching the 1:10~pm 25L, with the additional safety of another 25B not long after. As for option B, there is a slightly smaller chance of catching the 1:15~pm 27H, but if missed, it is unclear how long the wait for the next bus will be.
 
 
-<<eta_journey_arriveby,echo=FALSE,cache=TRUE,dependson="eta_journey_arrival",message=FALSE,fig.width=8,fig.height=5,out.width="\\textwidth",fig.cap="ETA predictions for two route options. The coloured curves represent the CDF of arrival time for individual trips made at 7~am. The vertical black lines indicate the estimated walking time (according to Google Maps) from the Start location to each stop.",fig.align="center">>=
+<<eta_journey_arriveby,echo=FALSE,cache=TRUE,dependson="eta_journey_arrival",message=FALSE,fig.width=8,fig.height=5,out.width="\\textwidth",fig.cap="ETA predictions of bus arrivals at the desination stops for two route options. The coloured curves represent the CDF of arrival time for individual trips made at 1.20~pm. The vertical black lines indicate the estimated walking time (according to Google Maps) from the stops to the End location.",fig.align="center">>=
 
 
 # commuter ready to leave at 7am
@@ -522,7 +523,7 @@ knitr::kable(
 The \glspl{cdf} allow easy calculation of the predicted probability of success in each scenario, displayed in \cref{tab:eta_journey_results}. Additionally, the binary (``Yes'' or ``No'') predictions made using the schedule-delay method are displayed for comparison, as well as the eventual outcome. That is, would the passenger have caught the bus and did it arrive on time? All of the predictions based on the \pf{} arrival time \glspl{cdf} are valid: small probabilities correspond to an outcome of ``No'' and large probabilities ($>0.8$) to ``Yes''. There was a discrepancy for the 1:15~pm 25B, which arrived at the destination on time: the schedule-delay incorrectly predicted ``No'', while our method predicted an 81\% chance of success.
 
 
-<<eta_journey_results_avg,echo=FALSE,cache=TRUE,dependson=-1,message=FALSE,fig.width=8,fig.height=2.5,out.width="\\textwidth",fig.cap=sprintf("Results of performing the same journey planning prediction with different starting times (from %s to %s), using the same start and end locations. Observations are whether or not the passenger would have arrived at the stop before the bus, jittered to better see each observation. Predictive probabilities of 0 and 1 that were correctly estimated have been removed.", format(min(tstart), TIME_FMT), format(max(tstart), TIME_FMT)),fig.align="center">>=
+<<eta_journey_results_avg,echo=FALSE,cache=TRUE,dependson=-1,message=FALSE,fig.width=8,fig.height=2.5,out.width="\\textwidth",fig.cap=sprintf("Results of performing the journey planning prediction with different starting times (from %s to %s), using the same start and end locations. Observations are whether or not the passenger would have arrived at the stop before the bus. Predictive probabilities of 0 and 1 that were correctly estimated have been removed.", format(min(tstart), TIME_FMT), format(max(tstart), TIME_FMT)),fig.align="center",fig.scap="Results of performing the journey planning prediction with different starting times">>=
 
 # 5-minute intervals from 6am--6pm:
 tstart <-
@@ -809,7 +810,7 @@ In both methods, predicting bus capture is more accurate than predicting on-time
 A more complex scenario is one in which the passenger must transfer from one route to another. Transfer journeys are common among travellers commuting from further afield, and occur when there is no single route between their origin and destination, as is demonstrated in \cref{fig:eta_journey_arrival_prep}. In this scenario, the passenger must first catch a bus along route group A\footnote{We use route groups since there are several different routes which make the same journey, as can be seen with route group B branching in the south-west of \cref{fig:eta_journey_arrival_prep}.} to the stop marked ``Transfer'', at which point they disembark and wait for the next bus along route group B to get to their final destination.
 
 
-<<eta_journey_transfer_prep,echo=FALSE,cache=TRUE,warning=FALSE,message=FALSE,fig.height=5,out.width="\\textwidth",fig.cap="Transfer options",fig.align="center">>=
+<<eta_journey_transfer_prep,echo=FALSE,cache=TRUE,warning=FALSE,message=FALSE,fig.height=5,out.width="\\textwidth",fig.cap="A passenger travelling from Origin to Destination must change buses at the Transfer stop, resulting in a journey with two \\emph{legs}.",fig.align="center",fig.scap="A transfer journey for a passenger travelling between two locations with no single connecting route.">>=
 
 suppressPackageStartupMessages({
   library(tidyverse)
@@ -944,7 +945,7 @@ ggmap(map) +
 
 
 
-<<eta_journey_transfer_graph,echo=FALSE,cache=TRUE,dependson=-1,fig.height=6,fig.width=8,out.width="\\textwidth",fig.cap="Arrival times",fig.align="center">>=
+<<eta_journey_transfer_graph,echo=FALSE,cache=TRUE,dependson=-1,fig.height=6,fig.width=8,out.width="\\textwidth",fig.cap="Arrival times CDFs for buses at the Origin, Transfer, and Destination stops (top to bottom) as at 1:00~pm. The CDFs are coloured by leg (origin to transfer, or transfer to destination).",fig.align="center",fig.scap="Arrival times CDFs for buses at the Origin, Transfer, and Destination stops">>=
 library(ggrepel)
 
 TSTART <- as.POSIXct(paste(DATE, "13:00:00"))
@@ -1149,7 +1150,7 @@ tstart <- seq(
 The particle filter predicts transfer probabilities with reasonable accuracy: low probabilities result in negative (``No'') outcomes. In contrast, the schedule-delay predictions fail to correctly predict the outcome of a transfer between 1A and 2C: it incorrectly predicted a successful transfer while the particle filter predicted only a 32\% chance of success. Here a passenger could, where applicable, base their decision on how important it is they make the transfer which might depend on frequency or other constraints. While this example is somewhat trivial---it's a short wait for the next bus---the headway between trips can sometimes be 30--60~minutes. In that case---from personal experience---watching your second bus depart as the one you are on arrives at the station is very frustrating. However, until our application has been updated to make predictions for upcoming (and not just active) trips, we are not yet able to make predictions for such scenarios.
 
 
-<<eta_journey_transfer_many,echo=FALSE,cache=TRUE,dependson=-1,message=FALSE,fig.width=4,fig.height=2.5,out.width=".5\\textwidth",fig.cap=sprintf("Results of performing the same transfer journey planning prediction with different starting times (from %s to %s). Observations are whether or not the first bus would arrive at the transfer stop before the second bus, jittered to better see each observation. Additionally, predictive probabilities of 0 and 1 have been removed since, after checking, none or these were invalid and only served to distort the figure.", format(min(tstart), "%kh%M"), format(max(tstart), "%kh%M")),fig.align="center">>=
+<<eta_journey_transfer_many,echo=FALSE,cache=TRUE,dependson=-1,message=FALSE,fig.width=4,fig.height=2.5,out.width=".5\\textwidth",fig.cap=sprintf("Results of performing the transfer journey planning prediction with different starting times (from %s to %s). Observations are whether or not the first bus would arrive at the transfer stop before the second bus. Predictive probabilities of 0 and 1 that were correct have been removed.", format(min(tstart), "%kh%M"), format(max(tstart), "%kh%M")),fig.align="center",fig.scap="Results of performing the transfer journey planning prediction with different starting times">>=
 
 
 all_results_file <- "data/all_results_transfer.rda"

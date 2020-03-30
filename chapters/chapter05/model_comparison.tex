@@ -56,7 +56,7 @@ We would expect arrival time predictions for a given stop to become more accurat
 
 \begin{knitrout}\small
 \definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{figure}
-\includegraphics[width=\textwidth]{figure/model_results_rmse_time-1} \caption[Model comparative statistics as a function of time until arrival]{Model comparative statistics as a function of time until arrival. Note the log-scale for RMSE, MAE, and MAPE.}\label{fig:model_results_rmse_time}
+\includegraphics[width=\textwidth]{figure/model_results_rmse_time-1} \caption[Model comparative statistics as a function of time until arrival]{Model comparative statistics as a function of time until arrival. Note the log-scale for RMSE, MAE, and MAPE. The dashed line in the graph of PICP indicates the nominal coverage of 85\%.}\label{fig:model_results_rmse_time}
 \end{figure}
 
 
@@ -79,7 +79,7 @@ The \gls{picp} is not available for \Fsched{} since that method only provides po
 
 \begin{knitrout}\small
 \definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{figure}
-\includegraphics[width=\textwidth]{figure/model_results_rmse_stopn-1} \caption[Model comparative statistics as a function of stop sequence]{Model comparative statistics as a function of stop sequence.}\label{fig:model_results_rmse_stopn}
+\includegraphics[width=\textwidth]{figure/model_results_rmse_stopn-1} \caption[Model comparative statistics as a function of stop sequence]{Model comparative statistics as a function of stop sequence. RMSE, MAE, and MAPE once more use a log-scale. The dashed line in the graph of PICP indicates 85\% nominal coverage.}\label{fig:model_results_rmse_stopn}
 \end{figure}
 
 
@@ -98,7 +98,7 @@ Observations were binned into 15-minute intervals and summary statistics calcula
 
 \begin{knitrout}\small
 \definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{figure}
-\includegraphics[width=\textwidth]{figure/model_results_rmse_timeofday-1} \caption[Model comparative statistics as a function of time of day]{Model comparative statistics as a function of time of day.}\label{fig:model_results_rmse_timeofday}
+\includegraphics[width=\textwidth]{figure/model_results_rmse_timeofday-1} \caption[Model comparative statistics as a function of time of day]{Model comparative statistics as a function of time of day. RMSE, MAE, and MAPE use log-scales, and the dashed line in the graph of PICP indicates 85\% nominal coverage.}\label{fig:model_results_rmse_timeofday}
 \end{figure}
 
 
@@ -170,7 +170,7 @@ Since \Fsched{} provides only a point estimate, we cannot compare it directly to
 
 }
 
-\caption[GTFS equivalent]{GTFS equivalent}\label{fig:model_results_pr_gtfs}
+\caption[Capture probability and expected wait times for schedule-delay predictions]{Capture probability and expected wait times for a traveller arriving $x$ minutes before the schedule-delay prediction. The relevant values for the three other methods are displayed by dashed lines.}\label{fig:model_results_pr_gtfs}
 \end{figure}
 
 
@@ -192,7 +192,7 @@ We can also consider the reverse: a passenger would need to arrive no more than 
 
 \begin{knitrout}\small
 \definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{figure}
-\includegraphics[width=\textwidth]{figure/model_results_pr_time-1} \caption[Summary values by time until arrival]{Summary values by time until arrival.}\label{fig:model_results_pr_time}
+\includegraphics[width=\textwidth]{figure/model_results_pr_time-1} \caption[Capture probabilities and expected wait times for the models by time until the bus's actual arrival]{Capture probabilities and expected wait times for the models by time until the bus's actual arrival. Expected wait time (right) includes a shaded region for the 5 and 90\% quantiles of wait times.}\label{fig:model_results_pr_time}
 \end{figure}
 
 
@@ -215,7 +215,7 @@ The same values were computed by stop sequence and displayed in \cref{fig:model_
 
 \begin{knitrout}\small
 \definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{figure}
-\includegraphics[width=\textwidth]{figure/model_results_pr_stop-1} \caption[Summary values by stop sequence]{Summary values by stop sequence.}\label{fig:model_results_pr_stop}
+\includegraphics[width=\textwidth]{figure/model_results_pr_stop-1} \caption[Capture probabilities and expected wait times for the models by stop sequence]{Capture probabilities and expected wait times for the models by stop sequence. Expected wait time (right) includes a shaded region for the 5 and 90\% quantiles of wait times.}\label{fig:model_results_pr_stop}
 \end{figure}
 
 
@@ -231,7 +231,7 @@ The probabilities and expected waiting time were calculated for 15~minute interv
 
 \begin{knitrout}\small
 \definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{figure}
-\includegraphics[width=\textwidth]{figure/model_results_pr_timeofday-1} \caption[Summary values by time of day]{Summary values by time of day.}\label{fig:model_results_pr_timeofday}
+\includegraphics[width=\textwidth]{figure/model_results_pr_timeofday-1} \caption[Capture probabilities and expected wait times for the models by time of day]{Capture probabilities and expected wait times for the models by time of day. Expected wait time (right) includes a shaded region for the 5 and 90\% quantiles of wait times.}\label{fig:model_results_pr_timeofday}
 \end{figure}
 
 

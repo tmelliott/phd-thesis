@@ -15,7 +15,7 @@ pr_wait <- round(mean(layoverdat$current_delay >= 0), 2)
 pr_onemin <- round(mean(layoverdat$current_delay <= -60), 2)
 @
 
-<<layover_observance,cache=TRUE,message=FALSE,warning=FALSE,echo=FALSE,fig.height=3,fig.width=8,fig.align="center",out.width="\\linewidth",fig.cap=sprintf("Vehicle delays at layover stops truncated to 10~minutes early and 20~minutes late. Negative values indicate non-adherance by drivers, which makes up %d%s of cases.", (1 - pr_wait) * 100, "\\%")>>=
+<<layover_observance,cache=TRUE,message=FALSE,warning=FALSE,echo=FALSE,fig.height=3,fig.width=8,fig.align="center",out.width="\\linewidth",fig.cap=sprintf("Vehicle delays at layover stops truncated to 10~minutes early and 20~minutes late. Negative values indicate non-adherance by drivers, which make up %d%s of cases.", (1 - pr_wait) * 100, "\\%"),fig.scap="Vehicle delays at layover stops">>=
 ggplot(layoverdat, aes(current_delay / 60)) +
     geom_histogram(
         aes(y = ..count.. / sum(..count..)),

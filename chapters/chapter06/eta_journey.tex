@@ -16,7 +16,7 @@ Dynamic routing---the selection of candidate trips and real-time assessment of w
 
 }
 
-\caption[Route options]{Route options}\label{fig:eta_journey_arrival_prep}
+\caption[Route options for a passenger travelling from origin to desination]{Route options for a passenger travelling from `Start' to `End'. Both options involve a short walk at either end of the journey.}\label{fig:eta_journey_arrival_prep}
 \end{figure}
 
 
@@ -42,7 +42,7 @@ We can provide information relating to these questions using the \glspl{cdf} of 
 
 }
 
-\caption[ETA predictions for two route options]{ETA predictions for two route options. The coloured curves represent the CDF of arrival time for individual trips made at 7~am. The vertical black lines indicate the estimated walking time (according to Google Maps) from the Start location to each stop.}\label{fig:eta_journey_arrival}
+\caption[ETA predictions of bus arrivals at origin stops for two route options]{ETA predictions of bus arrivals at origin stops for two route options. The coloured curves represent the CDFs of arrival time for individual trips made at 1:20~pm. The vertical black lines indicate the estimated walking time (according to Google Maps) from the Start location to each stop.}\label{fig:eta_journey_arrival}
 \end{figure}
 
 
@@ -60,7 +60,7 @@ We can provide information relating to these questions using the \glspl{cdf} of 
 
 }
 
-\caption[ETA predictions for two route options]{ETA predictions for two route options. The coloured curves represent the CDF of arrival time for individual trips made at 7~am. The vertical black lines indicate the estimated walking time (according to Google Maps) from the Start location to each stop.}\label{fig:eta_journey_arriveby}
+\caption[ETA predictions of bus arrivals at the desination stops for two route options]{ETA predictions of bus arrivals at the desination stops for two route options. The coloured curves represent the CDF of arrival time for individual trips made at 1.20~pm. The vertical black lines indicate the estimated walking time (according to Google Maps) from the stops to the End location.}\label{fig:eta_journey_arriveby}
 \end{figure}
 
 
@@ -106,7 +106,7 @@ The \glspl{cdf} allow easy calculation of the predicted probability of success i
 
 }
 
-\caption[Results of performing the same journey planning prediction with different starting times (from  9:00~am to  3:00~pm), using the same start and end locations]{Results of performing the same journey planning prediction with different starting times (from  9:00~am to  3:00~pm), using the same start and end locations. Observations are whether or not the passenger would have arrived at the stop before the bus, jittered to better see each observation. Predictive probabilities of 0 and 1 that were correctly estimated have been removed.}\label{fig:eta_journey_results_avg}
+\caption[Results of performing the journey planning prediction with different starting times]{Results of performing the journey planning prediction with different starting times (from  9:00~am to  3:00~pm), using the same start and end locations. Observations are whether or not the passenger would have arrived at the stop before the bus. Predictive probabilities of 0 and 1 that were correctly estimated have been removed.}\label{fig:eta_journey_results_avg}
 \end{figure}
 
 \begin{table}
@@ -153,7 +153,7 @@ A more complex scenario is one in which the passenger must transfer from one rou
 
 }
 
-\caption[Transfer options]{Transfer options}\label{fig:eta_journey_transfer_prep}
+\caption[A transfer journey for a passenger travelling between two locations with no single connecting route.]{A passenger travelling from Origin to Destination must change buses at the Transfer stop, resulting in a journey with two \emph{legs}.}\label{fig:eta_journey_transfer_prep}
 \end{figure}
 
 
@@ -168,7 +168,7 @@ A more complex scenario is one in which the passenger must transfer from one rou
 
 }
 
-\caption[Arrival times]{Arrival times}\label{fig:eta_journey_transfer_graph}
+\caption[Arrival times CDFs for buses at the Origin, Transfer, and Destination stops]{Arrival times CDFs for buses at the Origin, Transfer, and Destination stops (top to bottom) as at 1:00~pm. The CDFs are coloured by leg (origin to transfer, or transfer to destination).}\label{fig:eta_journey_transfer_graph}
 \end{figure}
 
 
@@ -234,7 +234,7 @@ The particle filter predicts transfer probabilities with reasonable accuracy: lo
 
 }
 
-\caption[Results of performing the same transfer journey planning prediction with different starting times (from  9h00 to 15h00)]{Results of performing the same transfer journey planning prediction with different starting times (from  9h00 to 15h00). Observations are whether or not the first bus would arrive at the transfer stop before the second bus, jittered to better see each observation. Additionally, predictive probabilities of 0 and 1 have been removed since, after checking, none or these were invalid and only served to distort the figure.}\label{fig:eta_journey_transfer_many}
+\caption[Results of performing the transfer journey planning prediction with different starting times]{Results of performing the transfer journey planning prediction with different starting times (from  9h00 to 15h00). Observations are whether or not the first bus would arrive at the transfer stop before the second bus. Predictive probabilities of 0 and 1 that were correct have been removed.}\label{fig:eta_journey_transfer_many}
 \end{figure}
 
 \begin{table}
