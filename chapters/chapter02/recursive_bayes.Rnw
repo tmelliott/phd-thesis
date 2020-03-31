@@ -165,7 +165,7 @@ Next, the update step uses the observation $\boldsymbol{y}_k$ to adjust the pred
 \end{equation}
 
 
-The simplicity of the \kf{} means that, so long as the number of parameters $m$ is small, states can be estimated quickly with minimal processing demand. This simplicity, together with the fact that the \kf{} provides an exact solution for the multivariate normal state space model \citep{Anderson_1979}, makes the \kf{} a strong contender for real-time applications. However, it also makes several strong assumptions about the shape of the parameter distributions and is limited to linear relationships between states and measurements since these must be expressed in matrix form.
+The simplicity of the \kf{} means that, so long as the number of parameters $m$ is small, states can be estimated quickly with minimal processing demand. This simplicity, together with the fact that it provides an exact solution for the multivariate normal state space model \citep{Anderson_1979}, makes the \kf{} a strong contender for real-time applications. However, it also makes several strong assumptions about the shape of the parameter distributions and is limited to linear relationships between states and measurements since these must be expressed in matrix form.
 
 
 
