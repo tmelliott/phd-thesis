@@ -301,13 +301,13 @@ From \cref{eq:equirectangular_projection,eq:obs_dist,eq:gps_error_model}, the di
 \dist{\Vobs_k, \Vmeas(\Vstate_k)} = ||\vec{r}_k|| =
     \sqrt{r_{k1}^2 + r_{k2}^2}.
 \end{equation}
-However, this error can also be expressed in terms of two independent, standard normal random variables $z_1, z_2 \sim \Normal{0}{1}$, such that $r_{jk} = \GPSerrSD z_j$ for $j = 1, 2$, leading to
+However, this error can also be expressed in terms of two independent, standard Normal random variables $z_1, z_2 \sim \Normal{0}{1}$, such that $r_{jk} = \GPSerrSD z_j$ for $j = 1, 2$, leading to
 \begin{equation}
 \dist{\Vobs_k, \Vmeas(\Vstate_k)} =
     \sqrt{(\GPSerrSD z_1)^2 + (\GPSerrSD z_2)^2} =
     \GPSerrSD \sqrt{z_1^2 + z_2^2}.
 \end{equation}
-Since the distribution of two squared standard normal random variables is $\chi^2$ distributed with 2~degrees of freedom, which is itself exponential with rate 0.5, then
+Since the distribution of two squared standard Normal random variables is $\chi^2$ distributed with 2~degrees of freedom, which is itself exponential with rate 0.5, then
 \begin{equation}
 \label{eq:sum_sq_dist}
 z_1^2 + z_2^2 \sim \Exp{\frac{1}{2}}
@@ -394,7 +394,7 @@ The trip update observations differ from the \GPS{} observations in that there a
 To compute these likelihoods, we recall the dwell time model described by \cref{eq:stop_dwell_time,eq:stop_pstop,eq:stop_total_dwell_time}. Two additional parameters are needed: the actual arrival time of the bus at stop $m$, $\Tarr_{m}$, and the measurement error of arrival time in seconds, $\TUerr$. The arrival time can be computed for each stop $m$ directly from the model (via interpolation). The departure time is then computed by summing the arrival and dwell times.
 
 
-The observed arrival and departured times, denoted $\Varr_m$ and $\Vdep_m$, respectively, are modelled as normal random variables with mean and variance determined by the described model. For arrival time, this is
+The observed arrival and departured times, denoted $\Varr_m$ and $\Vdep_m$, respectively, are modelled as Normal random variables with mean and variance determined by the described model. For arrival time, this is
 \begin{equation}
 \label{eq:tu_arr_lhood}
 \Varr_m \sim \Normal{\Tarr_{mr}}{\TUerr},

@@ -121,7 +121,7 @@ The additional parameters $\boldsymbol{w}_k$ and $\boldsymbol{v}_k$ represent \e
 \subsection{\kf{}}
 \label{sec:kf}
 
-Commonly used in vehicle tracking applications, the \kf{} is a very fast, simple estimation method \citep{Anderson_1979} that assumes Gaussian errors and represents the state using a multivariate normal random variable with length $m$ mean vector and $m\times x$ covariance matrix
+Commonly used in vehicle tracking applications, the \kf{} is a very fast, simple estimation method \citep{Anderson_1979} that assumes Gaussian errors and represents the state using a multivariate Normal random variable with length $m$ mean vector and $m\times x$ covariance matrix
 \begin{equation}
 \label{eq:kf_estimators}
 \hat\bx_{k|k} = \E{\bx_k | \boldsymbol{y}_{1:k}}
@@ -139,7 +139,7 @@ The \kf{} version of the model presented in \cref{eq:rbe_model} is
 \boldsymbol{y}_k &= \mat{H}_k\bx_k + \boldsymbol{v}_k
 \end{split},
 \end{equation}
-where $\boldsymbol{w}_k$ and $\boldsymbol{v}_k$ are normal random variables with mean zero and covariance matrices $\mat{Q}_k$ and $\mat{R}_k$, respectively. The $m\times m$ covariance matrix $\mat{Q}_k$ represents the system noise at time $t_k$, which is defined as the rate of change of the variance of process noise \citep{Cathey_2003}. Measurement error is expressed by the $n\times n$ covariance matrix $\mat{R}_k$.
+where $\boldsymbol{w}_k$ and $\boldsymbol{v}_k$ are Normal random variables with mean zero and covariance matrices $\mat{Q}_k$ and $\mat{R}_k$, respectively. The $m\times m$ covariance matrix $\mat{Q}_k$ represents the system noise at time $t_k$, which is defined as the rate of change of the variance of process noise \citep{Cathey_2003}. Measurement error is expressed by the $n\times n$ covariance matrix $\mat{R}_k$.
 
 The \kf{} is implemented through two sets of equations. First is the prediction step, in which the current state (represented by the mean vector and covariance matrix) is predicted based solely on the previous state:
 \begin{equation}
@@ -165,7 +165,7 @@ Next, the update step uses the observation $\boldsymbol{y}_k$ to adjust the pred
 \end{equation}
 
 
-The simplicity of the \kf{} means that, so long as the number of parameters $m$ is small, states can be estimated quickly with minimal processing demand. This simplicity, together with the fact that it provides an exact solution for the multivariate normal state space model \citep{Anderson_1979}, makes the \kf{} a strong contender for real-time applications. However, it also makes several strong assumptions about the shape of the parameter distributions and is limited to linear relationships between states and measurements since these must be expressed in matrix form.
+The simplicity of the \kf{} means that, so long as the number of parameters $m$ is small, states can be estimated quickly with minimal processing demand. This simplicity, together with the fact that it provides an exact solution for the multivariate Normal state space model \citep{Anderson_1979}, makes the \kf{} a strong contender for real-time applications. However, it also makes several strong assumptions about the shape of the parameter distributions and is limited to linear relationships between states and measurements since these must be expressed in matrix form.
 
 
 
@@ -179,7 +179,7 @@ p(\bx_{k-1} | \boldsymbol{y}_{1:k-1}) \approx
 \sum_{i=1}^\Np w\vi_{k-1} \DiracMeasure{\bx\vi_{k-1}}{\bx_{k-1}}.
 \end{equation}
 
-One advantage of the \pf{} is that we are no longer constrained in the choice of transition function, $f$, or the error distribution. Instead of working with the mean and variance of the state (as is the case with the \kf{}) we work with \emph{independent point estimates} which each represent a plausible state. In \cref{cha:vehicle_model} I use a normal random variable for system noise, but this could be any appropriate distribution (for example a Cauchy if heavier tails are necessary). The state prediction step is carried out independently on each particle,
+One advantage of the \pf{} is that we are no longer constrained in the choice of transition function, $f$, or the error distribution. Instead of working with the mean and variance of the state (as is the case with the \kf{}) we work with \emph{independent point estimates} which each represent a plausible state. In \cref{cha:vehicle_model} I use a Normal random variable for system noise, but this could be any appropriate distribution (for example a Cauchy if heavier tails are necessary). The state prediction step is carried out independently on each particle,
 \begin{equation}
 \label{eq:ch2:pf_predict_particle}
 \bx\vi_k = f\left(\bx\vi_{k-1}, \boldsymbol{v}\vi_k\right),
