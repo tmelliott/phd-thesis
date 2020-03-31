@@ -1,7 +1,7 @@
 \section{Recursive Bayesian models}
 \label{sec:recursive-bayes}
 
-The most challenging problem we face in this application is its \rt{} nature. Vehicle's report their current location, from which we want to estimate road speeds to predict arrival times, all within no more than 30~seconds. Fortunately, a certain class of models suit themselves well to \rt{} applications, and are indeed used in many vehicle tracking and robotics applications \citep{Anderson_2012,Gustafsson_2002,Mutambara_2000}: \glspl{rbm}, sometimes referred to a \emph{sequential Bayesian estimation}.
+The most challenging problem we face in this application is its \rt{} nature. Vehicle's report their current location, from which we want to estimate road speeds to predict arrival times, all within no more than 30~seconds. Fortunately, a certain class of models suit themselves well to \rt{} applications, and are indeed used in many vehicle tracking and robotics applications \citep{Anderson_1979,Gustafsson_2002,Mutambara_2000}: \glspl{rbm}, sometimes referred to a \emph{sequential Bayesian estimation}.
 
 
 In a typical analysis, data $\mat{Y}$ would be stored in an $n\times k$ matrix corresponding to $k$ measurements of $n$ variables over time. Then Bayes' rule is used to estimate the posterior distribution of an $m\times k$ matrix of parameters $\mat{X}$ all at once,
@@ -121,7 +121,7 @@ The additional parameters $\boldsymbol{w}_k$ and $\boldsymbol{v}_k$ represent \e
 \subsection{\kf{}}
 \label{sec:kf}
 
-Commonly used in vehicle tracking applications, the \kf{} is a very fast, simple estimation method \citep{Anderson_2012} that assumes Gaussian errors and represents the state using a multivariate normal random variable with length $m$ mean vector and $m\times x$ covariance matrix
+Commonly used in vehicle tracking applications, the \kf{} is a very fast, simple estimation method \citep{Anderson_1979} that assumes Gaussian errors and represents the state using a multivariate normal random variable with length $m$ mean vector and $m\times x$ covariance matrix
 \begin{equation}
 \label{eq:kf_estimators}
 \hat\bx_{k|k} = \E{\bx_k | \boldsymbol{y}_{1:k}}
@@ -165,7 +165,7 @@ Next, the update step uses the observation $\boldsymbol{y}_k$ to adjust the pred
 \end{equation}
 
 
-The simplicity of the \kf{} means that, so long as the number of parameters $m$ is small, states can be estimated quickly with minimal processing demand. This makes the \kf{} a strong contender for real-time applications. However, it also makes several strong assumptions about the shape of the parameter distributions and is limited to linear relationships between states and measurements since these must be expressed in matrix form.
+The simplicity of the \kf{} means that, so long as the number of parameters $m$ is small, states can be estimated quickly with minimal processing demand. This simplicity, together with the fact that the \kf{} provides an exact solution for the multivariate Normal state space model \citep{Anderson_1979}, makes the \kf{} a strong contender for real-time applications. However, it also makes several strong assumptions about the shape of the parameter distributions and is limited to linear relationships between states and measurements since these must be expressed in matrix form.
 
 
 
