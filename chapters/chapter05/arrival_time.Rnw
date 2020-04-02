@@ -4,6 +4,7 @@
 
 <<layover_load,cache=TRUE,message=FALSE,warning=FALSE,echo=FALSE>>=
 source("scripts/layover.R")
+
 layoverdat <- layover %>%
     mutate(
         current_delay = pmax(-10*60, current_delay),
@@ -80,14 +81,20 @@ Another way to make predictions is to use historical data instead of real-time. 
 \subsection[Schedule delays]{Schedule delays (\Fsched{})}
 \label{eq:prediction_arrival_sched_delay}
 
-The currently deployed prediction method uses the scheduled arrival time at stop $j$ along route $r$, $S_{rj}$, along with the arrival or departure time at the most recently visited stop, $T_{rm}$, giving a current delay, in seconds, of
+
+
+The currently deployed prediction method uses the scheduled arrival time at stop $j$ along route $r$, $S_{rj}$, along with the arrival or departure time at the most recently visited stop, $\Varr_{rm}$ or $\Vdep_{rm}$, respectively, giving a current delay, in seconds, of
 \begin{equation}
 \label{eq:sched_cur_delay}
-d_{r} = T_{rm} - S_{rm}.
+\Curdwell_{r} =
+\begin{cases}
+\Varr_{rm} - S_{rm} & \text{if arrival,} \\
+\Vdep_{rm} - S_{rm} & \text{if departure.}
+\end{cases}
 \end{equation}
 The arrival time is then predicted as
 \begin{equation}
 \label{eq:sched_pred_arr}
-\hat\Tarr_{rj} = S_{rj} + d_r.
+\hat\Tarr_{rj} = S_{rj} + \Curdwell_r.
 \end{equation}
 Note, however, that if a trip has not yet been observed, the default delay is $d_r = 0$. This happens if there is not a vehicle servicing it, the vehicle is running late, or the trip has been cancelled altogether.

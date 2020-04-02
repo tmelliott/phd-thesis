@@ -178,7 +178,7 @@ The observed arrival and departured times, denoted $\Varr_m$ and $\Vdep_m$, resp
 \label{eq:tu_arr_lhood}
 \Varr_m \sim \Normal{\Tarr_{mr}}{\TUerr},
 \end{equation}
-and for departure time
+and for departure time, using dwell time $\pdwell_m$ from \cref{eq:stop_total_dwell_time}, is
 \begin{equation}
 \label{eq:tu_dep_lhood}
 \Vdep_m \sim \Normal{\Tarr_m + \pdwell_m}{\TUerr}.
@@ -209,7 +209,7 @@ allowing the particle sample to be reweighted according to the temporal differen
 
 }
 
-\caption[Particles are weighted by their arrival time at a stop]{Particles travelling past a stop with an arrival time observation (red point). Solid lines represent particles that stopped, while dashed lines indicate particles that did not. Darker lines represent particles with biiger weights according to the arrival time likelihood.}\label{fig:tu_update}
+\caption[Particles are weighted by their arrival time at a stop]{Particles travelling past a stop with an arrival time observation (red point). Solid lines represent particles that stopped, while dashed lines indicate particles that did not. Darker lines represent particles with bigger weights according to the arrival time likelihood.}\label{fig:tu_update}
 \end{figure}
 
 

@@ -399,7 +399,7 @@ The observed arrival and departured times, denoted $\Varr_m$ and $\Vdep_m$, resp
 \label{eq:tu_arr_lhood}
 \Varr_m \sim \Normal{\Tarr_{mr}}{\TUerr},
 \end{equation}
-and for departure time
+and for departure time, using dwell time $\pdwell_m$ from \cref{eq:stop_total_dwell_time}, is
 \begin{equation}
 \label{eq:tu_dep_lhood}
 \Vdep_m \sim \Normal{\Tarr_m + \pdwell_m}{\TUerr}.
@@ -423,7 +423,7 @@ p(\Vobs_k | \Vstate\vi_k) =
 \end{equation}
 allowing the particle sample to be reweighted according to the temporal difference in arrival and departure times as demonstrated in \cref{fig:tu_update}.
 
-<<tu_update,echo=FALSE,fig.width=8*.8,fig.height=4,out.width="0.8\\textwidth",fig.align="center",fig.cap="Particles travelling past a stop with an arrival time observation (red point). Solid lines represent particles that stopped, while dashed lines indicate particles that did not. Darker lines represent particles with biiger weights according to the arrival time likelihood.",fig.scap="Particles are weighted by their arrival time at a stop">>=
+<<tu_update,echo=FALSE,fig.width=8*.8,fig.height=4,out.width="0.8\\textwidth",fig.align="center",fig.cap="Particles travelling past a stop with an arrival time observation (red point). Solid lines represent particles that stopped, while dashed lines indicate particles that did not. Darker lines represent particles with bigger weights according to the arrival time likelihood.",fig.scap="Particles are weighted by their arrival time at a stop">>=
 suppressPackageStartupMessages(library(tidyverse))
 set.seed(444)
 

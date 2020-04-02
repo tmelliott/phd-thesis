@@ -776,7 +776,7 @@ speed_trans <- scales::trans_new(
 
 @
 
-<<nw_model_n2_kf,echo=FALSE,cache=TRUE,dependson="nw_model_n2_kf_fit",fig.width=8,fig.height=7,out.width="\\textwidth",fig.cap="Results for the hierarchical approach to modelling road speed. Left: the training data with a sample of posterior fits for \\prog{JAGS}. Right: the test data with the Kalman filter estimation results, showing the speed estimate (red line), its uncertainty (shared in red), and the posterior predictive region for vehicle speeds (shaded in grey).">>=
+<<nw_model_n2_kf,echo=FALSE,cache=TRUE,dependson="nw_model_n2_kf_fit",fig.width=8,fig.height=7,out.width="\\textwidth",fig.cap="Results for the hierarchical approach to modelling road speed. Left: the training data with a sample of posterior fits for \\prog{JAGS}. Right: the test data with the Kalman filter estimation results, showing the speed estimate (red line), its uncertainty (shaded in red), and the posterior predictive region for vehicle speeds (shaded in grey).">>=
 egg::ggarrange(
     ggplot(betas %>% mutate(l = paste("Segment", l))) +
         geom_point(aes(timestamp, length / travel_time),

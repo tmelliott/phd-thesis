@@ -48,11 +48,11 @@ Once the particle arrives at the next stop, its dwell time is sampled from the d
 This occurs until the particle reaches the end of the route.
 
 \paragraph{Step 5: obtain arrival time distributions}
-Having obtained arrival times for all $\Np^\star$ particles, the predictive distribution for stop $j$---as in \cref{cha:vehicle_model}---is
+Having obtained arrival times for all $\Np^\star$ equally-weighted particles, the predictive distribution for stop $j$---as in \cref{cha:vehicle_model}---is
 \begin{equation}
 \label{eq:particle_predictive_dist}
 p(\Tarr_j | \Tripr_k, \RouteNWstate_\Tripr) \approx
 \sum_{i=1}^{\Np^\star} \Pwt \dirac_{\Tarr_j\vi}\left(\Tarr_j\right)
-= \frac{1}{\Np^\star}\sum_{i=1}^{\Np^\star} \dirac_{\Tarr_j\vi}\left(\Tarr_j\right)
+= \frac{1}{\Np^\star}\sum_{i=1}^{\Np^\star} \dirac_{\Tarr_j\vi}\left(\Tarr_j\right).
 \end{equation}
-Blah, since all weights are equal. Estimates or quantiles are obtained from the particle approximation of the distribution of arrival times---for example, the mean, median, or a 90\% credible interval. As discussed in \cref{app:particle-summaries}, computing quantiles is a computationally demanding task for large numbers of particles due to the sorting of particles in order from earliest to latest arrival times. Using $\Np^\star < \Np$ helps to reduce this complexity, but particles need to be re-sorted at each stop. In \cref{cha:etas} I demonstrate an alternative, computationally simpler method of computing quantiles.
+Estimates or quantiles are obtained from the particle approximation of the distribution of arrival times---for example, the mean, median, or a 90\% credible interval. As discussed in \cref{app:particle-summaries}, computing quantiles is a computationally demanding task for large numbers of particles due to the sorting of particles in order from earliest to latest arrival times. Using $\Np^\star < \Np$ helps to reduce this complexity, but particles need to be re-sorted at each stop. In \cref{cha:etas} I demonstrate an alternative, computationally simpler method of computing quantiles.

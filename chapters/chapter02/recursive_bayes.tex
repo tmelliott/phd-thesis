@@ -1,7 +1,7 @@
 \section{Recursive Bayesian models}
 \label{sec:recursive-bayes}
 
-The most challenging problem we face in this application is its \rt{} nature. Vehicle's report their current location, from which we want to estimate road speeds to predict arrival times, all within no more than 30~seconds. Fortunately, a certain class of models suit themselves well to \rt{} applications, and are indeed used in many vehicle tracking and robotics applications \citep{Anderson_1979,Gustafsson_2002,Mutambara_2000}: \glspl{rbm}, sometimes referred to a \emph{sequential Bayesian estimation}.
+The most challenging problem we face in this application is its \rt{} nature. Vehicles report their current location, from which we want to estimate road speeds to predict arrival times, all within no more than 30~seconds. Fortunately, a certain class of models suit themselves well to \rt{} applications, and are indeed used in many vehicle tracking and robotics applications \citep{Anderson_1979,Gustafsson_2002,Mutambara_2000}: \glspl{rbm}, sometimes referred to a \emph{sequential Bayesian estimation}.
 
 
 In a typical analysis, data $\mat{Y}$ would be stored in an $n\times k$ matrix corresponding to $k$ measurements of $n$ variables over time. Then Bayes' rule is used to estimate the posterior distribution of an $m\times k$ matrix of parameters $\mat{X}$ all at once,

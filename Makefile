@@ -50,7 +50,7 @@ clean: #$(NAME).tex
 allrefs.bib:
 	ln -s ~/Dropbox/PhD/readings/reflist.bib allrefs.bib
 
-reflist.bib: $(NAME).tex allrefs.bib $(NAME).bbl
+reflist.bib: $(NAME).tex | allrefs.bib $(NAME).bbl
 	@cp allrefs.bib $@
 	@$(TEX) $(TEXOPTIONS)
 	@echo " * creating reflist.bib"
