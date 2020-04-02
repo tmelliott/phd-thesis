@@ -25,16 +25,16 @@ v\vi_\ell & (1-\SegProg_k)\Tseglen_\ell > 200,\\
 \Vspeed\vi_k & \text{otherwise}.
 \end{cases}
 \end{equation}
-The overall \emph{travel-time-so-far} is stored as $\Delta\vi = \tilde b\vi$.
+The overall \emph{travel-time-so-far} is stored as $\ttsofar\vi = \tilde b\vi$.
 
 
 \paragraph{Step 2: compute arrival time at the next stop}
-If the bus is not at a stop, segment speeds are forecast using the current network state and the particle's travel-time-so-far, $\Delta\vi$. In \cref{sec:nw_hist_model}, I demonstrated the possibility of using historical data to make forecasts, which could be used at this stage. However, as this infrastructure was not available at the time of writing, we simulate a speed from the following distribution instead, where $P_\text{max}$ is the maximum variance (we used the overall variance of speeds along each segment from the data used in \cref{cha:vehicle_model}):
+If the bus is not at a stop, segment speeds are forecast using the current network state and the particle's travel-time-so-far, $\ttsofar\vi$. In \cref{sec:nw_hist_model}, I demonstrated the possibility of using historical data to make forecasts, which could be used at this stage. However, as this infrastructure was not available at the time of writing, we simulate a speed from the following distribution instead, where $P_\text{max}$ is the maximum variance (we used the overall variance of speeds along each segment from the data used in \cref{cha:vehicle_model}):
 \begin{equation}
 \label{sec:particle_travel_time_pred}
 b\vi_j \sim
 \Normal{\hat\RouteNWstateseg_j}{
-  \left[(\RouteNWstatevarseg_j + \Delta\vi\NWnoise)^2 + \NWvar_j^2\right]
+  \left[(\RouteNWstatevarseg_j + \ttsofar\vi\NWnoise)^2 + \NWvar_j^2\right]
   \wedge P_\text{max}
 },
 \end{equation}

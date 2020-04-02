@@ -2,82 +2,18 @@
 \label{sec:prediction_arrival_time}
 
 
-
-
 \begin{knitrout}\small
-\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{figure}
-
-{\centering \includegraphics[width=\linewidth]{figure/layover_observance-1} 
-
-}
-
-\caption[Vehicle delays at layover stops]{Vehicle delays at layover stops truncated to 10~minutes early and 20~minutes late. Negative values indicate non-adherance by drivers, which make up 40\% of cases.}\label{fig:layover_observance}
-\end{figure}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
 
 
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error: no such table: stop\_times}}
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in eval(lhs, parent, parent): object 'layover' not found}}
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in mean(layoverdat\$current\_delay >= 0): object 'layoverdat' not found}}
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in mean(layoverdat\$current\_delay <= -60): object 'layoverdat' not found}}\end{kframe}
 \end{knitrout}
 
-The estimated trip state (and any associated vehicle) together with the road network can now be combined to forecast how long it will take for the vehicle to reach all remaining stops along the route. Dwell times can also affect arrival time uncertainty \citep{Shen_2013,Wang_2016,Robinson_2013,Meng_2013,Shalaby_2004,Hans_2015}. Some trips have the added complexity of layovers at specific stops---these are common at major points of interest, such as at a mall, or stations where many routes connect so passengers can transfer between services (see \cref{sec:gtfs}). In theory, drivers wait at these stops until the scheduled departure time before continuing the trip; however, in 40\% of cases over two weeks, the driver left before the scheduled departure time, as is demonstrated in \cref{fig:layover_observance}, and 31\% departed more than one minute early.
 
 
-There are various ways to forecast arrival times, each with associated drawbacks and advantages. This section presents four arrival time prediction methods:
-\begin{itemize}
-\item \Fpf{} uses the particle filter estimate of vehicle state and the network state to obtain arrival time distributions;
-\item \Fnorm{} uses a Normal approximation of the vehicle's state, along with trip state, network state, and dwell-time distributions;
-\item \Fhist{} uses only historical delay data; and
-\item \Fsched{} uses the schedule and current real-time delay, which is currently used by \AT{}.
-\end{itemize}
-
-
-Methods \Fpf{} and \Fnorm{} use the network state, which is simplified for each route by including only the segments (in order) used by route $r$ with mean and variance
-\begin{equation}
-\label{eq:route_nw_state}
-\RouteNWstate^r =
-\begin{bmatrix}
-\RouteNWstateseg^r_1 \\
-\RouteNWstateseg^r_2 \\
-\vdots \\
-\RouteNWstateseg^r_L
-\end{bmatrix}\quad\text{and}\quad
-\RouteNWstatevar^r =
-\begin{bmatrix}
-\RouteNWstatevarseg^r_{1} & \RouteNWstatecor^r_{1,2} & \cdots &\RouteNWstatecor^r_{1,L} \\
-\RouteNWstatecor^r_{2,1} & \RouteNWstatevarseg^r_{2} & \ddots &\RouteNWstatecor^r_{2,L} \\
-\vdots & \ddots & \ddots & \vdots \\
-\RouteNWstatecor^r_{L,1} & \RouteNWstatecor^r_{L,2} & \cdots & \RouteNWstatevarseg^r_L
-\end{bmatrix},
-\end{equation}
-respectively, where $\RouteNWstateseg^r_{i}$ is the average vehicle speed along the $i$th segment of route $r$, $\RouteNWstatevarseg^r_{i}$ is the variance for that segment, and $\RouteNWstatecor^r_{i,j}$ is the covariance between segments $i$ and $j$. Note that the current implementation does not include segment covariances, but the above set-up demonstrates that the model can include them, if available. To simplify notation, I have dropped the $r$ superscript for the remainder of this chapter since only one route is considered at any one time.
-
-For bus stop dwell times, we collected two weeks of data (as in \cref{sec:nw_par_est}) and calculated the mean and variance of dwell time for all stops along each trip. It is possible to determine if a bus \emph{did} stop (there is both an arrival and a departure time), but not that a bus \emph{did not} stop. For example, if the bus reports only an arrival time, it is unclear whether this is because the bus truly did not stop, or if it is a deficiency with the data. The bus may not have reported both observations, or, more likely, the polling interval (30 seconds) did not see both of them (Auckland Transport's real-time feed only includes the most recent observation). Therefore, stopping probabilities cannot be estimated from the data, so the same value of $\Prstop_j=0.5$ is used as in \cref{cha:vehicle_model}.
-
-
-\input{chapters/chapter05/arrival_time_pf.tex}
-\input{chapters/chapter05/arrival_time_normal.tex}
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Historical data
-\subsection[Historical arrival delays]{Historical arrival delays (\Fhist{})}
-\label{eq:prediction_arrival_historical}
-
-Another way to make predictions is to use historical data instead of real-time. We collected two weeks of data and recorded arrival time delays by stop and route to obtain a distribution which can then be used to make predictions. The arrival time at stop $j$ along route $r$ has an average delay of $\bar d_{rj}$ seconds with variance $D_{rj}^2$, so the predicted arrival time at stop $j$ on route $r$ with scheduled arrival time $S_{rj}$ is
-\begin{equation}
-\label{eq:arrival_pred_historical}
-\hat\Tarr_{j} \sim \Normal{S_{rj} + \bar d_{rj}}{D_{rj}^2}.
-\end{equation}
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Schedule + delay
-\subsection[Schedule delays]{Schedule delays (\Fsched{})}
-\label{eq:prediction_arrival_sched_delay}
-
-The currently deployed prediction method uses the scheduled arrival time at stop $j$ along route $r$, $S_{rj}$, along with the arrival or departure time at the most recently visited stop, $T_{rm}$, giving a current delay, in seconds, of
-\begin{equation}
-\label{eq:sched_cur_delay}
-d_{r} = T_{rm} - S_{rm}.
-\end{equation}
-The arrival time is then predicted as
-\begin{equation}
-\label{eq:sched_pred_arr}
-\hat\Tarr_{rj} = S_{rj} + d_r.
-\end{equation}
-Note, however, that if a trip has not yet been observed, the default delay is $d_r = 0$. This happens if there is not a vehicle servicing it, the vehicle is running late, or the trip has been cancelled altogether.

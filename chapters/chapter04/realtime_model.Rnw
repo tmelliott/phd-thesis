@@ -89,11 +89,11 @@ p + geom_ribbon(aes(ymin = x - err, ymax = x + err),
 \subsection{Update step}
 \label{sec:kf_update}
 
-Updating the \kf{} involves taking the predicted state and updating it using \emph{observations} of vehicle speeds along road segments. These are obtained from the \pf{} (\cref{sec:vehicle_speeds}). However, it is possible to have multiple observations per road segment in one update period, as it is common for buses to travel one behind the other, particularly along bus lanes. Therefore, we have a vector of observations passing through segment $\ell$ in the time interval $(t_{c-1}, t_c]$,
-\begin{equation} \label{eq:nw_seg_obs}
-\NWobss_{\ell c} = \bigcup_{v\in V_{\ell c}} \NWobss_{\ell c}^v,
-\end{equation}
-which can be the empty set $\NWobss_{\ell c} = \emptyset$ if no vehicles travel through the segment in the interval.
+Updating the \kf{} involves taking the predicted state and updating it using \emph{observations} of vehicle speeds along road segments. These are obtained from the \pf{} (\cref{sec:vehicle_speeds}). However, it is possible to have multiple observations per road segment in one update period, as it is common for buses to travel one behind the other, particularly along bus lanes. Therefore, we have an \emph{observation vector} for a set of vehicles $V_{\ellc}$ passing through segment $\ell$ in the time interval $(t_{c-1}, t_c]$.
+% \begin{equation} \label{eq:nw_seg_obs}
+% \NWobss_{\ell c} = \bigcup_{v\in V_{\ell c}} \Vttobs_{\ell c}^v,
+% \end{equation}
+% which can be the empty set $\NWobss_{\ell c} = \emptyset$ if no vehicles travel through the segment in the interval.
 
 
 When updating the network, each observation must be accounted for. One way would be to combine the observations into a single estimate; however, this involves averaging observations and uncertainties. An alternative is to use an \emph{\infil{}}, which allows the summation of information from multiple observations \citep{Mutambara_2000}. The information filter involves inverting the state uncertainty $\NWstatevar$; however, this is a simple computation due to having a one-dimensional state---if we were to estimate the state of all segments simultaneously, inverting the $L\times L$ uncertainty matrix would be computationally demanding, or even impossible, and we would be unable to use the approach.
