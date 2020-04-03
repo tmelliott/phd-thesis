@@ -1,7 +1,7 @@
 \section{Improving forecasts with history}
 \label{sec:nw_hist_model}
 
-The model presented in \cref{sec:nw_model,sec:nw_realtime,sec:nw_par_est} is adequate for estimating the \emph{real-time} state of the network, but is unuseful for forecasting vehicle speeds, particularly just before or after a peak period. In \cref{cha:prediction}, we explore the prediction of arrival times, which involves making short-term forecasts of speed. Using historical data is one way of improving speed forecasts, particularly around peak times.
+The model presented in \cref{sec:nw_model,sec:nw_realtime,sec:nw_par_est} is adequate for estimating the \emph{real-time} state of the network, but is unuseful for forecasting vehicle speeds, particularly just before or after a peak period. In \cref{cha:prediction}, we explore the prediction of arrival times, which involves making short-term forecasts of speed. Using historical data is one way of improving speed forecasts, particularly around peak times, which are notoriously difficult to predict due to high levels of uncertainty \citep{He_2020}. Perhaps because of this difficulty, such long-term travel time prediction has seldom been explored in the transit literature \citep{Moreira_2015}.
 
 
 In \cref{nw_par_est_real}, I showed that most roads have a ``peak effect'' in the morning or the evening, while some exhibit both. It seems reasonable therefore to have a model which allows a segment to have zero, one, or two peaks, each with varying magnitude (the size of the decrease in speed) and width (how long the peak period is). The temporal location of these peaks is likely to be related, but variable: some roads will experience peak traffic earlier than others, for example.

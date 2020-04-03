@@ -47,10 +47,10 @@ clean: #$(NAME).tex
 	@-rm -f *.acr *.acn *.alg *.bbl *-blx.bib *.glg *.glo *.gls *.ist *.run.xml
 	@-rm -f $(FRONTTEX) $(CHTEX) $(ENDTEX)
 
-allrefs.bib:
-	ln -s ~/Dropbox/PhD/readings/reflist.bib allrefs.bib
+#allrefs.bib:
+#	ln -s ~/Dropbox/PhD/readings/reflist.bib allrefs.bib
 
-reflist.bib: $(NAME).tex | allrefs.bib $(NAME).bbl
+reflist.bib: $(NAME).tex allrefs.bib $(NAME).bbl
 	@cp allrefs.bib $@
 	@$(TEX) $(TEXOPTIONS)
 	@echo " * creating reflist.bib"
