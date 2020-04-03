@@ -16,7 +16,7 @@ Usefulness corresponds to the interval's width and expected wait time. These sho
 
 Here we consider symmetric $100(1-\alpha)$\% prediction intervals, $\alpha\in (0,1)$, of the form
 \begin{equation}
-\left(\hat\Teta_{\alpha/2},\ \hat\Teta_{1-\alpha/2}+1\right)
+\left(\hat\Teta_{\alpha/2},\ \hat\Teta_{1-\alpha/2}+1\right),
 \end{equation}
 where $\hat A_q$ is as defined in \cref{eq:eta_calc_quantile}. The ``plus one'' is used to ensure the probability of the bus arrival before the upper bound is \emph{at least} $1-\frac{\alpha}{2}$. Note that although these intervals are symmetric in probability, they are most often asymmetric on the arrival time scale, particularly when the bus is near and the distribution is right-skewed, as shown in \cref{fig:eta_dist_skew}. In contrast, a Kalman filter implementation assumes Gaussian errors, so a symmetric interval is also symmetric around the mean as shown in, often leading to incorrect intervals (potentially even an \gls{eta} below zero).
 

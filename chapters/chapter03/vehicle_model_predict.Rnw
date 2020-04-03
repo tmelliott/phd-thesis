@@ -36,9 +36,9 @@ v_k \sim \TNormal{0}{\Vnoise}{-\Vspeed_{k-1}}{30 - \Vspeed_{k-1}}.
 The noise term is truncated to ensure the new speed is both positive and under 30~m/s, which is 108~km/h (the maximum road speed in Auckland is 100~km/h). The resulting transition function, $\Vtrans_{A1}$, is easily implemented by simulating, for each particle, a new speed before calculating the final state using \cref{eq:vehicle_model_newton}. A similar model was used by \citet{Cathey_2003,Dailey_2001}.
 
 
-\Cref{fig:transition_demo1} demonstrates transition model $\Vtrans_{A1}$ using a sample of $N=10$~particles which, at time $t_{k-1}$, take one of three unique states (due to resampling in the previous iteration, \cref{sec:pf}). The points have been coloured by their initial state to demonstrate the effect of adding system noise \emph{before} transitioning to allow the particles to disperse. Not doing so would, in this instance, yield only three unique states in the final predictive distribution.
+\Cref{fig:transition_demo} demonstrates transition model $\Vtrans_{A1}$ (left) using a sample of $N=10$~particles which, at time $t_{k-1}$, take one of three unique states (due to resampling in the previous iteration, \cref{sec:pf}). The points have been coloured by their initial state to demonstrate the effect of adding system noise \emph{before} transitioning to allow the particles to disperse. Not doing so would, in this instance, yield only three unique states in the final predictive distribution.
 
-<<transition_demo,echo=FALSE,fig.width=8*.33,fig.height=3,out.width=".33\\textwidth",fig.cap="Simulated particle trajectories using three transition functions. Points have been coloured by their parent (after resampling) to demonstrate the affect of system noise.",fig.align="center",fig.subcap=paste0("$\\Vtrans_{A", 1:3, "}$")>>=
+<<transition_demo,echo=FALSE,fig.width=8,fig.height=3,out.width="\\textwidth",fig.cap="Simulated particle trajectories using three transition functions, $f_{A1}$, $f_{A2}$, and $f_{A3}$ from left to right. Points have been coloured by their parent (after resampling) to demonstrate the affect of system noise.",fig.align="center",fig.scap="Simulated particle trajectories using three transition functions">>=
 
 suppressPackageStartupMessages(library(tidyverse))
 set.seed(2483576)
@@ -68,7 +68,7 @@ d <- bind_rows(d, d2) %>%
     mutate(parent = as.character(parent))
 
 
-ggplot(d, aes(time, distance, group = id, colour = parent)) +
+F1 <- ggplot(d, aes(time, distance, group = id, colour = parent)) +
     geom_point() +
     geom_path() +
     scale_x_continuous("Time (seconds)",
@@ -79,7 +79,11 @@ ggplot(d, aes(time, distance, group = id, colour = parent)) +
         limits = c(min(d$distance), 1000)
     ) +
     theme_classic() +
-    theme(legend.position = "none")
+    theme(
+        legend.position = "none",
+        plot.title = element_text(size = 10)
+    ) +
+    ggtitle("A1")
 
 
 
@@ -107,7 +111,7 @@ for (i in 1:30) {
 }
 
 d <- d %>% mutate(parent = as.character(parent))
-ggplot(d, aes(time, distance, group = id, colour = parent)) +
+F2 <- ggplot(d, aes(time, distance, group = id, colour = parent)) +
     geom_point(data = d %>% filter(time %in% c(30, 60))) +
     geom_path() +
     scale_x_continuous("Time (seconds)",
@@ -118,7 +122,11 @@ ggplot(d, aes(time, distance, group = id, colour = parent)) +
         limits = c(min(d$distance), 1000)
     ) +
     theme_classic() +
-    theme(legend.position = "none")
+    theme(
+        legend.position = "none",
+        plot.title = element_text(size = 10)
+    ) +
+    ggtitle("A2")
 
 
 
@@ -167,7 +175,7 @@ for (i in 1:30) {
 }
 
 d <- d %>% mutate(parent = as.character(parent))
-ggplot(d, aes(time, distance, group = id, colour = parent)) +
+F3 <- ggplot(d, aes(time, distance, group = id, colour = parent)) +
     geom_point(data = d %>% filter(time %in% c(30, 60))) +
     geom_path() +
     scale_x_continuous("Time (seconds)",
@@ -178,11 +186,18 @@ ggplot(d, aes(time, distance, group = id, colour = parent)) +
         limits = c(min(d$distance), 1000)
     ) +
     theme_classic() +
-    theme(legend.position = "none")
+    theme(
+        legend.position = "none",
+        plot.title = element_text(size = 10)
+    ) +
+    ggtitle("A3")
+
+library(patchwork)
+F1 + F2 + F3
 
 @
 
-The main issue with this model is that it assumes constant speed between observations, which---given Auckland traffic---is unlikely to be the case. In \cref{fig:vehicle_state}, we showed speed varying over time, even between observations. To model this, we \emph{iteratively} update the vehicle's state\footnote{This is one advantage of the particle filter---we can easily perform iterative updates!} by reusing \cref{eq:vehicle_model_newton} $\Vtdiff_k$ times, setting $\Vtdiff_k=1$ in each iteration. \Cref{fig:transition_demo2} shows the effect this has on the particles' trajectories.
+The main issue with this model is that it assumes constant speed between observations, which---given Auckland traffic---is unlikely to be the case. In \cref{fig:vehicle_state}, we showed speed varying over time, even between observations. To model this, we \emph{iteratively} update the vehicle's state\footnote{This is one advantage of the particle filter---we can easily perform iterative updates!} by reusing \cref{eq:vehicle_model_newton} $\Vtdiff_k$ times, setting $\Vtdiff_k=1$ in each iteration. The second graph in \cref{fig:transition_demo} shows the effect this has on the particles' trajectories.
 
 
 Of course, if speed is the first derivative of the vehicle's trajectory function, then \emph{acceleration} is the second, $\Vaccel = d''(t)$. In this case, we add a third component to the vehicle's state and consider speed similarly to distance. The transition function
@@ -208,7 +223,7 @@ System noise (interpreted as \emph{the average change in acceleration per second
 \label{eq:vehicle_model_accel_dist}
 v_s \sim \TNormal{0}{\Vnoise}{-\dot z_{s-1} - \ddot z_{s-1}}{30 - \dot z_{s-1} - \ddot z_{s-1}}
 \end{equation}
-These trajectories are shown in \cref{fig:transition_demo3}. The main issue with $\Vtrans_{A3}$ is that it is difficult to parameterize and constrain the acceleration to ensure speed remains within the interval $(0,30)$ while preserving the function's ability to generate plausible trajectories.
+These trajectories are shown in the third graph in \cref{fig:transition_demo}. The main issue with $\Vtrans_{A3}$ is that it is difficult to parameterize and constrain the acceleration to ensure speed remains within the interval $(0,30)$ while preserving the function's ability to generate plausible trajectories.
 
 
 
@@ -245,7 +260,7 @@ Phases i and ii can be combined with 1a and 1c from above (deceleration and acce
 Phase ii includes the time taken for passengers to get on and off the bus, which varies significantly between stops, routes, and time of day. There are many ways to model service time: an exponential \citep{Hans_2015}, regression models \citep{Shen_2013}, or a real-time Kalman filter \citep{Shalaby_2004}. Here, I present a truncated Normal distribution using the mean and variance of historical dwell times, truncated at zero. The service time at stop $m$ along a route ($m=1,...,M-1$; dwell time does not apply to the last stop) is denoted $\pserve_m$, modelled by its mean and variance, $\dwell_m$ and $\dwellvar_m$, respectively, as estimated from historical data:
 \begin{equation}
 \label{eq:stop_dwell_time}
-\pserve_m \sim \TNormal{\dwell_m}{\dwellvar_m}{0}{\infty}
+\pserve_m \sim \TNormal{\dwell_m}{\dwellvar_m}{0}{\infty}.
 \end{equation}
 
 For each bus stop, we also have a \emph{stopping probability} $\Prstop_m\in(0,1)$. For the first and last stops, $m\in\{1,M\}$, the is unity; for the remainder, we have no data with which we can reliably estimate $\Prstop_m$, so, for now, we assume all stops have the same values specified by a global $\Prstop$ parameter (see \cref{sec:pf_params} for details on this). The outcome of whether a bus stops at a bus stop, $p_m$, is a Bernoulli trial,
@@ -347,7 +362,7 @@ However, we had no reliable intersection location information available, so were
 We model the wait time $w$ at intersection $\ell$ with an exponential distribution with rate $\intwait_\ell^{-1}$:
 \begin{equation}
 \label{eq:int_wait}
-\pcwait_\ell \sim \Exp{\intwait_\ell^{-1}}
+\pcwait_\ell \sim \Exp{\intwait_\ell^{-1}}.
 \end{equation}
 As at bus stops, the stopping outcome $\Iint_\ell$ is a Bernoulli trial with probability $\rho_\ell$,
 \begin{equation}

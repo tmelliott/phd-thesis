@@ -148,7 +148,7 @@
 \newcommand{\TripStop}{s}
 \newcommand{\TripDep}{d}
 \newcommand{\TripSeg}{\ell}
-\newcommand{\SegProg}{\zeta}
+\newcommand{\SegProg}{\hat p}
 
 \newcommand{\FM}{\mathcal{A}}
 \newcommand{\Fpf}{$\FM_\text{p}$}
@@ -200,20 +200,21 @@
 % time symbols
 $\Vtime_k$      & time of the $k^{\text{th}}$ observation & Unix timestamp \\
 $\Vtdiff_k$     & time since the last observation, $t_k-t_{k-1}$ & seconds \\
+\addlinespace
 
 % vehicle observation symbols
 $\Vobs_k$     & vehicle observation (at time $\Vtime_k$) & \\
 $\Vlat_k$     & vehicle latitude & degrees \\
 $\Vlon_k$     & vehicle longitude & degrees \\
-$\Varr_m$, $\Vdep_m$  & vehicle's observed arrival, departure time at stop $m$ & Unix timestamp \\
-$\Vdwell_m$   & vehicle's observed dwell time at stop $m$ & seconds \\
+$\Varr_m$, $\Vdep_m$  & observed arrival, departure time at stop $m$ & Unix timestamp \\
+$\Vdwell_m$   & observed dwell time at stop $m$ & seconds \\
 \addlinespace
 
 % vehicle state symbols
 $\Vstate_k$   & vehicle state (at time $\Vtime_k$) & \\
 $\Vdist_k$    & vehicle distance into trip & m \\
 $\Vspeed_k$    & vehicle speed & m/s \\
-$\Vaccel_k$    & vehicle acceleration & m/s$^2$ \\
+% $\Vaccel_k$    & vehicle acceleration & m/s$^2$ \\
 \addlinespace
 
 % particle filter symbols
@@ -241,7 +242,7 @@ $\dwell_m$      & mean dwell time at stop $m$ & seconds \\
 $\dwellvar_m$   & variance of dwell time at stop $m$ & seconds \\
 %$\pserve_m$     & service time (passengers on and off) at stop $m$ & seconds \\
 $\Prstop_m$     & probability of stopping at stop $m$ & \\
-$\Istop_m$      & indicator of stopping at stop $m$ & \\
+% $\Istop_m$      & indicator of stopping at stop $m$ & \\
 $\mindwell$     & minimum dwell time & seconds \\
 $\pdwell_m$     & total dwell time at stop $m$ & seconds \\
 \addlinespace
@@ -253,9 +254,9 @@ $\Tseglen_\ell$ & length of segment $\ell$ & meters \\
 $\Vsegstart_\ell$, $\Vsegend_\ell$ & start and end times along road segment $\ell$ & Unix timestamp \\
 $\Vtt_\ell$   & vehicle travel time along segment $\ell$ & seconds \\
 $\intwait_\ell$ & mean wait time at intersection $\ell$ & seconds \\
-$\pcwait_\ell$ & wait time at intersection $\ell$ & seconds \\
-%$\Print_\ell$   & probability of stopping at intersection $\ell$ & \\
-$\Iint_\ell$       & indicator that vehicle stopped at intersection $\ell$ & \\
+% $\pcwait_\ell$ & wait time at intersection $\ell$ & seconds \\
+$\Print_\ell$   & probability of stopping at intersection $\ell$ & \\
+% $\Iint_\ell$       & indicator that vehicle stopped at intersection $\ell$ & \\
 $\pwait_\ell$ & total wait time at intersection $\ell$ & seconds \\
 \addlinespace
 
@@ -267,20 +268,20 @@ $\MaxSpeed_\ell$ & maximum speed along road segment $\ell$ & m/s \\
 $\NWtrans_c$ & road segment transition function at time $t_c$ & \\
 $\NWtdiff_c$ & time since last road state update, $t_c - t_{c-1}$ & seconds \\
 $\NWnoise_\ell$        & road segment $\ell$ system noise & m/s$^2$ \\
-$\NWvar_c$          & between-vehicle speed variance on segment $\ell$ at time $t_c$ & m/s \\
+$\NWvar_c$          & between-vehicle variance, segment $\ell$, time $t_c$ & m/s \\
 $\NWerr_{\ellc}^m$ & measurement error for bus $m$, segment $\ell$, time $t_c$ & m/s \\
-$\hat\NWstate_{\ellc|c}$, $\NWstatevar_{\ellc|c}$ & estimated state (mean, variance) of segment $\ell$ at time $t_c$ & m/s \\
- & given observations up to time $t_{c-1}$ & \\
-$\NWinfmat_c$, $\NWinfvec_c$       & road segment information matrix, vector at time $t_c$ & \\
-$\NWobsinfmat_c$, $\NWobsinfvec$ & \multicolumn{2}{l}{road segment observation information matrix, vector at time $t_c$} \\
-$\mu_\psi$, $\sigma_\psi^2$ & mean and variance of between-vehicle variance & m/s \\
+$\hat\NWstate_{\ellc|c}$, $\NWstatevar_{\ellc|c}$ & estimated state (mean, variance), segment $\ell$, & m/s \\
+ & time $t_c$, given observations up to time $t_{c-1}$ & \\
+% $\NWinfmat_c$, $\NWinfvec_c$       & road segment information matrix, vector at time $t_c$ & \\
+% $\NWobsinfmat_c$, $\NWobsinfvec$ & \multicolumn{2}{l}{road segment observation information matrix, vector at time $t_c$} \\
+% $\mu_\psi$, $\sigma_\psi^2$ & mean and variance of between-vehicle variance & m/s \\
 \addlinespace
 
 \multicolumn{3}{l}{Arrival time prediction} \\
 \hline
 % Prediction
 $\Tripr_k$ & trip state at time $t_k$ \\
-$\SegProg_k$ & segment process of trip's current segment at time $t_k$  \\
+$\SegProg_k$ & progress along trip's current segment, time $t_k$  \\
 \addlinespace
 
 $S_m$ & scheduled arrival time at stop $m$ & Unix timestamp \\

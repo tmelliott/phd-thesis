@@ -58,13 +58,13 @@ We can determine if the bus has remained more-or-less stationary by computing th
 \begin{equation}
 \label{eq:vehicle_dist_check}
 \dist{\Vobs_{k-1}, \Vobs_k} < \distThreshold =
-\Vtdiff_k \min_i\left(\Vspeed_k\vi\right)
+\Vtdiff_k \min_i\left(\Vspeed_k\vi\right).
 \end{equation}
-The threshold here is the expected distance travelled in $\Vtdiff_k$~seconds by the slowest particle. Rather than slowing the particles (which could run into the opposite problem once the vehicle passes through the intersection), we sample a temporary speed
+The threshold here is the expected distance travelled in $\Vtdiff_k$~seconds by the slowest particle. Rather than slowing the particles (which could run into the opposite problem once the vehicle passes through the intersection), we sample a temporary speed,
 \begin{equation}
 \label{eq:vehicle_temp_speed}
 \Vspeed_k\vi \sim
-\Uniform{0}{\frac{\dist{\Vobs_{k-1}, \Vobs_k}}{\Vtdiff_k}}
+\Uniform{0}{\frac{\dist{\Vobs_{k-1}, \Vobs_k}}{\Vtdiff_k}},
 \end{equation}
 which is used for one single iteration.
 

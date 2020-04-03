@@ -3,7 +3,7 @@ NAME=thesis
 .PHONY: $(NAME).pdf all clean cleanall
 
 TEX:=latexmk
-TEXOPTIONS := -pdf #-f -interaction=nonstopmode
+TEXOPTIONS := -pdf -f -interaction=nonstopmode
 
 default: all
 all: $(NAME).pdf

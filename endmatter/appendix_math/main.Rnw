@@ -5,18 +5,32 @@
 \glsreset{mae}
 \glsreset{mape}
 
-We use three formulae to assess the performance of methods. These are the \gls{rmse}, \gls{mae}, and \gls{mape}. In each of these, we obtain $N$ estimates of a value $\hat X_n$ of which the the actual value is $X_a$ and compare the difference. The formulae are as follows:
+We use several formulae to assess the performance of methods. The first three are the \gls{rmse}, \gls{mae}, and \gls{mape}. In each of these, we obtain $N$ estimates of a value $\hat X_n$ of which the the actual value is $X_a$ and compare the difference. The formulae are:
 \begin{align}
 \label{eq:app_rmse}
-\text{RMSE} &= \sqrt{\frac{1}{N}\sum_{n=1}^N \left(X_a - \hat X_n\right)^2} \\
+\text{RMSE} &= \sqrt{\frac{1}{N}\sum_{n=1}^N \left(X_a - \hat X_n\right)^2}, \\
 \label{eq:app_mae}
-\text{MAE} &= \frac{1}{N}\sum_{n=1}^N \left|X_a - \hat X_n\right| \\
+\text{MAE} &= \frac{1}{N}\sum_{n=1}^N \left|X_a - \hat X_n\right|, \\
 \label{eq:app_mape}
-\text{MAPE} &= \frac{100}{N}\sum_{n=1}^N \left|\frac{X_a - \hat X_n}{X_a}\right|
+\text{MAPE} &= \frac{100}{N}\sum_{n=1}^N \left|\frac{X_a - \hat X_n}{X_a}\right|.
 \end{align}
 The units for \gls{rmse} and \gls{mae} are the same as the units of $X$, while \gls{mape} is a percentage. In all cases, smaller values indicate better estimation or prediction.
 
 
-\Gls{rmse} and \gls{mae} give similar results, though the former is more sensitive to extreme values. \gls{mape} is relative to the \emph{size} of the true value, so, in the context of forecasting (arrival time prediction), it is more sensitive to errors in short-term predictions.
+\Gls{rmse} and \gls{mae} give similar results, though the former is more sensitive to extreme values. \gls{mape} is relative to the \emph{size} of the true value, so, in the context of forecasting, it is more sensitive to errors in short-term predictions.
 
-\phantom{\gls{rmse},\gls{mae},\gls{mape}}
+Another criteria is \gls{picp}, which is the proportion of true values that lie within the prediction interval. Given $N$ prediction intervals $(X_{n,\ell}, X_{n,u})$ for which the actual value is $X_a$,
+\begin{equation}
+\label{eq:picp}
+\text{PICP} = \frac{1}{N}\sum_{n=1}^N I_n, \quad
+I_n =
+\begin{cases}
+1 & X_a \in (X_{n,\ell}, X_{n,u}), \\
+0 & \text{otherwise.}
+\end{cases}
+\end{equation}
+\Gls{picp} allows us to assess the performance of the arrival time prediction distribution as a whole: if \gls{picp} is smaller than the nominal coverage of the intervals, this implies that not enough uncertainty is being incorporated into the predictions.
+
+
+
+\phantom{\gls{rmse},\gls{mae},\gls{mape},\gls{picp}}

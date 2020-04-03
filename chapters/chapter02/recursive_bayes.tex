@@ -111,9 +111,9 @@ There are several types of \glspl{rbe} which consist of two main steps: \emph{pr
 \begin{equation}
 \label{eq:rbe_model}
 \begin{split}
-\bx_k &= f(\bx_{k-1}, \boldsymbol{w}_k) \\
-\boldsymbol{y}_k &= h(\bx_k) + \boldsymbol{v}_k
-\end{split}.
+\bx_k &= f(\bx_{k-1}, \boldsymbol{w}_k), \\
+\boldsymbol{y}_k &= h(\bx_k) + \boldsymbol{v}_k.
+\end{split}
 \end{equation}
 The additional parameters $\boldsymbol{w}_k$ and $\boldsymbol{v}_k$ represent \emph{system noise} and \emph{measurement error}, respectively. The choice of $f$, $h$, and the distributions for the error terms depends on the choice of model. We now discuss two types of \gls{rbe} used throughout this thesis: the \kf{} and the \pf{}.
 
@@ -135,9 +135,9 @@ The \kf{} version of the model presented in \cref{eq:rbe_model} is
 \begin{equation}
 \label{eq:kf_model}
 \begin{split}
-\bx_k &= \mat{F}_k\bx_{k-1} + \boldsymbol{w}_k \\
-\boldsymbol{y}_k &= \mat{H}_k\bx_k + \boldsymbol{v}_k
-\end{split},
+\bx_k &= \mat{F}_k\bx_{k-1} + \boldsymbol{w}_k, \\
+\boldsymbol{y}_k &= \mat{H}_k\bx_k + \boldsymbol{v}_k,
+\end{split}
 \end{equation}
 where $\boldsymbol{w}_k$ and $\boldsymbol{v}_k$ are Normal random variables with mean zero and covariance matrices $\mat{Q}_k$ and $\mat{R}_k$, respectively. The $m\times m$ covariance matrix $\mat{Q}_k$ represents the system noise at time $t_k$, which is defined as the rate of change of the variance of process noise \citep{Cathey_2003}. Measurement error is expressed by the $n\times n$ covariance matrix $\mat{R}_k$.
 
@@ -146,19 +146,19 @@ The \kf{} is implemented through two sets of equations. First is the prediction 
 \label{eq:ch2:kf_predict}
 \begin{split}
 \hat\bx_{k|k-1} = \E{\bx_k | \bx_{k-1}}
-    &= \mat{F}_k \hat\bx_{k-1|k-1} \\
+    &= \mat{F}_k \hat\bx_{k-1|k-1}, \\
 \mat{P}_{k|k-1} = \Var{\bx_k | \bx_{k-1}}
-    &= \mat{F}_k \mat{P}_{k-1|k-1} \mat{F}_k^\top + \mat{Q}_k
+    &= \mat{F}_k \mat{P}_{k-1|k-1} \mat{F}_k^\top + \mat{Q}_k.
 \end{split}
 \end{equation}
 Next, the update step uses the observation $\boldsymbol{y}_k$ to adjust the predicted state using the following set of equations, which are effectively taking a ratio of the state and measurement uncertainties:
 \begin{equation}
 \label{eq:ch2:kf_update}
 \begin{split}
-\bz_k &= \boldsymbol{y}_k - \mat{H}_k \hat\bx_{k|k-1} \\
-\mat{S}_k &= \mat{R}_k + \mat{H}_k \mat{P}_{k|k-1} \mat{H}_k^\top \\
-\mat{K}_k &= \mat{P}_{k|k-1} \mat{H}_k^\top \mat{S}_k^{-1} \\
-\hat\bx_{k|k} &= \hat\bx_{k|k-1} + \mat{K}_k \bz_k \\
+\bz_k &= \boldsymbol{y}_k - \mat{H}_k \hat\bx_{k|k-1}, \\
+\mat{S}_k &= \mat{R}_k + \mat{H}_k \mat{P}_{k|k-1} \mat{H}_k^\top, \\
+\mat{K}_k &= \mat{P}_{k|k-1} \mat{H}_k^\top \mat{S}_k^{-1}, \\
+\hat\bx_{k|k} &= \hat\bx_{k|k-1} + \mat{K}_k \bz_k, \\
 \mat{P}_{k|k} &= (\mat{I} - \mat{K}_k \mat{H}_k) \mat{P}_{k|k-1}
     (\mat{I} - \mat{K}_k \mat{H}_k)^\top + \mat{K}_k \mat{R}_k \mat{K}_k^\top.
 \end{split}

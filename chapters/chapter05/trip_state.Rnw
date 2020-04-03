@@ -26,7 +26,7 @@ On arrival at stop $\TripStop$ at time $\Tript_k$, the trip's state is
 \Tripr_k =
 \begin{cases}
 \tvec{\Vtime_k, \TripStop, 0, \TripSeg(s), 0} & \text{if arrival}, \\
-\tvec{\Vtime_k, \TripStop, 1, \TripSeg(s), 0} & \text{if departure}.
+\tvec{\Vtime_k, \TripStop, 1, \TripSeg(s), 0} & \text{if departure},
 \end{cases}
 \end{equation}
 where $\TripSeg(s)$ is the segment index of stop $\TripStop$.

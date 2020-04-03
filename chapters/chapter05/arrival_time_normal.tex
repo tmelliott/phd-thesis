@@ -43,14 +43,14 @@ respectively, assuming dwell times at individual stops are independent of each o
 Mixture weights are obtained through the stopping probability at each stop, $\pi_j$:
 \begin{equation}
 \label{eq:ch5:mixture_weights}
-\tilde\pi_i = \prod_{m=j}^{j+n} \tilde p_{im}
+\tilde\pi_i = \prod_{m=j}^{j+n} \tilde p_{im},
 \end{equation}
 where
 \begin{equation}
 \label{eq:ch5:mixture_weights2}
 \tilde p_{im} =
 \begin{cases}
-\pi_m & \text{if } I_{im} = 1 \\
+\pi_m & \text{if } I_{im} = 1, \\
 1 - \pi_m & \text{otherwise.}
 \end{cases}
 \end{equation}

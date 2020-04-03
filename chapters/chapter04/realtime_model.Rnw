@@ -4,7 +4,7 @@
 Due to the time constraints of real-time applications, our framework uses a Kalman filter to implement the model described above, which, as previously discussed, is a highly efficient estimation method. This requires the transition and measurement matrices as described in \cref{sec:kf} on \cpageref{sec:kf}. The measurement matrix is the identity matrix $\mat{I}$ since the data are now direct observations of the underlying state (average vehicle speed):
 \begin{equation}
 \label{eq:kf_meas_identity}
-\NWstate_{\ellc} = \mat{H}\Vtt_{\ellc} + w_{\ellc} = \Vtt_{\ellc} + w_{\ellc}
+\NWstate_{\ellc} = \mat{H}\Vtt_{\ellc} + w_{\ellc} = \Vtt_{\ellc} + w_{\ellc}.
 \end{equation}
 We also use the identity matrix for the transition matrix $\mat{F}$ as our best guess of the current traffic state is the previous state. So, assuming that $\NWvar_{\ell}$ and $\NWnoise_{\ell}$ are known, for now, we have everything needed to implement a Kalman filter on $\NWstate_{\ellc}$.
 
@@ -32,9 +32,9 @@ which are predicted using the following equations:
 \begin{split}
 \hat\NWstate_{\ellc|c-1} &=
     \hat\NWstate_{
-\ellc-1|c-1} \\
-\NWstatevar_{\ellc|c-1} &= \NWstatevar_{\ellc-1|c-1} + \left(\NWtdiff_c\NWnoise_\ell\right)^2
-\end{split}.
+\ellc-1|c-1}, \\
+\NWstatevar_{\ellc|c-1} &= \NWstatevar_{\ellc-1|c-1} + \left(\NWtdiff_c\NWnoise_\ell\right)^2.
+\end{split}
 \end{equation}
 This prediction is shown in \cref{fig:nw_kf1}. Alternatively, were forecast information available, we could use a transition matrix $\mat F_c$ to describe how traffic might change over time, as is shown in \cref{fig:nw_kf2}.
 
@@ -135,9 +135,9 @@ The state update is now just a case of adding the observation information in \cr
 \begin{equation}
 \label{eq:nw_if_update}
 \begin{split}
-\NWinfmat_{\ellc|c} &= \NWinfmat_{\ellc|c-1} + \NWobsinfmat_{\ellc} \\
-\hat\NWinfvec_{\ellc|c} &= \hat\NWinfvec_{\ellc|c-1} + \NWobsinfvec_{\ellc}
-\end{split}.
+\NWinfmat_{\ellc|c} &= \NWinfmat_{\ellc|c-1} + \NWobsinfmat_{\ellc}, \\
+\hat\NWinfvec_{\ellc|c} &= \hat\NWinfvec_{\ellc|c-1} + \NWobsinfvec_{\ellc}.
+\end{split}
 \end{equation}
 Note that, in situations where no data is observed for a given segment, the information for that segment is zero, so there is no further change to the predicted state value. This could be useful at peak hour, for example, if the transition function predicts changes based on historical trends.
 
@@ -146,9 +146,9 @@ Finally, we back-transform the information into the state space,
 \begin{equation}
 \label{eq:nw_if_statespace}
 \begin{split}
-\hat\NWstate_{\ellc|c} &= \NWinfmat_{\ellc|c}^{-1} \hat\NWinfvec_{\ellc|c} \\
-\NWstatevar_{\ellc|c} &= \NWinfmat_{\ellc|c}^{-1}
-\end{split}.
+\hat\NWstate_{\ellc|c} &= \NWinfmat_{\ellc|c}^{-1} \hat\NWinfvec_{\ellc|c}, \\
+\NWstatevar_{\ellc|c} &= \NWinfmat_{\ellc|c}^{-1}.
+\end{split}
 \end{equation}
 
 The primary constraint on the model is the dependence on $\NWvar_{\ell}$ and $\NWnoise_{\ell}$; however, before considering the estimation of these values, we apply the Kalman filter model to the simulated data in \cref{fig:nw_sim_data} for which the parameter values are known.

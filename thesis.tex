@@ -59,7 +59,7 @@
 %
 % Version 2.x major modifications by:
 % Vel (vel@latextemplates.com)
-%
+%Mas
 % This template is based on a template by:
 % Steve Gunn (http://users.ecs.soton.ac.uk/srg/softwaretools/document/templates/)
 % Sunil Patel (http://www.sunilpatel.co.uk/thesis-template/)
@@ -96,6 +96,7 @@
 
 \usepackage{mathpazo} % Use the Palatino font by default
 %\usepackage{bookman}
+
 
 \usepackage{amssymb}
 \usepackage{enumerate}
@@ -185,25 +186,29 @@
 \hypersetup{pdfkeywords=\keywordnames} % Set the PDF's keywords to your keywords
 }
 
-\usepackage{hyperref}
-\usepackage[noabbrev]{cleveref} % capitalise option
+
 
 %%%%%%%%%%% THIS HIDES UNREFERRENCED EQUATIONS ... BREAKS BIBLATEXXXX
 %\expandafter\def\csname ver@etex.sty\endcsname{3000/12/31}
 %\undef\ifempty
-%\usepackage{autonum}
+% \usepackage{autonum}
 
 \usepackage{subfig}
 
 %%%%%%% THIS SHOWS FIGURE/SECTION/WHATEVER LABELS FOR EASIER XREFING
-\usepackage{showlabels}
-\renewcommand{\showlabelfont}{\tiny}
+% \usepackage{showlabels}
+% \renewcommand{\showlabelfont}{\tiny}
 % \usepackage{showkeys}
 
 %\usepackage{perpage} %the perpage package
 %\MakePerPage{footnote}
 \usepackage[symbol]{footmisc}
 \renewcommand{\thefootnote}{\arabic{footnote}}
+
+\usepackage[final]{microtype}
+
+\usepackage{hyperref}
+\usepackage[noabbrev]{cleveref} % capitalise option
 \IfFileExists{upquote.sty}{\usepackage{upquote}}{}
 \begin{document}
 
@@ -307,7 +312,6 @@ Ruvae Jane Tupaea Cottrell
 17/2/1932 -- 3/3/2020}
 }
 
-
 %----------------------------------------------------------------------------------------
 %   ACKNOWLEDGEMENTS
 %----------------------------------------------------------------------------------------
@@ -381,6 +385,7 @@ Ruvae Jane Tupaea Cottrell
 %   BIBLIOGRAPHY
 %----------------------------------------------------------------------------------------
 
+\Urlmuskip=0mu plus 1mu\relax
 \printbibliography[heading=bibintoc]
 
 %----------------------------------------------------------------------------------------

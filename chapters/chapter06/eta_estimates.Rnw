@@ -6,7 +6,7 @@ As previously discussed, there is considerable uncertainty in the posterior pred
 The method for obtaining estimates from the \glspl{cdf} from \cref{eq:pf_pdf_arrivaltime} uses quantiles, such that the $q$-quantile, $q\in(0,1)$, is obtained by solving
 \begin{equation}
 \label{eq:eta_calc_quantile}
-\hat\Teta_q = \max\left\{a \in \{0, 1, \ldots\} : \Pr{A < a} \leq q\right\}
+\hat\Teta_q = \max\left\{a \in \{0, 1, \ldots\} : \Pr{A < a} \leq q\right\}.
 \end{equation}
 \Cref{fig:eta_calc_quantile} shows a single \gls{cdf} with a horizontal line at $q = 0.5$, where the solution to \cref{eq:eta_calc_quantile} is the maximum of the values below this line (the red points) which is, in this case, $\hat\Teta_{0.5} = 11$.
 

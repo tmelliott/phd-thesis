@@ -9,16 +9,14 @@ To use the \kf{} in any meaningful way, we first need to estimate the system noi
 The first step in the modelling process fits the following hierarchical model:
 \begin{equation}
 \label{eq:nw_model_simple}
-\left\{
 \begin{split}
-\Vttobs_{\ellc}^m &\sim \Normal{\Vtt_{\ellc}^m}{(\Vtterr_{\ellc}^m)^2} &
-\NWstate_{\ell,0} &\sim \Uniform{0}{\MaxSpeed_\ell} \nonumber \\
-\Vtt_{\ellc}^m &\sim \TNormal{\NWstate_{\ellc}}{\NWvar_{\ell}^2}{0}{\MaxSpeed_\ell} &
-\NWvar_\ell &\sim \GammaD{0.01}{0.01} \\
-\NWstate_{\ellc} &\sim \TNormal{\NWstate_{\ell-1,c}}{(\NWtdiff_c \NWnoise_{\ell})^2}{0}{\MaxSpeed_\ell} &
-\NWnoise &\sim \GammaD{0.01}{0.01} \nonumber
+\Vttobs_{\ellc}^m &\sim \Normal{\Vtt_{\ellc}^m}{(\Vtterr_{\ellc}^m)^2}, \\
+\Vtt_{\ellc}^m &\sim \TNormal{\NWstate_{\ellc}}{\NWvar_{\ell}^2}{0}{\MaxSpeed_\ell}, \\
+\NWstate_{\ell,0} &\sim \Uniform{0}{\MaxSpeed_\ell}, \\
+\NWstate_{\ellc} &\sim \TNormal{\NWstate_{\ell-1,c}}{(\NWtdiff_c \NWnoise_{\ell})^2}{0}{\MaxSpeed_\ell}, \\
+\NWnoise_\ell &\sim \GammaD{0.01}{0.01}, \\
+\NWvar_\ell &\sim \GammaD{0.01}{0.01}.
 \end{split}
-\right. .
 \end{equation}
 The observation error, as in the previous section, is assumed to be constant for all observations, $\Vtterr_{\ellc}^m = 0.8$~\gls{mps} (which is about 10~km/h). The model implementation was performed from \Rstats{} using the \pkg{rjags} package \citep{rjags}. The model output was processed using the \pkg{tidybayes} package \citep{tidybayes} and graphed using \pkg{ggplot2} \citep{ggplot2}. The \pkg{coda} package was used to assess the model's convergence results \citep{coda}.
 
@@ -316,18 +314,16 @@ To assess how effective our approach is for estimating $\NWvar_\ell$ and $\NWnoi
 The hierarchical model used to estimate the network parameters is:
 \begin{equation}
 \label{eq:tt_hist_hier}
-\left\{
 \begin{split}
-\Vttobs_{\ellc}^m &\sim \Normal{\Vtt_{\ellc}^m}{\left(\Vtterr_{\ellc}^m\right)^2} &
-\NWstate_{\ell0} &\sim \Normal{0}{10^2} \\
-\Vtt_{\ellc}^m &\sim \TNormal{\NWstate_{\ellc}}{\NWvar_{\ell}^2}{0}{\MaxSpeed_\ell} &
-\mu_\psi &\sim \Normal{0}{10^2} \\
-\NWstate_{\ellc} &\sim \TNormal{\NWstate_{\ellc-1}}{(\NWtdiff_c \NWnoise_{\ell})^2}{0}{\MaxSpeed_\ell} &
-\sigma_\psi &\sim \GammaD{0.001}{0.001} \\
-\log\left(\NWvar_{\ell}\right) &\sim \Normal{\mu_\psi}{\sigma_\psi^2} &
-q &\sim \GammaD{0.001}{0.001}
+\Vttobs_{\ellc}^m &\sim \Normal{\Vtt_{\ellc}^m}{\left(\Vtterr_{\ellc}^m\right)^2}, \\
+\Vtt_{\ellc}^m &\sim \TNormal{\NWstate_{\ellc}}{\NWvar_{\ell}^2}{0}{\MaxSpeed_\ell}, \\
+\NWstate_{\ell0} &\sim \Normal{0}{10^2}, \\
+\NWstate_{\ellc} &\sim \TNormal{\NWstate_{\ellc-1}}{(\NWtdiff_c \NWnoise_{\ell})^2}{0}{\MaxSpeed_\ell}, \\
+q &\sim \GammaD{0.001}{0.001}, \\
+\log\left(\NWvar_{\ell}\right) &\sim \Normal{\mu_\psi}{\sigma_\psi^2}, \\
+\mu_\psi &\sim \Normal{0}{10^2}, \\
+\sigma_\psi &\sim \GammaD{0.001}{0.001}.
 \end{split}
-\right. .
 \end{equation}
 We initially attempted to fit a hierarchical segment noise parameter $\NWnoise_{\ell}$ with hyperparameters, but the values were all approximately equal for all segments and convergence was very slow (100,000's of iterations). Instead, we opted for a single common system noise parameter across all segments. The speed data for six segments on two consecutive Tuesdays is shown in \cref{fig:nw_model_n2_segplots}, with the locations of the roads displayed in \cref{fig:nw_seg_maps}.
 

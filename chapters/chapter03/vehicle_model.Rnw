@@ -78,9 +78,9 @@ Before implementing \agls{rbm} for these data, we need a \emph{transition functi
 \begin{equation}
 \label{eq:vehicle_model}
 \begin{split}
-\Vstate_k &= \Vtrans(\Vstate_{k-1}, \Vnoise_k) \\
-\Vobs_k &= \Vmeas(\Vstate_k) + \GPSerr
-\end{split}.
+\Vstate_k &= \Vtrans(\Vstate_{k-1}, \Vnoise_k), \\
+\Vobs_k &= \Vmeas(\Vstate_k) + \GPSerr.
+\end{split}
 \end{equation}
 The \emph{likelihood} function quantifies the plausibility of an observation $\Vobs_k$ given an underlying state $\Vstate_k$.
 

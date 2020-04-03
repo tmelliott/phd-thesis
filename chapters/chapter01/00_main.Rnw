@@ -62,8 +62,7 @@ Since uncertainty is an unavoidable component of arrival time prediction, some a
 The final component of \gls{rti} that we are interested in is \emph{journey planning}, which involves the selection of an optimal route to get to a destination, often under one or more constraints. \Citet{Horn_2004} developed a real-time routing method that could incorporate \emph{walking} and \emph{waiting costs} (each of these should be minimised where possible), with a focus on \emph{demand-responsive} services. More recently, \citet{Hame_2013a,Hame_2013b} proposed a \emph{Markov decision process} which could maximise the probability of arriving at the destination on-time, accounting for walking legs and distributions for the arrival time of buses at stops.  \citet{Zheng_2016} incorporated travel time uncertainty into their method while also demonstrating the complexity of the problem:  it could take $10^3$~seconds to find an optimal route. Their solution was to store paths, reducing computations to less than a second. As an alternative to incorporating travel time uncertainty, \citet{Berczi_2017} present a dynamic routing strategy that uses any probabilistic model of arrival and departure times to improve the probability of arriving at the destination on time.
 
 
-
-\section{The state of Auckland's \gls{rti}}
+\section{The state of Auckland's RTI}
 \label{sec:auckland_etas}
 
 Our case study is the public transport system of Auckland, New Zealand, operated by Auckland Transport. In the following pages, I describe some scenarios that occur within Auckland,\footnote{Some of which I have personally witnessed.} although they likely occur in other cities that use the same \gls{avl} system (described in detail in \cref{sec:gtfs}). Additionally, many locations in Auckland lack transit infrastructure, such as bus priority lanes, which can lead to long delays during heavy congestion.
