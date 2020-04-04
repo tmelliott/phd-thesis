@@ -7,12 +7,15 @@ When a vehicle is first observed, a new \class{Vehicle} is created and inserted 
 
 Since the vehicles are modelled independently, and they only need to read from the \gls{gtfs} object (not modify it) the vehicle update step is easily parallelised to use $\tilde M$~cores using the \prog{OpenMP} library \citep{OMP}. This enables up to an $\tilde M$-fold increase in the speed of this step.
 
-Once the update is complete, the segment index of all particles is obtained, and the \emph{minimum} is used as the vehicle's \emph{current segment}. If this is greater than it was at the end of the previous iteration, the average speed along all intermediate segments is computed by using \verb+std::accumulate+, along with the variance:
+Once the update is complete, the segment index of all particles is obtained, and the \emph{minimum} is used as the vehicle's \emph{current segment}. If this is greater than it was at the end of the previous iteration, the average speed along all intermediate segments is computed by using \verb+std::accumulate+,
 \begin{lstlisting}
 double avg_speed = std::accumulate(state.begin (), state.end (), 0.0,
   [](double x, Particle& p) {
     return x + p.weight () * p.segment_speed.at (seg_index);
   });
+\end{lstlisting}\pagebreak
+along with the variance,
+\begin{lstlisting}
 double var_speed = std::accumulate(state.begin (), state.end (), 0.0,
   [&avg_speed](double x, Particle& p) {
     return x + p.weight () *

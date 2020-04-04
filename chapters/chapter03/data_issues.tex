@@ -8,8 +8,8 @@ Much of the degeneration or \emph{vehicle loss} can be attributed to irregularit
 
 One of the prominent assumptions of our model is that the bus cannot go backwards along the route, which is implemented by only allowing for non-negative values of speed. However, a couple of scenarios can lead to the \emph{appearance} of a reversing bus, both of which are related to \emph{\gls{gps} waypoints}; that is, the \gls{avl} systems in Auckland Transport's buses are programmed to not only report their position periodically but also to report their arrival at certain waypoints. These can include bus stops (which result in an arrival or departure time update) as well as some major intersections. The issue is that, rather than reporting the bus's \gls{gps} position, they report the \gls{gps} coordinates of the waypoint itself. This is often acceptable since the bus continues straight past the intersection or bus stop before reporting another position. However, if there is congestion leading into the waypoint, the bus may:
 \begin{enumerate}[i.]
-\item approach the waypoint, decide it has arrived, and report its position \emph{at the waypoint},
-\item get stopped in a queue for some time,
+\item approach the waypoint, decide it has arrived, and report its position \emph{at the waypoint};
+\item get stopped in a queue for some time;
 \item decide it is time for another position update, based on its GPS position.
 \end{enumerate}
 \Cref{fig:bus_going_backwards} presents an example of this.
@@ -41,9 +41,9 @@ Checking for the bus-reversing scenario in real-time requires mapping of observa
 \end{equation}
 Of course, the inverse function is not exact, since the true location is unlikely to be positioned exactly on the line (roads have width, and \gls{gps} devices have error). To compute $\Vmeas^{-1}$, we find the shortest distance along the route's shape that is closer than a threshold of $3\GPSerr$, which allows for situations where the route passes the observed location point more than once (such as in loops).
 
-If the observation is determined to be going backwards, we have to decide between
+If the observation is determined to be going backwards, we have to decide between:
 \begin{enumerate}[i.]
-\item ignoring the current observation, or
+\item ignoring the current observation; or
 \item ignoring the previous observation and restoring the vehicle's previous state.
 \end{enumerate}
 If we can determine that the first observation is a pre-emptive observation (that is, at a waypoint), then option (ii) is the logical choice, although this requires storing each vehicle's state \emph{twice}. Otherwise, it is easier to ignore the current observation completely and use option (i). Note that, were intersection locations knowable, we could include this behaviour in the model; as it stands, however, this workaround is required to avoid unnecessary degeneration.

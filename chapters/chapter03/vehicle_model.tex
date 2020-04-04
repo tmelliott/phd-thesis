@@ -1,11 +1,11 @@
 \section{Real-time estimation of vehicle state}
 \label{sec:vehicle_model}
 
-Real-time vehicle tracking has been the centre of much research, particularly for robotics applications and self-driving cars \citep{Daum_2005, Gustafsson_2002}. In many of these, data is sampled at a very high frequency, often multiple times per second, leading to highly accurate estimates of the object's \emph{state}.\footnote{State, as we discuss shortly, includes properties such as the \emph{speed} of the object.} Alas, with transit data this is seldom the case; instead, it is common for observations to be reported once every 10--30 seconds or, in some cases, even longer.
+Real-time vehicle tracking has been the centre of much research, particularly for robotics applications and self-driving cars \citep{Daum_2005, Gustafsson_2002}. In many of these, data is sampled at a very high frequency, often multiple times per second, leading to high-accuracy estimates of the object's \emph{state}. Alas, with transit data this is seldom the case; instead, it is common for observations to be reported once every 10--30 seconds or, in some cases, even longer.
 
 Low-frequency observations lead to high uncertainties of state parameters and difficulty capturing all possible trajectories, which can lead to degradation of the model and loss of information. In \cref{fig:vobs_multimode}, we show two possible trajectories for buses B and C; there are, in fact, countless possibilities: perhaps the bus waited at the stop a little longer? In this case, there is uncertainty about the bus's dwell time and speed; however, the first step of \agls{rbm} is to \emph{predict} the upcoming state \emph{before observing it} (\cref{sec:recursive-bayes}). If the model does not cover the vehicle's actual trajectory, we effectively ``lose'' the vehicle, and the filter is said to \emph{degenerate} \citep{Chen_2014}. In that case, we typically need to reinitialise the vehicle's state, resulting in a loss of any information we might have gained in the last time step.
 
-When deciding which type of model implementation to use, historically the most common for these type of data is the Kalman filter \citep{Wall_1999, Dailey_2001, Cathey_2003}. However, it assumes a Gaussian state distribution, which I have demonstrated is not the case. Instead, we use a \emph{particle filter} due to its high flexibility and ability to explore a broad set of plausible trajectories \citep{Hans_2015}, making it well suited for transit modelling, as well as use in other vehicle tracking applications \citep{Davidson_2011,Gustafsson_2002,Gustafsson_2010}.
+When deciding which type of model implementation to use, historically the most common for this type of data is the Kalman filter \citep{Wall_1999, Dailey_2001, Cathey_2003}. However, it assumes a Gaussian state distribution, which I have demonstrated is not the case. Instead, we use a \emph{particle filter} due to its high flexibility and ability to explore a broad set of plausible trajectories \citep{Hans_2015} and excels in situations where there are multiple distinct possiblities, as in \cref{fig:vobs_multimode} \citep{Ulmke_2006}. This makes it well suited for transit modelling, and has been used in many other vehicle tracking applications \citep{Davidson_2011,Gustafsson_2002,Gustafsson_2010,Ulmke_2006}.
 
 \begin{knitrout}\small
 \definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{figure}
@@ -25,20 +25,20 @@ The vehicle model itself involves describing bus behaviour algorithmically to in
 \label{eq:vehicle_state}
 \Vstate_k = \tvec{\Vdist_k, \Vspeed_k}.
 \end{equation}
-\Cref{fig:vehicle_state} graphs a series of vehicle states with time along the x-axis and distance travelled (in meters) along the y-axis. The derivative (gradient) of the curve represents the vehicle's speed. So, for example, the vehicle state at time $t_1 = 30$~seconds is $\Vstate_1 = [\Vdist_1, \Vspeed_1]^\top = [200~\text{m}, 15~\text{m/s}]^\top$. The remainder of this section presents a model, along with a particle filter implementation of it, which allows us to estimate vehicle state.
+\Cref{fig:vehicle_state} graphs a series of vehicle states with time along the x-axis and distance travelled (in meters) along the y-axis. The derivative (gradient) of the curve represents the vehicle's speed. So, for example, the vehicle state at time $t_1 = 30$~seconds is $\Vstate_1 = [\Vdist_1, \Vspeed_1]^\top = [200~\text{m}, 15~\text{m/s}]^\top$. The remainder of this section presents a model, along with a particle filter implementation of it, to estimate vehicle state.
 
-The particle filter represents the vehicle's state using a sample of \emph{particles}, each with an individual state, $\Vstate_k\vi$. We can think of each particle as an ``imaginary bus'' which represents one possible state (and associated trajectory) of the true bus. Together, the particles approximate the posterior distribution of the vehicle's state at time $\Vtime_k$ given all observations up to time $\Vtime_k$, denoted $\Vobs_{1:k}$. The posterior distribution is expressed using the Dirac delta measure, $\dirac_a$, (\cref{app:dirac-delta-measure}):
+The particle filter represents the vehicle's state using a sample of \emph{particles}, each with an individual state, $\Vstate_k\vi$. We can think of each particle as an ``imaginary bus'' which represents one possible state (and associated trajectory) of the true bus. Together, the particles approximate the posterior distribution of the vehicle's state at time $\Vtime_k$ given all observations up to time $\Vtime_k$, denoted $\Vobs_{1:k}$. The posterior distribution is expressed using the Dirac delta measure, $\dirac$, (\cref{app:dirac-delta-measure}):
 \begin{equation}
 \label{eq:vehicle_state_dirac}
-p(\Vstate_k | \Vobs_{1:k}) \approx
+p(\Vstate_k \cond{} \Vobs_{1:k}) \approx
 \sum_{i=1}^\Np \Pwt_{k-1} \dirac_{\Vstate_k\vi}\left(\Vstate_k\right).
 \end{equation}
 
-Before implementing \agls{rbm} for these data, we need a \emph{transition function}, a \emph{measurement function}, and a \emph{likelihood}. The transition function, $\Vtrans$, describes how a vehicle behaves between two consecutive observations: that is, the shape of the curve in \cref{fig:vehicle_state}. This allows us to \emph{predict} the future state of the vehicle \emph{given its last known state}. Additionally, we include the \emph{system noise} parameter $\Vnoise$, which represents the rate of change of speed. The measurement function, $\Vmeas$, describes the relationship between the vehicle's state, $\Vstate_k$, and the observation of this state, $\Vobs_k$, which is a \gls{gps} location with an associated \emph{measurement error}, $\GPSerr$. We represent this using two simple equations,
+Before implementing \agls{rbm} for these data, we need a \emph{transition function}, a \emph{measurement function}, and a \emph{likelihood}. The transition function, $\Vtrans$, describes how a vehicle behaves between two consecutive observations: that is, the shape of the curves in \cref{fig:vehicle_state}. This allows us to \emph{predict} the future state of the vehicle \emph{given its last known state}. Additionally, we include the \emph{system noise} parameter $\Vnoise$~m/s$^2$, which represents the rate of change of speed. The measurement function, $\Vmeas$, describes the relationship between the vehicle's state, $\Vstate_k$, and the observation of this state, $\Vobs_k$, which is a \gls{gps} location with an associated \emph{measurement error}, $\GPSerr$. We represent this using two simple equations,
 \begin{equation}
 \label{eq:vehicle_model}
 \begin{split}
-\Vstate_k &= \Vtrans(\Vstate_{k-1}, \Vnoise_k), \\
+\Vstate_k &= \Vtrans(\Vstate_{k-1}, \Vnoise), \\
 \Vobs_k &= \Vmeas(\Vstate_k) + \GPSerr.
 \end{split}
 \end{equation}

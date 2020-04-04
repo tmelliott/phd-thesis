@@ -47,6 +47,7 @@
 \usepackage{mathpazo} % Use the Palatino font by default
 %\usepackage{bookman}
 
+\usepackage{afterpage}
 
 \usepackage{amssymb}
 \usepackage{enumerate}

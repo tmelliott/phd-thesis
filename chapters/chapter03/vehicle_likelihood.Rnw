@@ -1,10 +1,10 @@
 \subsection{Likelihood}
 \label{sec:pf-likelihood}
 
-The second component of \agls{rbm} is the update step, which incorporates the likelihood of the data into the predicted state, $p(\Vobs_k | \Vstate_k)$. In the \pf{}, as discussed in \cref{sec:pf}, updating is performed by reweighting each of the particles based on their respective likelihoods, $p(\Vobs_k | \Vstate\vi_k)$. That is,
+The second component of \agls{rbm} is the update step, which incorporates the likelihood of the data into the predicted state, $p(\Vobs_k \cond{} \Vstate_k)$. In the \pf{}, as discussed in \cref{sec:pf}, updating is performed by reweighting each of the particles based on their respective likelihoods, $p(\Vobs_k \cond{} \Vstate\vi_k)$. That is,
 \begin{equation}
 \label{eq:vehicle_pf_update}
-p(\Vstate_k | \Vobs_{1:k}) \approx
+p(\Vstate_k \cond{} \Vobs_{1:k}) \approx
 \sum_{i=1}^\Np
     \Pwt_{k}
     \DiracMeasure{\Vstate\vi_k}{\Vstate_k}
@@ -13,15 +13,15 @@ where
 \begin{equation}
 \label{eq:vehicle_pf_reweight}
 \Pwt_k = \frac{
-    \Pwt_{k-1} p(\Vobs_k | \Vstate\vi_k)
+    \Pwt_{k-1} p(\Vobs_k \cond{} \Vstate\vi_k)
 }{
-    \sum_{j=1}^\Np \Pwt[j]_{k-1} p(\Vobs_k | \Vstate\vi[j]_k)
+    \sum_{j=1}^\Np \Pwt[j]_{k-1} p(\Vobs_k \cond{} \Vstate\vi[j]_k)
 }.
 \end{equation}
 If necessary, the particles are resampled with replacement (discussed further in \cref{sec:pf_implementation}).
 
 
-The likelihood function is where the \pf{} is superior in this application. Were we to model the vehicle's state using a \kf{}, we would need to somehow compare a distribution in one dimension (distance travelled) with an observation in two dimensions (\gls{gps} coordinate). \citet{Cathey_2003} used an optimisation technique to obtain an estimated observation of distance travelled based on the observation location, which they then used as data for a \kf{}. However, as demonstrated in \cref{fig:lhood_obs}, there are situations where the ``maximised'' location may be wrong, in which case the resulting state will be erroneous.
+The likelihood function is where the \pf{} is superior in this application. Were we to model the vehicle's state using a \kf{}, we would need to somehow compare a distribution in one dimension (distance travelled) with an observation in two dimensions (\gls{gps} coordinate). \citet{Cathey_2003} used an optimisation technique to obtain an estimated observation of distance travelled based on the observed location, which they then used as data for a \kf{}. However, as demonstrated in \cref{fig:lhood_obs}, there are situations where the ``maximised'' location may be wrong, in which case the resulting state will be erroneous.
 
 
 The \pf{} effectively checks to see how plausible the observation is assuming each particle is the truth, allowing us to weight each particle by its plausibility. Since there are two types of data, two likelihood functions are required: one for \GPS{} observations, and a second for trip updates. There is no need to match the observations to distance: instead, each particle's state can be transformed into a \gls{gps} coordinate, making it directly comparable to the vehicle's reported location (see \cref{app:pf_measurement_fun}).
@@ -193,7 +193,7 @@ get_stamenmap(bbox, zoom = 18, maptype = "toner-background") %>%
     theme_nothing()
 @
 
-Computing the distance between two \gls{gps} coordinates can be achieved using several formulae, each with varying levels of accuracy. Since all the distances are going to be (very) small, the \emph{equirectangular projection} is sufficiently accurate for computing geographical distances \citep{Snyder_1998}. This projection transforms the point $\Vobs_1 = \tvec{\Vlon_1, \Vlat_1}$, where latitude $\Vlat$ and longitude $\Vlon$ are in radians (the width of one longitudinal radian depends on latitude) onto a surface with meters on both axes, centred on the point $\Vobs_0 = \tvec{\Vlon_0, \Vlat_0}$ and using the Earth's radius $R = 6.371 \times 10^6$~meters:
+Computing the distance between two \gls{gps} coordinates can be achieved using several formulae, each with varying levels of accuracy. Since all the distances are going to be (very) small, the \emph{equirectangular projection} is sufficiently accurate for computing geographical distances \citep{Snyder_1998}. This projection transforms the point $\Vobs_1 = \tvec{\Vlon_1, \Vlat_1}$, where latitude $\Vlat$ and longitude $\Vlon$ are in radians (the width of one longitudinal radian depends on latitude), onto a surface with meters on both axes, centred on the point $\Vobs_0 = \tvec{\Vlon_0, \Vlat_0}$ and using the Earth's radius \mbox{$R = 6.371 \times 10^6$}~meters:
 \begin{equation}
 \label{eq:equirectangular_projection}
 \Vproj{\Vobs_1}{\Vobs_0} =
@@ -210,7 +210,7 @@ Now the distance between the points is easily computed using the \emph{euclidean
 \end{equation}
 as shown visually in \cref{fig:gps_projection}. Note that conversion from degrees to radians is achieved by multiplying degrees by $\frac{\pi}{180}$.
 
-<<gps_projection,echo=FALSE,message=FALSE,cache=TRUE,fig.width=4,fig.height=3.5,out.width="0.49\\textwidth",fig.align="center",fig.cap="Equirectangular projection of GPS coordinates ({\\sc a}) onto a flat surface ({\\sc b}), which allows the easy calculation of distance between a particle (black) and the vehicle's observed location (orange).",fig.scap="Equirectangular projection of GPS coordinates onto a flat surface",fig.subcap=c("GPS coordinates","Projected points")>>=
+<<gps_projection,echo=FALSE,message=FALSE,cache=TRUE,fig.width=8*0.49,fig.height=3.5,out.width="0.49\\textwidth",fig.align="center",fig.cap="Equirectangular projection of GPS coordinates ({\\sc a}) onto a flat surface ({\\sc b}), which allows the easy calculation of distance between a particle (black) and the vehicle's observed location (orange).",fig.scap="Equirectangular projection of GPS coordinates onto a flat surface",fig.subcap=c("GPS coordinates","Projected points")>>=
 xr <- extendrange(range(Yx$lng), f = 0.2)
 
 ggplot(Yx, aes(lng, lat)) +
@@ -249,6 +249,14 @@ ggplot(Yx, aes(x, y)) +
         label = "d(y[0], y[1])",
         angle = 45,
         parse = TRUE
+    ) +
+    annotate("text",
+        x = Yx[2,]$x, y = -5,
+        label = "r[k1]", parse = TRUE
+    ) +
+    annotate("text",
+        x = -5, y = Yx[2,]$y,
+        label = "r[k2]", parse = TRUE
     ) +
     geom_point(colour = c("black", "orangered"), size = 2) +
     coord_fixed(1) +
@@ -324,12 +332,12 @@ the likelihood of a \GPS{} observation using only
 the distance between two coordinates is now
 \begin{equation}
 \label{eq:particle_lh_fun}
-p(\Vobs_k | \Vstate\vi_k) =
+p(\Vobs_k \cond{} \Vstate\vi_k) =
     \frac{1}{2\GPSerr} \exp\left\{
         - \frac{\dist{\Vobs_k, \Vmeas(\Vstate\vi_k)}^2}{2\GPSerr}
     \right\},
 \end{equation}
-allowing the particles to be reweighted using \cref{eq:vehicle_pf_reweight}, as shown visually in \cref{fig:pf_wts} (darker particles have greater weight).
+allowing the particles to be reweighted using \cref{eq:vehicle_pf_reweight}. This is shown visually in \cref{fig:pf_wts} (darker particles have greater weight), which demonstrates not only the particle reweighting by geographical proximity, but also the particle filter's innate ability to handle loops (as displayed) and other situations involving multimodality.
 
 
 <<pf_wts,echo=FALSE,message=FALSE,cache=TRUE,dependson="lhood_obs",fig.width=8,fig.height=3,fig.align="center",fig.cap="Particles (black points) are reweighted (darker particles have more weight) based on their geographic proximity to the vehicle's observed location (red cross). There is no need to decide if the bus is going into or coming out of the loop.",fig.scap="Particles are reweighted based on their geographic proximity to the vehicle's observed location">>=
@@ -386,9 +394,9 @@ As well as vehicle position updates from \GPS{} data, \GTFS{} also provides trip
 
 The trip update observations differ from the \GPS{} observations in that there are now three situations which may occur. The observation can be of arrival time at stop $m$, $\Varr_m$, or it can be of departure time, $\Vdep_m$. In the latter case, treatment of the observations depends on whether $\Varr_m$ was observed. This gives us three likelihood functions to derive,
 \begin{itemize}
-\item $p(\Varr_m | \Vstate_k)$, the arrival time likelihood function,
-\item $p(\Vdep_m | \Vstate_k, \text{arrival missing})$, the departure time likelihood conditional on not having observed arrival time, and
-\item $p(\Vdep_m | \Vstate_k, \text{arrival observed})$, the departure time likelihood conditional on having observed arrival time.
+\item $p(\Varr_m \cond{} \Vstate_k)$, the arrival time likelihood function,
+\item $p(\Vdep_m \cond{} \Vstate_k, \text{arrival missing})$, the departure time likelihood conditional on not having observed arrival time, and
+\item $p(\Vdep_m \cond{} \Vstate_k, \text{arrival observed})$, the departure time likelihood conditional on having observed arrival time.
 \end{itemize}
 
 
@@ -410,7 +418,7 @@ and for departure time, using dwell time $\pdwell_m$ from \cref{eq:stop_total_dw
 In our \pf{} implementation, each observation is processed individually: in situations where more than one type of observation is recieved, they are processed in chronological order and the particles reweighted between each. The necessary likelihood component for \cref{eq:vehicle_pf_reweight} is therefore
 \begin{equation}
 \label{eq:tu_obs_lhood}
-p(\Vobs_k | \Vstate\vi_k) =
+p(\Vobs_k \cond{} \Vstate\vi_k) =
 \begin{cases}
 \frac{1}{\sqrt{2\pi\TUerr}}
     \exp\left\{

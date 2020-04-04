@@ -1,15 +1,15 @@
 \subsection{Predicting vehicle state: the transition function}
 \label{sec:vehicle_model_trans}
 
-The aim of the prediction step is to obtain a \emph{prior distribution} of the vehicle's state at time $\Vtime_k$ based on its previous state at time $\Vtime_{k-1}$, $p(\Vstate_k | \Vstate_{k-1})$. Using the model definition in \cref{eq:vehicle_model} along with the particle filter approximation of state in \cref{eq:vehicle_state_dirac}, we can write the prior prediction of the vehicle's state as
+The aim of the prediction step is to obtain a \emph{prior predictive distribution} of the vehicle's state at time $\Vtime_k$ based on its previous state at time $\Vtime_{k-1}$, $p(\Vstate_k \cond{} \Vstate_{k-1})$. Using the model definition in \cref{eq:vehicle_model} along with the particle filter approximation of state in \cref{eq:vehicle_state_dirac}, we can write the prior prediction of the vehicle's state as
 \begin{equation}
 \label{eq:vehicle_pf_predict}
-p(\Vstate_k | \Vstate_{k-1}) \approx
+p(\Vstate_k \cond{} \Vstate_{k-1}) \approx
 \sum_{i=1}^\Np
     \Pwt_{k-1}
     \DiracMeasure{\Vstate_k\vi}{\Vstate_k},
 \end{equation}
-where $\Vstate_k\vi = f(\Vstate\vi_{k-1}, \Vtdiff_k, \Vnoise_k)$ and $\Vtdiff_k = \Vtime_k - \Vtime_{k-1}$.
+where $\Vstate_k\vi = f(\Vstate\vi_{k-1}, \Vtdiff_k, \Vnoise)$ and $\Vtdiff_k = \Vtime_k - \Vtime_{k-1}$.
 
 The transition function $\Vtrans$ is where we define the vehicle behaviours mentioned earlier. Kalman filter applications are limited to linear transformations of the state which can be expressed in a \emph{transition matrix}. However, \cref{eq:vehicle_pf_predict} shows that, in the case of the particle filter, the transition function is applied to each particle independently, allowing for a lot more flexibility in $\Vtrans$. We now describe the various model components of $\Vtrans$, implemented as an algorithm in the \pkg{transitr} package (see \cref{sec:particle-filter} for details). The core components are vehicle motion (speed and acceleration along a known path), stopping behaviour at known locations (bus stops and intersections), as well as the ability to handle several other scenarios to avoid degeneration.
 
@@ -20,7 +20,7 @@ The transition function $\Vtrans$ is where we define the vehicle behaviours ment
 The first behaviour to consider is the vehicle's motion along a known path: the \emph{speed} at which a vehicle is travelling will affect where it ends up. Since speed, $\Vspeed$, is the derivative of distance travelled over time, if $x = d(t)$, then $\Vspeed = d'(t)$, which is shown visually back in \cref{fig:vehicle_state}. It follows that we can predict a vehicle's future state, given its current state (distance travelled and speed) and system noise, $\Vnoise$, which is interpreted as \emph{the average change in speed per second}:
 \begin{equation}
 \label{eq:vehicle_model_newton}
-\Vstate_{k|k-1} = f_{A1}\left(\Vstate_{k-1|k-1}\right) =
+\Vstate_{k|k-1} = f_{A1}\left(\Vstate_{k-1|k-1}\right, \Vtdiff_k, \Vnoise) =
 \begin{bmatrix}
 \Vdist_k \\ \Vspeed_k
 \end{bmatrix} =
@@ -203,7 +203,7 @@ The main issue with this model is that it assumes constant speed between observa
 Of course, if speed is the first derivative of the vehicle's trajectory function, then \emph{acceleration} is the second, $\Vaccel = d''(t)$. In this case, we add a third component to the vehicle's state and consider speed similarly to distance. The transition function
 \begin{equation}
 \label{eq:vehicle_model_newton_accel}
-\Vstate_{k|k-1} = \Vtrans_{A3}\left(\Vstate_{k-1|k-1},\Vtdiff_k\right)
+\Vstate_{k|k-1} = \Vtrans_{A3}\left(\Vstate_{k-1|k-1},\Vtdiff_k,\Vnoise\right)
 \end{equation}
 is iterative. It is initialised with $\bz_0 = \Vstate_{k-1|k-1}$ and repeated for $s = 1, \ldots, \Vtdiff_k$ to obtain $\Vstate_{k|k-1} = \bz_{\Vtdiff_k}$:
 \begin{equation}
@@ -221,9 +221,9 @@ z_{s-1} + \dot z_s \\
 System noise (interpreted as \emph{the average change in acceleration per second}) is applied to the acceleration term and truncated to ensure the speed remains positive and less than 30~m/s,
 \begin{equation}
 \label{eq:vehicle_model_accel_dist}
-v_s \sim \TNormal{0}{\Vnoise}{-\dot z_{s-1} - \ddot z_{s-1}}{30 - \dot z_{s-1} - \ddot z_{s-1}}
+v_s \sim \TNormal{0}{\Vnoise}{-\dot z_{s-1} - \ddot z_{s-1}}{30 - \dot z_{s-1} - \ddot z_{s-1}}.
 \end{equation}
-These trajectories are shown in the third graph in \cref{fig:transition_demo}. The main issue with $\Vtrans_{A3}$ is that it is difficult to parameterize and constrain the acceleration to ensure speed remains within the interval $(0,30)$ while preserving the function's ability to generate plausible trajectories.
+These trajectories are shown in the third graph of \cref{fig:transition_demo}. The main issue with $\Vtrans_{A3}$ is that it is difficult to parameterize and constrain the acceleration to ensure speed remains within the interval $(0,30)$ while preserving the function's ability to generate plausible trajectories.
 
 
 
@@ -254,7 +254,7 @@ A bus's wait time at a bus stop is referred to as \emph{dwell time} and consists
 \item passengers board and alight, and
 \item doors close, and vehicle waits for a gap in the traffic.\footnote{In New Zealand, buses do not get right-of-way, so it is common for them to be stuck for a while in a bus bay.}
 \end{enumerate}
-Phases i and ii can be combined with 1a and 1c from above (deceleration and acceleration, respectively) into a single parameter, $\mindwell$, which is assumed constant across all buses, stops, and routes.
+Phases i and iii can be combined with 1a and 1c from above (deceleration and acceleration, respectively) into a single parameter, $\mindwell$, which is assumed constant across all buses, stops, and routes.
 
 
 Phase ii includes the time taken for passengers to get on and off the bus, which varies significantly between stops, routes, and time of day. There are many ways to model service time: an exponential \citep{Hans_2015}, regression models \citep{Shen_2013}, or a real-time Kalman filter \citep{Shalaby_2004}. Here, I present a truncated Normal distribution using the mean and variance of historical dwell times, truncated at zero. The service time at stop $m$ along a route ($m=1,...,M-1$; dwell time does not apply to the last stop) is denoted $\pserve_m$, modelled by its mean and variance, $\dwell_m$ and $\dwellvar_m$, respectively, as estimated from historical data:
@@ -263,7 +263,7 @@ Phase ii includes the time taken for passengers to get on and off the bus, which
 \pserve_m \sim \TNormal{\dwell_m}{\dwellvar_m}{0}{\infty}.
 \end{equation}
 
-For each bus stop, we also have a \emph{stopping probability} $\Prstop_m\in(0,1)$. For the first and last stops, $m\in\{1,M\}$, the is unity; for the remainder, we have no data with which we can reliably estimate $\Prstop_m$, so, for now, we assume all stops have the same values specified by a global $\Prstop$ parameter (see \cref{sec:pf_params} for details on this). The outcome of whether a bus stops at a bus stop, $p_m$, is a Bernoulli trial,
+For each bus stop, we also have a \emph{stopping probability} $\Prstop_m\in(0,1)$. For the first and last stops, $m\in\{1,M\}$, this is unity; for the remainder, we have no data with which we can reliably estimate $\Prstop_m$, so, for now, we assume all stops have the same values specified by a global $\Prstop$ parameter (see \cref{sec:pf_params} for details on this). The outcome of whether a bus stops at a bus stop, $p_m$, is a Bernoulli trial,
 \begin{equation}
 \label{eq:stop_pstop}
 \Istop_m \sim \Bern{\Prstop_m}.
@@ -302,7 +302,7 @@ tibble(x = xx, y = yy) %>%
 @
 
 
-One other scenario for bus stops is a \emph{layover}, which is when a bus arrives early at a major stop\footnote{This is more common on longer routes in an attempt to keep them to schedule.} and waits until the scheduled departure time. In the \gls{gtfs} stop times table, layovers are denoted by an arrival time earlier than the corresponding departure time, as shown in \cref{tab:layover_times}. Again, under the particle filtering framework, this is simple enough to implement: if the particle arrives early, it waits until the scheduled departure time before leaving. However, it is not always the case that buses will wait for the layover, so we add a probability of adherence, similar to the stopping probability in \cref{eq:stop_pstop}. However, since this has greater importance for arrival time prediction, we defer the details for \cref{cha:prediction}.
+One other scenario for bus stops is a \emph{layover}, which is when a bus arrives early at a major stop\footnote{This is more common on longer routes in an attempt to keep them to schedule.} and waits until the scheduled departure time. In the \gls{gtfs} stop times table, layovers are denoted by an arrival time earlier than the corresponding departure time, as shown in \cref{tab:layover_times}. Again, under the particle filtering framework, this is simple enough to implement: if the particle arrives early, it waits until the scheduled departure time before leaving. However, it is not always the case that buses will wait for the layover, so we add a probability of adherence, similar to the stopping probability in \cref{eq:stop_pstop}. However, since this has greater implication for arrival time prediction, we defer the details for \cref{cha:prediction}.
 
 <<layover_times,echo=FALSE,message=FALSE>>=
 

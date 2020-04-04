@@ -4,9 +4,9 @@
 
 The next major step in this work was to implement the model in real-time using \Cpp{}. Our implementation involves a single call from the \Rstats{} package \pkg{transitr} which commences an infinite loop within \Cpp{} which:
 \begin{enumerate}
-\item fetches the lastest observations,
-\item attaches them to an existing vehicle, or creates a new one,
-\item updates or initialises vehicle states using the particle filter model described in \cref{sec:vehicle_model}, and
+\item fetches the lastest observations;
+\item attaches them to an existing vehicle, or creates a new one;
+\item updates or initialises vehicle states using the particle filter model described in \cref{sec:vehicle_model}; and
 \item estimates average road speeds as vehicles traverse the network as described in \cref{sec:vehicle_speeds}.
 \end{enumerate}
 During the process of coding our implementation (\cref{sec:pf_implementation}), we inevitably ran into issues, some of which are related to computational complexity, while others are due to imperfections with the data (\cref{sec:pf_issues}). Once the implementation was complete, we needed to estimate the parameters (such as system noise and measurement error) for the model.
