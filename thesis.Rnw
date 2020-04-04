@@ -75,10 +75,10 @@
  {chapter}
 
 \makeglossaries
+% \preto\chapter{\glsresetall}
 
 
-
-%% override the `ifglsused` command used by glossaries-prefix to determine if an abbr has been using /in this chapter/ (via `glsentrycurrcount`)
+%% override the `ifglsused` command used by glossaries-prefix to determine if an abbr has been used /in this chapter/ (via `glsentrycurrcount`)
 \newcommand{\agls}[1]%
     {%
         \ifnum\glsentryprevcount{#1}>3

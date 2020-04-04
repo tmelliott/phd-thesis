@@ -8,7 +8,7 @@ knit_theme$set("earendel")
 In \cref{sec:literature}, I reported how arrival time prediction is greatly improved when data from multiple routes is combined to estimate traffic conditions \citep{Yu_2011}. However, many of these applications were specific to a certain set of routes, or used external information (such as automatic toll readers and taxis) to get \rt{} traffic information. We wanted to develop a \emph{simpler}, \emph{more generalised} approach using solely \GTFS{} data (stops and shapes) to construct a network of non-overlapping\footnote{Except of course reverse directions.} road segments. The network should consist of \emph{nodes} (which could be intersections or bus stops) connected by \emph{edges}, or road segments, which is similar to the structure used by \citet{Celan_2017,Vuurstaek_2018}.
 
 
-The main goal of the network is to detect where any two routes overlap, even partially. There are several possible approaches to this, but the simplest is to look at common subsequences of bus stops. Of course, stops do not make optimal node locations because routes do not diverge \emph{physically} at stops---that would require locating \emph{intersections}. However, due to difficulties in finding intersections from either the \gls{gtfs} data or outside information, we opted to use bus stops for this work. \Cref{fig:gtfs_route_network} shows a simple route diagram with several overlapping routes. We see that each link between stops is common across routes, but routes that merge at intersections do not merge in the network until they reach a common stop.
+The main goal of the network is to detect where any two routes overlap, even partially. There are several possible approaches to this , particularly which use \gls{gps} traces \citep{Xie_2016,Zhang_2017}, but the simplest is to look at common subsequences of bus stops. Of course, stops do not make optimal node locations because routes do not diverge \emph{physically} at stops---that would require locating \emph{intersections}. However, due to difficulties in finding intersections from either the \gls{gtfs} data (using algorithms such as the one proposed by \citeauthor{Xie_2016}) or outside information, we opted to use bus stops for this work. \Cref{fig:gtfs_route_network} shows a simple route diagram with several overlapping routes. We see that each link between stops is common across routes, but routes that merge at intersections do not merge in the network until they reach a common stop.
 
 
 <<gtfs_route_network,echo=FALSE,message=FALSE,fig.width=8*.6,fig.height=3.5,out.width="0.6\\textwidth",fig.align="center",fig.cap="A simplified transit network with road segments (edges) connecting stops (nodes). Top: three routes with common subsequences of stops. Bottom: the widths of road segments represents the number of routes using them. There remains some segment overlap since routes merge at stops, not intersections.">>=
@@ -58,11 +58,20 @@ roads2 <- roads %>% filter(!id %in% c(5, 14, 15, 16, 17)) %>%
             (.)
         }
     }) %>%
-    mutate(lwd = ifelse(id %in% c(13, 10, 12), 2,
-                        ifelse(id %in% c(8), 5, 1)))
+    ungroup() %>%
+    mutate(
+      lwd = ifelse(id %in% c(13, 10, 12),
+              2,
+              ifelse(id %in% c(8), 5, 1)
+            ),
+      idf = factor(id, levels = sample(unique(id)))
+    )
 p2 <- ggplot() +
     geom_point(aes(x, y), data = stops, size = 3, pch = 19) +
-    geom_path(aes(x, y, group = id, size = lwd), data = roads2) +
+    geom_path(
+      aes(x, y, group = id, size = lwd, colour = idf),
+      data = roads2
+    ) +
     theme_void() + theme(legend.position = 'none') +
     scale_size_continuous(range = c(0.5, 2.5)) +
     coord_fixed(1)

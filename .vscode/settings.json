@@ -22,4 +22,7 @@
       "\\pkg{}",
       "\\obj{}",
   ],
+  "ltex.en-NZ.disabledRules": [
+    "MORFOLOGIK_RULE_EN_NZ"
+  ],
 }

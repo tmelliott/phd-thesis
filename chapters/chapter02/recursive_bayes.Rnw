@@ -1,7 +1,7 @@
 \section{Recursive Bayesian models}
 \label{sec:recursive-bayes}
 
-The most challenging problem we face in this application is its \rt{} nature. Vehicles report their current location, from which we want to estimate road speeds to predict arrival times, all within no more than 30~seconds. Fortunately, a certain class of models suit themselves well to \rt{} applications, and are indeed used in many vehicle tracking and robotics applications \citep{Anderson_1979,Gustafsson_2002,Mutambara_2000}: \glspl{rbm}, sometimes referred to a \emph{sequential Bayesian estimation}.
+The most challenging problem we face in this application is its \rt{} nature. Vehicles report their current location, from which we want to estimate road speeds to predict arrival times, all within no more than 30~seconds. Fortunately, a certain class of models suit themselves well to \rt{} applications, and are indeed used in many vehicle tracking and robotics applications \citep{Anderson_1979,Gustafsson_2002,Mutambara_2000,Ulmke_2006}: \glspl{rbm}, sometimes referred to a \emph{sequential Bayesian estimation}.
 
 
 In a typical analysis, data $\mat{Y}$ would be stored in an $n\times k$ matrix corresponding to $k$ measurements of $n$ variables over time. Then Bayes' rule is used to estimate the posterior distribution of an $m\times k$ matrix of parameters $\mat{X}$ all at once,
@@ -107,7 +107,7 @@ p(\bx_{0:{k}}\cond{}\boldsymbol{y}_{1:k})
 Here, the posterior distribution from the previous time step is used as a \emph{prior} for the next, and so it \emph{recursively} (or \emph{sequentially}) updates the state estimate as new data are observed, making \glspl{rbm} ideal for real-time applications.
 
 
-There are several types of \glspl{rbe} which consist of two main steps: \emph{predict} and \emph{update}. In the prediction step, the algorithm uses a \emph{transition function} $f$ (or matrix $\mat{F}$) to predict the new state based only upon the current state (\cref{eq:rbe_markov}), while the \emph{update} step incorporates the data to adjust the estimate using a \emph{measurement function} $h$ (or matrix $\mat{H}$) describing the relationship between $x$ and $y$ (\cref{eq:rbe_obs}). These can be expressed by the following model equations:
+There are several types of \gls{rbe} which consist of two main steps: \emph{predict} and \emph{update}. In the prediction step, the algorithm uses a \emph{transition function} $f$ (or matrix $\mat{F}$) to predict the new state based only upon the current state (\cref{eq:rbe_markov}), while the \emph{update} step incorporates the data to adjust the estimate using a \emph{measurement function} $h$ (or matrix $\mat{H}$) describing the relationship between $x$ and $y$ (\cref{eq:rbe_obs}). These can be expressed by the following model equations:
 \begin{equation}
 \label{eq:rbe_model}
 \begin{split}
@@ -139,7 +139,7 @@ The \kf{} version of the model presented in \cref{eq:rbe_model} is
 \boldsymbol{y}_k &= \mat{H}_k\bx_k + \boldsymbol{v}_k,
 \end{split}
 \end{equation}
-where $\boldsymbol{w}_k$ and $\boldsymbol{v}_k$ are Normal random variables with mean zero and covariance matrices $\mat{Q}_k$ and $\mat{R}_k$, respectively. The $m\times m$ covariance matrix $\mat{Q}_k$ represents the system noise at time $t_k$, which is defined as the rate of change of the variance of process noise \citep{Cathey_2003}. Measurement error is expressed by the $n\times n$ covariance matrix $\mat{R}_k$.
+where $\boldsymbol{w}_k$ and $\boldsymbol{v}_k$ are multivariate Normal random variables with mean zero and covariance matrices $\mat{Q}_k$ and $\mat{R}_k$, respectively. The $m\times m$ covariance matrix $\mat{Q}_k$ represents the system noise at time $t_k$, which is defined as the rate of change of the variance of process noise \citep{Cathey_2003}. Measurement error is expressed by the $n\times n$ covariance matrix $\mat{R}_k$.
 
 The \kf{} is implemented through two sets of equations. First is the prediction step, in which the current state (represented by the mean vector and covariance matrix) is predicted based solely on the previous state:
 \begin{equation}
@@ -179,7 +179,7 @@ p(\bx_{k-1} | \boldsymbol{y}_{1:k-1}) \approx
 \sum_{i=1}^\Np w\vi_{k-1} \DiracMeasure{\bx\vi_{k-1}}{\bx_{k-1}}.
 \end{equation}
 
-One advantage of the \pf{} is that we are no longer constrained in the choice of transition function, $f$, or the error distribution. Instead of working with the mean and variance of the state (as is the case with the \kf{}) we work with \emph{independent point estimates} which each represent a plausible state. In \cref{cha:vehicle_model} I use a Normal random variable for system noise, but this could be any appropriate distribution (for example a Cauchy if heavier tails are necessary). The state prediction step is carried out independently on each particle,
+One advantage of the \pf{} is that we are no longer constrained in the choice of transition function, $f$, or the error distribution. Instead of working with the mean and variance of the state (as is the case with the \kf{}) we work with \emph{independent point estimates} which each represent a plausible state. In \cref{cha:vehicle_model}, I use a Normal random variable for system noise, but this could be any appropriate distribution (for example a Cauchy if heavier tails are necessary). The state prediction step is carried out independently on each particle,
 \begin{equation}
 \label{eq:ch2:pf_predict_particle}
 \bx\vi_k = f\left(\bx\vi_{k-1}, \boldsymbol{v}\vi_k\right),
@@ -219,7 +219,7 @@ Over time, many of the particle weights will go to zero as they disperse due to 
     \label{eq:Neff}
     N_{\text{eff}} \approx \frac{1}{\sum_{i=1}^N (w_k\vi)^2},
 \end{equation}
-which provides an estimate of how varied the particles are: if too few particles contain most of the weight, resampling should occur. This is similar to the Metropolis-Hasting's proposal and acceptance steps: we propose a sample of state estimates and reject those that are not plausible given the data. If the system noise (proposal distribution) is small, then more particles will be ``accepted'', but we may not propose sufficient trajectories. Conversely, if the noise is too large, then there will be many ``rejections'', reducing the variety of particles (small $N_\text{eff}$).
+which provides an estimate of how varied the particles are: if too few particles contain most of the weight, resampling should occur. This is similar to the Metropolis-Hasting's proposal and acceptance steps: we propose a sample of state estimates and reject those that are not plausible given the data. If the system noise (proposal distribution) is small, then more particles will be ``accepted'', but we may not propose sufficient trajectories. Conversely, if the noise is too large, then there will be many ``rejections'', reducing the variety of particles (small $N_\text{eff}$). Indeed, an alternative name for the particle filter is \emph{sequential Monte Carlo} \citep{Davidson_2011}.
 
 Another advantage of the \pf{} is its generality. As we discuss in \cref{sec:vehicle_model}, we can easily construct a transition function to describe a complex system, as well as define a likelihood function that accurately represents the relationship between observed and unobserved states.
 
