@@ -1,6 +1,9 @@
 
 \chapter{Arrival time prediction for journey planning}
 \label{cha:etas}
+
+\phantom{\gls{mae},\gls{mape},\gls{mae},\gls{mape},\gls{mae},\gls{mape}}
+
 Arrival time prediction is most often used to provide commuters with a countdown while they wait for their bus, and has been shown to reduce experienced wait time \citep{TCRP_2003}. However, research has also shown that passengers who use \gls{rti} have shortened actual wait times \citep{Lu_2017}, demonstrating that, if reliable, passengers can use \gls{rti} to better plan their commutes. In this chapter, we shift our focus from the probabilistic view of arrival time estimation in \cref{cha:prediction} to a practical one.
 
 
@@ -18,7 +21,7 @@ To compute the \gls{cdf} of integer-valued arrival times, we first convert each 
 \label{eq:particle_eta_modulus}
 \breve\Tarr\vi = \Tarr\vi \mod 60.
 \end{equation}
-Next, we tally the number of particles with each arrival time $a$ and calculate the probability of the bus arriving in the interval $[a a+1)$,
+Next, we tally the number of particles with each arrival time $a$ and calculate the probability of the bus arriving in the interval $[a, a+1)$,
 \begin{equation}
 \label{eq:pf_pdf_arrivaltime}
 \Pr{A \in [a, a+1)} =
@@ -27,7 +30,7 @@ Next, we tally the number of particles with each arrival time $a$ and calculate 
 where $I_{a=b}$, the indicator, is 1 if $a$ equals $b$, and zero otherwise. Computationally, this is significantly easier than computing quantiles, since the latter involves sorting the particles (see \cref{app:particle-summaries}), whereas tallying integers can be performed with a single, unsorted pass over the particle vector. This provides significant performance enhancements, remembering that quantiles require sorting of particles at every stop.
 
 
-\Cref{eq:pf_pdf_arrivaltime} lets us express the \gls{cdf} as
+Using \cref{eq:pf_pdf_arrivaltime}, the \gls{cdf} is
 \begin{equation}
 \label{eq:pf_cdf_arrivaltime}
 \Pr{A < a} = \sum_{x=0}^{x=a-1} \Pr{A \in [x, x+1)}.

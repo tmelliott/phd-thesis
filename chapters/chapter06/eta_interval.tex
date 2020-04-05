@@ -18,7 +18,7 @@ Here we consider symmetric $100(1-\alpha)$\% prediction intervals, $\alpha\in (0
 \begin{equation}
 \left(\hat\Teta_{\alpha/2},\ \hat\Teta_{1-\alpha/2}+1\right),
 \end{equation}
-where $\hat A_q$ is as defined in \cref{eq:eta_calc_quantile}. The ``plus one'' is used to ensure the probability of the bus arrival before the upper bound is \emph{at least} $1-\frac{\alpha}{2}$. Note that although these intervals are symmetric in probability, they are most often asymmetric on the arrival time scale, particularly when the bus is near and the distribution is right-skewed, as shown in \cref{fig:eta_dist_skew}. In contrast, a Kalman filter implementation assumes Gaussian errors, so a symmetric interval is also symmetric around the mean as shown in, often leading to incorrect intervals (potentially even an \gls{eta} below zero).
+where $\hat A_q$ is as defined in \cref{eq:eta_calc_quantile}. The ``plus one'' is used to ensure the probability of the bus arriving before the upper bound is \emph{at least} $1-\frac{\alpha}{2}$. Note that although these intervals are symmetric in probability, they are most often asymmetric on the arrival time scale, particularly when the bus is near and the distribution is right-skewed, as shown in \cref{fig:eta_dist_skew}. In contrast, a Kalman filter implementation assumes Gaussian errors, so a symmetric interval ($y$-axis) is also symmetric around the mean ($x$-axis), as shown, often leading to incorrect intervals (potentially even an \gls{eta} below zero).
 
 
 \begin{knitrout}\small
@@ -50,7 +50,7 @@ where $\hat A_q$ is as defined in \cref{eq:eta_calc_quantile}. The ``plus one'' 
 
 
 
-We computed intervals for $\alpha \in \{0.01, 0.05, 0.1, 0.2\}$, and for each evaluated the observed coverage, the proportion of times that the bus arrived before the lower bound, and the average interval width (in minutes). \Cref{fig:eta_cis} shows that the observed coverage drops slightly as the interval width increases (smaller $\alpha$) and that the probability of the bus arriving before the lower bound is higher than expected. This may indicate that not enough uncertainty is being incorporated, but could also be a side effect of the round-down nature of the \gls{cdf} quantiles. Interval width increases with coverage probability, demonstrating the trade-off between reliability and usefulness.
+I computed intervals for $\alpha \in \{0.01, 0.05, 0.1, 0.2\}$, and for each evaluated the observed coverage, the proportion of times that the bus arrived before the lower bound, and the average interval width (in minutes). \Cref{fig:eta_cis} shows that the observed coverage drops slightly as the interval width increases (smaller $\alpha$) and that the probability of the bus arriving before the lower bound is higher than expected. This may indicate that not enough uncertainty is being incorporated; referring back to \cref{cha:prediction}, much of this occurs during peak times. Interval width increases with coverage probability, demonstrating the trade-off between reliability and usefulness.
 
 
 Other variables---time-until-arrival, time of day, or stop sequence---are not considered here as in the previous chapter since the results are much the same. However, if desired, such relationships could be explored to choose the best point or interval estimate under any given situation. The goal of this section was to demonstrate that reliability and usefulness can be improved upon by using prediction intervals.

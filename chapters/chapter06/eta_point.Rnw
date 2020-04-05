@@ -235,7 +235,7 @@ p2 + p3 + p4 + p5 +
 
 To compare several choices of point estimate, I computed---for every stop $i$ along every trip $j$ at each time $k$---a selection of quantiles
 \[
-  q \in \{0.05, 0.25, 0.5, 0.6, 0.6, 0.75, 0.9\}.
+  q \in \{0.05, 0.25, 0.4, 0.5, 0.6, 0.75, 0.9\}.
 \]
 For each, I calculated \gls{mae} and \gls{mape} to assess accuracy, along with the observed proportion of estimates $\hat\Teta_{qijk}$ that were \emph{earlier} than the bus's true arrival $A_{ijk}$ and a passenger arriving at the predicted time will have caught the bus:
 \begin{equation}
@@ -253,7 +253,7 @@ The results are displayed in \cref{fig:eta_overall_results}, along with the same
 
 
 
-An important consideration is the \emph{cost} of missing the bus, which occurs when the predicted arrival time is later than the bus's actual arrival. For each trip, the scheduled time between the current trip and the subsequent one---referred to as \emph{headway}---is used to compute the expected waiting time if a passenger misses the bus. If a bus is predicted to arrive in 5~minutes but arrives in 3, and the time between buses servicing the same trip is $H = 10$~minutes, then the expected waiting time for a passenger arriving at the predicted arrival time in 5~minutes is $10+3-5=8$~minutes.
+An important consideration is the \emph{cost} of missing the bus, which occurs when the predicted arrival time is later than the bus's actual arrival. For each trip, the scheduled time between the current trip and the subsequent one---referred to as \emph{headway}---is used to compute the expected waiting time if a passenger misses the bus. If a bus is predicted to arrive in 5~minutes but arrives in 3, and the time between buses servicing the same route is $H = 10$~minutes, then the expected waiting time for a passenger arriving at the predicted arrival time in 5~minutes is $10+3-5=8$~minutes.
 
 
 The total expected wait time can be conditioned on whether the bus was caught,
@@ -267,13 +267,13 @@ The total expected wait time can be conditioned on whether the bus was caught,
   \Pr{A < \hat\Teta}\E{H + A - \hat\Teta \cond{} A < \hat\Teta},
 \end{split}
 \end{equation}
-where $\hat\Teta$ and $A$ are the estimated and observed arrival times, respectively. For simplicity, we assume headway $H$ is maintained---that is, if a bus has 20~minute headway and a passenger misses it by 5~minutes, the next bus is expected to arrive in 15~minutes. This is not true in most situations, however, but predicting headway is a difficult problem \citep{Chen_2012,Hans_2014,Hans_2015}.
+where $\hat\Teta$ and $A$ are the estimated and observed arrival times, respectively. For simplicity, we assume headway $H$ is maintained---that is, if a route has 20-minute headway and a passenger misses a bus by 5~minutes, the next bus is expected to arrive in 15~minutes. This is not true in most situations, however, but predicting headway is a difficult problem \citep{Chen_2012,Hans_2014,Hans_2015}.
 
 
 To estimate $\Pr{\text{catch}}$ and $\E{\text{wait}\cond{}\text{catch}}$ we use the values estimated by \cref{eq:pr_bus_caught,eq:avg_wait_time}, respectively, allowing estimation of the total expected wait times. These wait times are displayed in \cref{fig:eta_headway_results} for a range of trip headways. Capture success rates are mostly unaffected by headway, while average wait times are, unexpectedly, shorter for less frequent trips. This could be attributed to there being more trips with short headway at peak times when there is more uncertainty in arrival times, and buses tend to be later than predicted. The relationship between headway and wait time if the bus is missed is as expected, with little noticeable difference between predictors.
 
 
-The overall wait time shows little difference between predictors for trips with a headway less than 10~minutes, but the methods quickly disperse as headway increases beyond this. However, we see that it is possible to maintain an expected wait time below 10~minutes by choosing appropriate quantiles. For low-frequency routes, the most reliable estimate would be the 5\% or 25\% quantile to minimise the probability of missing the bus. As a comparison, the same values were calculated based on the schedule-delay predictions, and are shown in \cref{fig:eta_headway_results} as dashed black lines. We see that, in most cases, it is the equivalent to using $q=0.75$, resulting in a 50\% chance of catching the bus. Consequently, the total expected waiting time is about 50\% of the headway.
+The overall wait time shows little difference between predictors for trips with a headway less than 10~minutes, but the methods quickly disperse as headway increases beyond this. However, we see that it is possible to maintain an expected wait time below 10~minutes by choosing appropriate quantiles. For low-frequency routes, the most reliable estimate would be the 5\% or 25\% quantile to minimise the probability of missing the bus. As a comparison, the same values were calculated based on the schedule-delay predictions, and are shown in \cref{fig:eta_headway_results} as dashed black lines. We see that, in most cases, it is the equivalent to using $q=0.75$, and has no better than a 50\% chance of catching the bus. Consequently, the total expected waiting time is about 50\% of the headway.
 
 
 <<eta_headway_results,message=FALSE,warning=FALSE,echo=FALSE,cache=TRUE,dependson="eta_load",fig.width=8,fig.height=5,out.width="\\textwidth",fig.align="center",fig.cap="Capture probabilities and expected wait times by trip headway (time until the next trip) using varying quantiles as point estimates of arrival time. Wait times assume the passenger arrives at the specified time. The dashed black line represents the same values using the schedule-delay prediction.",fig.scap="Capture probabilities and expected wait times by trip headway">>=

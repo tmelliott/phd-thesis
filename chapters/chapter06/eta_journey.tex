@@ -99,6 +99,10 @@ B & 27W & 13:05 & 0.00 & 0.99 & N & Y & N & Y\\
 The \glspl{cdf} allow easy calculation of the predicted probability of success in each scenario, displayed in \cref{tab:eta_journey_results}. Additionally, the binary (``Yes'' or ``No'') predictions made using the schedule-delay method are displayed for comparison, as well as the eventual outcome. That is, would the passenger have caught the bus and did it arrive on time? All of the predictions based on the \pf{} arrival time \glspl{cdf} are valid: small probabilities correspond to an outcome of ``No'' and large probabilities ($>0.8$) to ``Yes''. There was a discrepancy for the 1:15~pm 25B, which arrived at the destination on time: the schedule-delay incorrectly predicted ``No'', while our method predicted an 81\% chance of success.
 
 
+
+The results in \cref{fig:eta_journey_arrival,fig:eta_journey_arriveby} and \cref{tab:eta_journey_results} are based on \emph{one single forecast} made at  1:20~pm. To evaluate the overall performance of our prediction method, I repeated the process described above in 5~minute intervals over the off-peak period from  9:00~am to  3:00~pm. For the appointment time, I used 30-minute intervals allowing for 15--45 minutes for the journey: leaving between 9:15~am and 9:45~am had a targetted arrival time of 10:00~am; 9:45~am--10:15~am targetted 10:30~am; and so on. The probabilities of catching the bus and arriving on time were calculated for each case. \Cref{fig:eta_journey_results_avg} graphs the distribution of predicted probabilities for each of the two outcomes, for both catching the bus (left) and arriving on time (right). For most of the buses that arrived before the passenger, our method predicted capture probability below 50\%, though more buses which arrived after the passenger also had capture probabilities below 50\%. As for the arrival outcome, the maximum probability of arriving on time for buses which did not was 75\%, whereas a few buses which did arrive on time had small (< 50\%) probabilities of doing so.
+
+
 \begin{knitrout}\small
 \definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{figure}
 
@@ -109,9 +113,15 @@ The \glspl{cdf} allow easy calculation of the predicted probability of success i
 \caption[Results of performing the journey planning prediction with different starting times]{Results of performing the journey planning prediction with different starting times (from  9:00~am to  3:00~pm), using the same start and end locations. Observations are whether or not the passenger would have arrived at the stop before the bus. Predictive probabilities of 0 and 1 that were correctly estimated have been removed.}\label{fig:eta_journey_results_avg}
 \end{figure}
 
-\begin{table}
 
-\caption[Schedule-delay prediction results for all journeys]{\label{tab:eta_journey_results_avg}Schedule-delay prediction results for all journeys, with the displayed values representing the proportion of outcomes in each cell (rows are conditioned by the schedule-delay prediction).}
+\end{knitrout}
+
+For comparison, \cref{tab:eta_journey_results_avg2} presents a two-way contingency table for the binary schedule-delay predictions, with the predicted outcomes in rows. When the schedule-delay predicted that the bus would arrive after the passenger, it was correct 91\% of the time. When it predicted the bus would arrive first, it had a 98\% success rate. As for the arrival, in all cases that the schedule-delay predicted the bus would arrive on time, it was correct, versus only 78\% when it predicted the bus would be late. Overall, the schedule-delay method correctly predicted the bus capture outcome in 94\% of cases and successfully predicted the on-time arrival outcome in 89\% of cases.
+
+\begin{knitrout}\small
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{table}
+
+\caption[Schedule-delay prediction results for all journeys]{\label{tab:eta_journey_results_avg2}Schedule-delay prediction results for all journeys, with the displayed values representing the proportion of outcomes in each cell (rows are conditioned by the schedule-delay prediction).}
 \centering
 \fontsize{8}{10}\selectfont
 \begin{tabular}[t]{llllll}
@@ -130,12 +140,6 @@ Yes & 0.09 & 0.91 &  & 0.00 & 1.00\\
 
 
 \end{knitrout}
-
-The results in \cref{fig:eta_journey_arrival,fig:eta_journey_arriveby} and \cref{tab:eta_journey_results} are based on \emph{one single forecast} made at  1:20~pm. To evaluate the overall performance of our prediction method, I repeated the process described above in 5~minute intervals over the off-peak period from  9:00~am to  3:00~pm. For the appointment time, I used 30-minute intervals allowing for 15--45 minutes for the journey: leaving between 9:15~am and 9:45~am had a targetted arrival time of 8:00~am; 9:45~am--10:15~am targetted 8:30~am; and so on. The probabilities of catching the bus and arriving on time were calculated for each case. \Cref{fig:eta_journey_results_avg} graphs the distribution of predicted probabilities for each of the two outcomes, for both catching the bus (left) and arriving on time (right). For most of the buses that arrived before the passenger, our method predicted capture probability below 50\%, though more buses which arrived after the passenger also had capture probabilities below 50\%. As for the arrival outcome, the maximum probability of arriving on time for buses which did not was 75\%, whereas a few buses which did arrive on time had small (< 50\%) probabilities of doing so.
-
-
-For comparison, \cref{tab:eta_journey_results_avg} presents a two-way contingency table for the binary schedule-delay predictions, with the predicted outcomes in rows. When the schedule-delay predicted that the bus would arrive after the passenger, it was correct 91\% of the time. When it predicted the bus would arrive first, it had a 98\% success rate. As for the arrival, in all cases that the schedule-delay predicted the bus would arrive on time, it was correct, versus only 78\% when it predicted the bus would be late. Overall, the schedule-delay method correctly predicted the bus capture outcome in 94\% of cases and successfully predicted the on-time arrival outcome in 89\% of cases.
-
 
 In both methods, predicting bus capture is more accurate than predicting on-time arrival, which is acceptable considering the difference in forecast length: about 10~minutes for bus capture versus about 30~minutes for arrival. The schedule-delay predictions have a 1-in-10 chance of missing the bus, while our \pf{} provides a less definite prediction (such as 75\%), opening up the opportunity for passengers to make more informed decisions based on these probabilities and the importance of their constraints. In contrast, the schedule-delay method provides, at best, the predicted arrival time as a singular point estimate with no associated uncertainty, allowing only a ``Yes'' or ``No'' prediction to be made.
 
@@ -261,7 +265,7 @@ Yes & 0.1 & 0.9 &  & 0.07 & 0.93 &  & 0.03 & 0.97 &  & 0 & 1\\
 
 
 
-As before, the procedure was repeated in 5-minute intervals between  9:00~am and  3:00~pm, and the probabilities of transfers computed for each. \Cref{fig:eta_journey_transfer_many} shows the predicted transfer probabilities grouped by the outcome. To complement these results, \cref{tab:eta_journey_transfer_many} shows the outcomes for the schedule-delay method along with particle filter predictions using three decision rules. For the schedule-delay method, in 10\% of cases a predicted successful connection failed versus only 7\% using the particle filter with a decision rule of $\Pcatch > 0.5$. The false-positive rate was similar for both methods, although slightly higher for the \pf{} (6\% versus 3\%). However, depending on the passenger's requirements, it is possible to reduce the false-positive rate under the particle filter by increasing the threshold.  \Cref{tab:eta_journey_transfer_many}  also shows the results using 0.8 and 0.95 as the decision rule, which result in 3\% and 0\% false-positive rates, respectively. These do, however, has a significantly higher false-negative rate. By providing probabilities, the passenger has the option to decide what level of risk they are willing to take depending on personal constraints.
+As before, the procedure was repeated in 5-minute intervals between  9:00~am and  3:00~pm, and the probabilities of transfers computed for each. \Cref{fig:eta_journey_transfer_many} shows the predicted transfer probabilities grouped by the outcome. To complement these results, \cref{tab:eta_journey_transfer_many} shows the outcomes for the schedule-delay method along with particle filter predictions using three decision rules. For the schedule-delay method, in 10\% of cases a predicted successful connection failed versus only 7\% using the particle filter with a decision rule of $\Pcatch > 0.5$. The false-positive rate was similar for both methods, although slightly higher for the \pf{} (6\% versus 3\%). However, depending on the passenger's requirements, it is possible to reduce the false-positive rate under the particle filter by increasing the threshold.  \Cref{tab:eta_journey_transfer_many}  also shows the results using 0.8 and 0.95 as the decision rule, which result in 3\% and 0\% false-positive rates, respectively. These do, however, have a significantly higher false-negative rate. By providing probabilities, the passenger has the option to decide what level of risk they are willing to take depending on personal constraints.
 
 
 In this section, we have seen that having access to the full distribution of arrival times enables calculation of event probabilities as opposed to binary outcome predictions. Probabilities allow for more sophisticated decision making by travellers depending on their own needs, or by journey planning software and dynamic routing methods \citep{Berczi_2017}. A further advantage of using the \pf{} to estimate the \glspl{cdf} is that any improvements to the vehicle or network models will be integrated into the arrival prediction component, making future improvements simple to implement.
