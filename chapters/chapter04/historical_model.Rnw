@@ -148,7 +148,7 @@ do.call(egg::ggarrange,
 #         xlab("Time t") + ylab("Road state (seconds)")
 @
 
-The next step is to evaluate the predictive power of this approach. We do this by taking the second week of data (shown in \cref{fig:tt_week1_load}) and use the fitted estimates to predict the state in 30~minutes, and then compare this to the actual state in 30~minutes. The \gls{rmse} (\cref{app:error-functions}) is used to compare the predicted and observed speeds.
+The next step is to evaluate the predictive power of this approach. We do this by taking the second week of data (shown in \cref{fig:tt_week1_load}) and use the fitted estimates to predict the state in 30~minutes, and then compare this to the actual state in 30~minutes. \Gls{rmse} (\cref{app:error-functions}) is used to compare the predicted and observed speeds.
 
 
 
@@ -279,3 +279,6 @@ kable(
     caption = "RMSE results comparing the predictive performance of two forecast methods for predicting road state in 30~minutes."
 )
 @
+
+
+\phantom{\gls{rmse},\gls{rmse},\gls{rmse}}

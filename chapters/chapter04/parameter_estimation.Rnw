@@ -325,7 +325,7 @@ q &\sim \GammaD{0.001}{0.001}, \\
 \sigma_\psi &\sim \GammaD{0.001}{0.001}.
 \end{split}
 \end{equation}
-We initially attempted to fit a hierarchical segment noise parameter $\NWnoise_{\ell}$ with hyperparameters, but the values were all approximately equal for all segments and convergence was very slow (100,000's of iterations). Instead, we opted for a single common system noise parameter across all segments. The speed data for six segments on two consecutive Tuesdays is shown in \cref{fig:nw_model_n2_segplots}, with the locations of the roads displayed in \cref{fig:nw_seg_maps}.
+We initially attempted to fit a hierarchical segment noise parameter $\NWnoise_{\ell}$ with hyper\-parameters, but the values were all approximately equal for all segments and convergence was very slow (100,000's of iterations). Instead, we opted for a single common system noise parameter across all segments. The speed data for six segments on two consecutive Tuesdays is shown in \cref{fig:nw_model_n2_segplots}, with the locations of the roads displayed in \cref{fig:nw_seg_maps}.
 
 <<nw_model_n2_segplots,echo=FALSE,cache=TRUE,fig.width=8,fig.height=9,out.width="\\textwidth",fig.cap="Observed average bus speeds along six road segments on two consecutive Tuesdays.",fig.align="center">>=
 library(ggplot2)
