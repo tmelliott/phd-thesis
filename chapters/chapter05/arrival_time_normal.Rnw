@@ -167,7 +167,7 @@ where
 \end{equation}
 
 
-The mixture approximation works well for a few stops ahead, but after some time the mixture weights become small, and the components combine, as shown in \cref{fig:normal_approx}. To prevent $\tilde N$ from becoming too large, the full distribution is simplified into a single component with mean and variance
+The mixture approximation works well for a few stops ahead, but after some time the mixture weights become small, and the components combine, as shown in \cref{fig:normal_approx}. To prevent $\tilde N$ from becoming too large, the full distribution is simplified into a single component with mean
 \begin{equation}
 \label{eq:mixture_mean}
 \begin{split}

@@ -28,15 +28,15 @@ ggplot(layoverdat, aes(current_delay / 60)) +
     geom_vline(xintercept = 0, lty = 2)
 @
 
-The estimated trip state (and any associated vehicle) together with the road network can now be combined to forecast how long it will take for the vehicle to reach all remaining stops along the route. Dwell times can also affect arrival time uncertainty \citep{Shen_2013,Wang_2016,Robinson_2013,Meng_2013,Shalaby_2004,Hans_2015}. Some trips have the added complexity of layovers at specific stops---these are common at major points of interest, such as at a mall, or stations where many routes connect so passengers can transfer between services (see \cref{sec:gtfs}). In theory, drivers wait at these stops until the scheduled departure time before continuing the trip; however, in \Sexpr{100 * (1 - pr_wait)}\% of cases over two weeks, the driver left before the scheduled departure time, as is demonstrated in \cref{fig:layover_observance}, and \Sexpr{100 * pr_onemin}\% departed more than one minute early.
+The estimated trip state (and any associated vehicle) together with the road network can now be combined to forecast how long it will take for the vehicle to reach all remaining stops along the route. Dwell times can also affect arrival time uncertainty \citep{Shen_2013,Wang_2016,Robinson_2013,Meng_2013,Shalaby_2004,Hans_2015}. Some trips have the added complexity of layovers at specific stops---these are common at major points of interest, such as at a mall or transit station, where many routes connect so passengers can transfer between services (see \cref{sec:gtfs}). In theory, drivers wait at these stops until the scheduled departure time before continuing the trip; however, in \Sexpr{100 * (1 - pr_wait)}\% of cases over two weeks, the driver left before the scheduled departure time, as is demonstrated in \cref{fig:layover_observance}, and \Sexpr{100 * pr_onemin}\% departed more than one minute early.
 
 
 There are various ways to forecast arrival times, each with associated drawbacks and advantages. This section presents four arrival time prediction methods:
 \begin{itemize}
 \item \Fpf{} uses the particle filter estimate of vehicle state and the network state to obtain arrival time distributions;
 \item \Fnorm{} uses a Normal approximation of the vehicle's state, along with trip state, network state, and dwell-time distributions;
-\item \Fhist{} uses only historical delay data; and
-\item \Fsched{} uses the schedule and current real-time delay, which is currently used by \AT{}.
+\item \Fhist{} uses the schedule and historical delay data; and
+\item \Fsched{} uses the schedule and current real-time delay, as currently used by \AT{}.
 \end{itemize}
 
 

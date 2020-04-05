@@ -1,6 +1,8 @@
 \chapter{Predicting arrival time}
 \label{cha:prediction}
 
+\phantom{\gls{gps},\gls{gtfs},\gls{gtfs},\gls{gtfs}}
+
 So far, we have discussed the structure of transit data and its use in constructing a \emph{transit road network} (\cref{cha:data}) through which we model vehicles in real-time using a particle filter to estimate average vehicle speed along roads (\cref{cha:vehicle_model}). These speeds are, in turn, used to update a Kalman filter model of real-time road state (\cref{cha:network_model}). We now have everything needed to begin predicting the arrival time of buses at stops.
 
 In this chapter, we introduce one final state which combines all of the information we have gained thus far. \emph{Trip state} provides a means of combining schedule information with real-time vehicle data to simplify the process of predicting stop arrival times, which also involves the network state and dwell-time information. The first step, therefore, is to estimate trip state (\cref{sec:trip_state}) based on the \gls{gtfs} schedule and estimated vehicle states from \cref{cha:vehicle_model}. Other frameworks have used a similar process, such as \citet{Cathey_2003}, who used a \emph{trip tracker} to prescribe real-time vehicle observations to trip states for use in the \emph{prediction} step.
