@@ -337,7 +337,8 @@ Ruvae Jane Tupaea Cottrell
 %   BIBLIOGRAPHY
 %----------------------------------------------------------------------------------------
 
-\Urlmuskip=0mu plus 1mu\relax
+\setcounter{biburlnumpenalty}{5000}
+\setcounter{biburllcpenalty}{7000}
 \printbibliography[heading=bibintoc]
 
 %----------------------------------------------------------------------------------------

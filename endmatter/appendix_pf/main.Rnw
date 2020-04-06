@@ -3,13 +3,13 @@
 
 \phantom{\gps{}\gps{}\gps{}}
 
-The particle filter allows us to approximate any distribution by using a sample of \emph{particles}, $x\vi$, with weights $w\vi$. There are many advantages of the particle filter, but one is that producing summary statistics is very simple. The only real disadvantage is that it is a computationally demanding process. In this appendix, we briefly describe the theory behind using the particle filter to estimate a distribution, as well as give details on its computational demands.
+The particle filter allows us to approximate any distribution by using a sample of \emph{particles}, $x\vi$, with weights $w\vi$. There are many advantages of the particle filter, but one is that producing summary statistics is very simple. The only real disadvantage is that it is a computationally demanding process. In this appendix, I briefly describe the theory behind using the particle filter to estimate a distribution, as well as give details on its computational demands.
 
 
 \section{The Dirac measure}
 \label{app:dirac-delta-measure}
 
-In \cref{sec:recursive-bayes,cha:vehicle_model} we described the particle filter implementation, and noted that we can use the Dirac measure, $\dirac$, to approximate the distribution \citep{Benedetto_1996}. We will not get into the theoretical aspects of the function, except to state the following property:
+In \cref{sec:recursive-bayes,cha:vehicle_model} I described the particle filter implementation, and noted that we can use the Dirac measure, $\dirac$, to approximate the distribution \citep{Benedetto_1996}. We will not get into the theoretical aspects of the function, except to state the following property:
 \begin{equation}
 \label{eq:dirac_property}
 \int_X f(x) \dirac_y(x)\dx = f(y).
@@ -58,9 +58,9 @@ wi <- min(which(shape$dist > 4))
 wd <- round(shape$dist[wi-1] * 10)
 @
 
-To find the coordinates of a point 50~meters along this line, we find the maximum point along the route with \emph{shape distance travelled} less than 40, which is the point in red in \cref{fig:app:measure_step1}, which is \Sexpr{wd}~meters along the route. There remains $40-\Sexpr{wd}=\Sexpr{40 - wd}$~meters to travel to get to 40~meters.
+To find the coordinates of a point 40~meters along this line, we find the maximum point along the route with \emph{shape distance travelled} less than 40, which is the point in red in \cref{fig:app:measure_step1}, which is \Sexpr{wd}~meters along the route. There remains $40-\Sexpr{wd}=\Sexpr{40 - wd}$~meters to travel to get to 40~meters.
 
-<<app:measure_step1,echo=FALSE,fig.width=8*.6,fig.height=2.5,out.width=".6\\textwidth",fig.align="center",fig.cap="The farthest point along the route less than 40~meters along the route (red).",fig.pos="h">>=
+<<app:measure_step1,echo=FALSE,fig.width=8*.6,fig.height=2.5,out.width=".6\\textwidth",fig.align="center",fig.cap="The farthest point along the route less than 40~meters along the route (red).",fig.pos="ht">>=
 
 ggplot(shape, aes(x, y)) +
     geom_path() +
@@ -168,7 +168,7 @@ Similarly, the variance can be calculated by passing a reference to the value of
 }
 \end{lstlisting}
 
-More complicated, however, is estimation of \emph{quantiles}, since this requires sorting the vector of particles in order of the desired value. In the above example, to get the median speed, we need to first sort the particles by speed (slowest to fastest) and then sum their weights, in order, until the sum surpasses 0.5: the speed of the particle that does this provides the median speed.
+More complicated, however, is estimation of \emph{quantiles}, since this requires sorting the vector of particles in order of the desired value. In the above example, to get the median speed, we need to first sort the particles by speed (slowest to fastest) and then sum their weights, in order, until the sum exceeds 0.5: the speed of the particle that does this provides the median speed.
 \begin{lstlisting}
 std::sort (x.begin (), x.end (),
     (Particle& p1, Particle& p2)
