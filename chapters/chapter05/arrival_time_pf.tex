@@ -14,7 +14,7 @@ To do so, each particle samples a speed for each segment from the network state,
 % This could, of course, be altered if correlations are specified. It is then an iterative process of computing arrival times.
 
 \paragraph{Step 1: complete the current segment}
-If the particle is at a stop, the (remaining) dwell time is sampled from the dwell time distribution (this is the same as in \cref{cha:vehicle_model}), and the particle's departure time is stored. If the particle is not at a stop, and $\SegProg_k > 0$, then the time to completion of the current segment $\ell$ is needed. When the bus is near the end of the segment (less than 200~m remaining), the particle's current speed is used, otherwise, the speed is simulated from
+If the particle is at a stop, the (remaining) dwell time is sampled from the dwell time distribution (this is the same as in \cref{cha:vehicle_model}), and the particle's departure time is stored. If the particle is not at a stop, and $\SegProg_k > 0$, then the time to completion of the current segment $\ell$ is needed. When the bus is near the end of the segment (less than 200~m remaining), the particle's current speed is used, otherwise the speed is simulated from
 \begin{equation}
 \label{eq:pred_seg_speed}
 v\vi_\ell \sim \TNormal{\RouteNWstateseg_\ell}{\RouteNWstatevarseg_\ell^2 + \NWvar_\ell^2}{0}{\MaxSpeed_\ell},

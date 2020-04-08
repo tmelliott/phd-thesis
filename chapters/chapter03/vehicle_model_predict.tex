@@ -91,7 +91,7 @@ There are two types of nodes in our framework: \emph{bus stops} where passengers
 \item if the bus stops:
     \begin{enumerate}
     \item deceleration to zero,
-    \item wait,
+    \item wait, and
     \item acceleration to traffic speed;
     \end{enumerate}
 \item otherwise, continue as though there is no node.
@@ -104,8 +104,8 @@ Only step 1b depends on the type of node.
 
 A bus's wait time at a bus stop is referred to as \emph{dwell time} and consists of three phases \citep{Hans_2015,Robinson_2013,Meng_2013,Wang_2016}:
 \begin{enumerate}[i.]
-\item doors open,
-\item passengers board and alight, and
+\item doors open;
+\item passengers board and alight; and
 \item doors close, and vehicle waits for a gap in the traffic.\footnote{In New Zealand, buses do not get right-of-way, so it is common for them to be stuck for a while in a bus bay.}
 \end{enumerate}
 Phases i and iii can be combined with 1a and 1c from above (deceleration and acceleration, respectively) into a single parameter, $\mindwell$, which is assumed constant across all buses, stops, and routes.

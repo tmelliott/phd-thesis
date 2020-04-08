@@ -6,7 +6,7 @@
 The adoption of GTFS \citep{GoogleDevelopers_2006} by public transport agencies around the world has made it possible for applications such as Google Maps to access and display public transport data to users, regardless of their location. The main goal of GTFS is to specify, in detail, how transit data should be organised so that it is consistent across agencies around the world. As a result, it does not matter whether you are in Auckland, Paris, or C\'ordoba; Google Maps can show you public transport directions by accessing local \gls{gtfs} data.
 
 
-\GTFS{} consists of two components, \emph{static} and \emph{real-time}.\footnote{The official name is `GTFS-realtime'.} The static component specifies how information about the schedule, fares, and route geographies are organised, while the \emph{real-time} component specifies the format for real-time data: vehicle locations, stop updates and \glspl{eta}, and service advisories. Each of the static and real-time components is implemented by the transit provider; for example, \AT{}'s \GTFS{} service is hosted at \url{https://dev-portal.at.govt.nz}.
+\GTFS{} consists of two components, \emph{static} and \emph{real-time}.\footnote{The official name is `GTFS-realtime'.} The static component specifies how information about the schedule, fares, and route geographies are organised, while the \emph{real-time} component specifies the format for real-time data: vehicle locations, stop updates and \glspl{eta}, and service advisories. Each of the static and real-time components is implemented by the transit provider; for example, \AT{}'s \GTFS{} service is hosted at \mbox{\url{https://dev-portal.at.govt.nz}}.
 
 
 \subsection{Static GTFS}
