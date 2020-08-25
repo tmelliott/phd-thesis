@@ -306,6 +306,7 @@ source("load_data.R")
 setwd(wd)
 con <- dbConnect(SQLite(), db)
 Nseg <- con %>% tbl("road_segments") %>% tally() %>% collect() %>% pull("n")
+dbDisconnect(con)
 @
 
 To assess how effective our approach is for estimating $\NWvar_\ell$ and $\NWnoise_\ell$, we selected five other road segments around Auckland. However, instead of fitting the same model independently to each segment,  we use a hierarchical Bayesian model on the parameters, since it seems reasonable that, while they will not be the same for all segments, there will be an underlying population distribution. This allows us to obtain estimates of the parameter values without explicitly needing to model every road (of which there are \Sexpr{format(Nseg, big.mark=",")}).
