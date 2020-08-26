@@ -20,19 +20,19 @@ nlocation <- 672
 transitfeeds_date <- "12 Feb 2020"
 @
 
-\AT{} operates a fleet of vehicles consisting of buses, trains, and ferries to transport passengers around Auckland, New Zealand's most populous urban region \citep{StatsNZ_2019}, from Wellsford in the north to Pukekohe in the south. Serving the region are \Sexpr{nroute}~routes,\footnote{As of \Sexpr{updated_fmt}, sourced from \url{https://at.govt.nz/}.} each providing a service from an \emph{origin} to a \emph{destination} via a specified sequence of \emph{stops} at which passengers may board or alight.
+\AT{} is the primary organisation responsible for the fleet of buses, trains, and ferries that transport passengers around Auckland, New Zealand's most populous urban region \citep{StatsNZ_2019}, from Wellsford in the north to Pukekohe in the south. Serving the region are \Sexpr{nroute}~routes,\footnote{As of \Sexpr{updated_fmt}, sourced from \url{https://at.govt.nz/}.} each providing a service from an \emph{origin} to a \emph{destination} via a specified sequence of \emph{stops} at which passengers may board or alight.
 
 
 For each route, one or more \emph{trips} are scheduled to operate, typically departing from the origin stop at a fixed time, with approximate arrival times for the intermediate stops along the way. In some cases, services wait at specific stops until the scheduled departure time, known as a \emph{layover}; in others, drivers may adjust their speed to adhere to the schedule. In most cases, however, drivers do not heed the schedule and drive along the route at whatever speed is reasonable.\footnote{This is what I have observed over 10~years of catching public transport, but also refer back to \cref{fig:schedule_adhere}.} Not all trips run every day; typically trips are scheduled as `weekday', `Saturday', or `Sunday and public holidays'. Altogether there are (at the time of writing) \Sexpr{format(ntrip, big.mark = ",")}~trips provided by \AT{}, \Sexpr{format(ntrip.week, big.mark = ",")} of which run every weekday.
 
 
-The assignment of routes, trips, and stops is a common occurrence in transport systems, to the extent that it was formalised by Google's \emph{\acrfull{gtfs}} \citep {GoogleDevelopers_2006}. \GTFS{} provides detailed guidelines of how transit data should be organised, making it significantly easier for external systems to access, with the primary example being Google Maps. However, plenty of other applications exist that make use of it.\footnote{Including the one we are presenting.} \GTFS{} has now been adopted by \Sexpr{format(nfeed, big.mark = ",")}~providers across \Sexpr{format(nlocation, big.mark = ",")}~locations globally which are shown in \cref{fig:gtfs_feeds}. \Cref{sec:gtfs} provides further information on \gls{gtfs}.
+The assignment of routes, trips, and stops is a common occurrence in transport systems, to the extent that it was formalised by Google's \emph{\acrfull{gtfs}} \citep {GoogleDevelopers_2006}. \GTFS{} provides detailed guidelines for the organisation of transit data, making it significantly easier for external systems to access, with the primary example being Google Maps, although a raft of other applications exist that make use of it.\footnote{Including the one we are presenting.} \GTFS{} has now been adopted by \Sexpr{format(nfeed, big.mark = ",")}~providers across \Sexpr{format(nlocation, big.mark = ",")}~locations globally which are shown in \cref{fig:gtfs_feeds}. \Cref{sec:gtfs} provides further information on \gls{gtfs}.
 
 \begin{figure}
 \centering
 \includegraphics[width=0.8\textwidth]{figure/gtfs_feeds.png}
-\caption[Locations of GTFS feed providers]{Locations of the \Sexpr{nlocation}~\GTFS{} feed providers,\\
-sourced from \url{http://transitfeeds.com/} on \Sexpr{transitfeeds_date}.}
+\caption[Global distribution of GTFS feeds]{There are (at least) \Sexpr{nlocation}~\GTFS{} feed providers for locations all around the world.
+Figure from \url{http://transitfeeds.com/}, accessed on \Sexpr{transitfeeds_date}.}
 \label{fig:gtfs_feeds}
 \end{figure}
 
@@ -52,3 +52,11 @@ The real-time nature of the application demands that predictions are made as soo
 \input{DIRNAME/recursive_bayes.tex}
 
 \input{DIRNAME/realtime-implementation.tex}
+
+\section{Chapter contributions}
+\label{sec:data_contrib}
+
+\begin{itemize}
+\item Generalised construction of a transit road network from (solely) \gls{gtfs} data. Other research has used similar approachs, but I have not seen any explicit construction of a ``network'' in this way.
+\item Implementation of automatic network construction within the \prog{R} package \pkg{transitr}.
+\end{itemize}

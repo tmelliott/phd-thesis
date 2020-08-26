@@ -3,11 +3,11 @@
 \section{\Rt{} implementation in \pkg{Rcpp}}
 \label{sec:rt-implementation}
 
-In \cref{sec:gtfs}, I introduced the \Rstats{} package \pkg{transitr}, which loads a \GTFS{} database and connects to a real-time \gls{api}. The advantage of \Rstats{} \citep{rcore} is its superior ability for processing data of various forms through additional packages, and provision an easy-to-use interface for users. However, when it comes to computational efficiency, \Cpp{} is the better choice. Fortunately, \Rstats{} offers an interface to \Cpp{} through the \pkg{Rcpp} package developed by \citet{Rcpp}. This gives us the speed and memory management capabilities of \Cpp{} from within \Rstats{}.
+In \cref{sec:gtfs}, I introduced the \Rstats{} package \pkg{transitr}, which loads a \GTFS{} database and connects to a real-time \gls{api}. The advantage of \Rstats{} \citep{rcore} is its superior ability for processing data of various forms through additional packages, and providing an easy-to-use interface for users. However, when it comes to computational efficiency, \Cpp{} is the better choice. Fortunately, \Rstats{} offers an interface to \Cpp{} through the \pkg{Rcpp} package developed by \citet{Rcpp}. This gives us the speed and memory management capabilities of \Cpp{} from within \Rstats{}.
 
 The general structure of our program has two parts. The first handles data collection from a transit provider and creation of the transit network (\cref{sec:route-segments}), all stored in an \prog{SQLite} database.\footnote{\url{https://www.sqlite.org/index.html}} Users can connect to a GTFS-realtime \gls{api}, as well as pass additional arguments to the generated \obj{gtfs} object, which are then forwarded onto the second part which runs purely within \Cpp{}.
 
-Within the \Cpp{} component, there are two main phases: set-up and modelling. During the set-up phase, the GTFS database is loaded, and parameter values are established. A vector of \class{Vehicle} objects is initialised to contain the real-time vehicle states. The modelling phase consists of a single \verb+while+ loop which runs until the operating system sends the program a kill signal. It is inside this loop that all of the real-time modelling discussed throughout the remainder of this thesis occurs.
+Within the \Cpp{} component, there are two main phases: set-up and modelling. During the set-up phase, the GTFS database is loaded and parameter values are established. A vector of \class{Vehicle} objects is initialised to contain the real-time vehicle states. The modelling phase consists of a single \verb+while+ loop which runs until the operating system sends the program a kill signal. It is inside this loop that all of the real-time modelling discussed throughout the remainder of this thesis occurs.
 
 Within the program, we use \gls{oop} to represent objects---both static (routes and trips) and \rt{} (vehicles, road segments). These objects contain a lot of \emph{interdependence}; for example, a trip belongs to a route and vehicles services trips. Pointers are used in \Cpp{} to allow easy access to these relationships without any duplication of information. For example, the route number for a vehicle can be obtained as follows:
 \begin{knitrout}\small
@@ -34,7 +34,7 @@ As pointers are not fixed, the above example works even after the vehicle change
 \noindent
 This data is then handled by the \class{Segment} object (described later in \cref{cha:network_model}).
 
-The main issue with pointers is that, if an object is deleted or moved, a pointer may no longer point to the appropriate object, resulting in a \emph{segmentation fault} and crashing the program at runtime. However, with care, and by checking a pointer is valid before using it, it is possible to avoid such problems. For example, the above would be better written as follows.
+The main issue with pointers is that, if an object is deleted or moved, a pointer may no longer point to the appropriate object, resulting in a \emph{segmentation fault} and crashing the program at runtime. However, with care, and by checking a pointer is valid before using it, it is possible to avoid such problems. For example, the above would be better written as follows:
 \begin{knitrout}\small
 \definecolor{shadecolor}{rgb}{1, 1, 1}\color{fgcolor}\begin{kframe}
 \noindent

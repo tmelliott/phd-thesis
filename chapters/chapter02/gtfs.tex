@@ -1,7 +1,7 @@
-\section{GTFS}
+\section{GTFS: \acrlong{gtfs}}
 \label{sec:gtfs}
 
-\glsresetall\phantom{\gls{gps}}
+% \glsresetall\phantom{\gls{gps}}
 
 The adoption of GTFS \citep{GoogleDevelopers_2006} by public transport agencies around the world has made it possible for applications such as Google Maps to access and display public transport data to users, regardless of their location. The main goal of GTFS is to specify, in detail, how transit data should be organised so that it is consistent across agencies around the world. As a result, it does not matter whether you are in Auckland, Paris, or C\'ordoba; Google Maps can show you public transport directions by accessing local \gls{gtfs} data.
 
@@ -78,7 +78,7 @@ On its own, the static \GTFS{} information can be used like a printed timetable,
 \subsection{Real-time GTFS}
 \label{sec:gtfs_rt}
 
-The real-time component of \GTFS{} is responsible for handling vehicle positions, trip updates (arrivals at and departures from stops), and service alerts (cancellations and stop closures, for example). Data is processed by a central server and then stored appropriately to enable quick access via \glspl{api}. There is, therefore, the additional need of a server that can handle vast numbers of \gls{api} requests. As such, only a subset of transport providers using \GTFS{} have also implemented the real-time component. Below we give a summary of these components, but further information is available on the \GTFS{} website.\footnote{See \url{https://developers.google.com/transit/gtfs-realtime/}.}
+The real-time component of \GTFS{} is responsible for handling vehicle positions, trip updates (arrivals at and departures from stops), and service alerts (cancellations and stop closures, for example). Data is processed by a central server and then stored appropriately to enable quick access via an \gls{api}. There is, therefore, the additional need of a server that can handle vast numbers of \gls{api} requests. As such, only a subset of transport providers using \GTFS{} have also implemented the real-time component. Below we give a summary of these components, but further information is available on the \GTFS{} website.\footnote{See \url{https://developers.google.com/transit/gtfs-realtime/}.}
 
 
 \subsubsection{Vehicle positions}
@@ -113,7 +113,7 @@ Less important for the current work, but essential for reliable \gls{rti}, \emph
 \subsection{Accessing \rt{} data (API)}
 \label{sec:gtfs_rt_api}
 
-Distributing vehicle locations, trip updates, and service alerts to passengers quickly and usefully requires more than just a \gls{dms} at bus stops. Personal mobile devices have revolutionised the way we live our lives, and developers are continually creating new applications to assist with everyday activities. Included in these are transit applications, which are capable of conveying real-time \GTFS{} data to passengers.
+Distributing vehicle locations, trip updates, and service alerts to passengers quickly and usefully requires more than just a \gls{dms} at bus stops. Personal mobile devices have revolutionised the way we live our lives, and developers are continually creating new applications to assist with everyday activities. Amongst these are transit applications, which are capable of relaying real-time \GTFS{} data to passengers.
 
 
 The most common method of distributing real-time data is via an \gls{api}. This is, in simple terms, a fixed web address from which developers can request a data file---either \prog{JSON} or, in the case of some \GTFS{} systems, \prog{protobuf}\footnote{See \url{https://developers.google.com/protocol-buffers}}---which can then be parsed and displayed to users. Usually, developers need to register for an \emph{\gls{api} key} which helps to control server demand by limiting the number of requests a user can make, or control access to specific data. The \pkg{transitr} package includes the ability to connect to a \GTFS{}-based \gls{api} easily:

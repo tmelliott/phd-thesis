@@ -45,7 +45,7 @@ However, \cref{eq:pf_seg_tt} does not take into account
 correlations between road segments,
 which are planned to be included in future work.
 Therefore, we can replace it with the marginal distribution,
-which for bivariate normal variables $X_1,X_2$
+which for bivariate \normal{} random variables $X_1,X_2$
 with means $\mu_1,\mu_2$,
 variances $\sigma_1^2,\sigma_2^2$
 and covariance $\rho$, then
@@ -76,4 +76,3 @@ the arrival time distribution
 accounting for all the uncertainty accurately
 (i.e., without making normality assumptions),
 we need to check that it is faesible in the \rt{} context.
-

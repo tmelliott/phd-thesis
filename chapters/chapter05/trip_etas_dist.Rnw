@@ -9,7 +9,7 @@ we need to obtain a subset of the network state $\NWstate_c$.
 Let $\RouteSegs$ be the set, in order,
 of $\Nseg$ road segments making up a given trip.
 The travel times along these are assumed to have a
-multivariate normal distribution (as the full network does)
+multivariate \normal{} distribution (as the full network does)
 with mean $\vec{b}_c$ and covariance matrix $\mat{T}_c$.
 
 
