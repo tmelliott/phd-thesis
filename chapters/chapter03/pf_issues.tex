@@ -30,7 +30,7 @@ At peak hour on a typical weekday morning, there can be in excess of 1000~buses 
 
 
 
-To assess how well our model performs in real-time, we repeated the simulation with a range of values of system noise $\Vnoise$, \gls{gps} error $\GPSerr$, and the number of particles $\Np$. For each simulation, we computed \emph{proportional effective sample size}, \emph{degeneration rate}, and \emph{relative variance}.
+To assess how well our model performs in real-time, we repeated the simulation with a range of values of system noise $\VnoiseSD$, \gls{gps} error $\GPSerrSD$, and the number of particles $\Np$. For each simulation, we computed \emph{proportional effective sample size}, \emph{degeneration rate}, and \emph{relative uncertainty}.
 
 The \emph{proportional effective sample size} is the effective sample size relative to $N$, $\tilde N_\text{eff} = \frac{\Neff}{\Np}$. The higher this value, the less often the vehicle's state needs resampling, decreasing the average iteration time. \Cref{fig:model_performance_neff} shows the effect of $\Np$, system noise, and \gls{gps} error on $\tilde N_\text{eff}$. The most striking relationship is between $\tilde N_\text{eff}$ and \gls{gps} error: for larger error, more particles retain a high likelihood, and so the total weight is more evenly distributed. Conversely, larger values of system noise result in more variation between particles, leading to fewer particles ending near the observation position and decreasing $\tilde N_\text{eff}$.
 
@@ -63,22 +63,29 @@ The \emph{degeneration rate} is the proportion of samples in which no particles 
 
 \end{knitrout}
 
-Finally, we have \emph{relative speed variance} along roads, which we use to compare the precision of the various models. It is the ratio of variance for a single simulation compared to the overall variance for all simulations. Let $\vec z_\ell^{e,s}$ be a vector of all vehicle speeds along road segment $\ell$ during the simulation with \gls{gps} error and system noise equal to $e$ and $s$, respectively. The ratio of the variance of speed for the single simulation compared to all simulations along one single road segment is given by
+Finally, we have \emph{relative speed estimation uncertainty} along roads, which we use to compare the precision of the various models. It is the ratio of the uncertainty of speed estimates for a single simulation compared to the overall uncertainty for all simulations. Let $\vec z_\ell^{e,s}$ be a vector of all vehicle speeds along road segment $\ell$ during the simulation with \gls{gps} error and system noise equal to $e=\left\{ 1, 2, 3, 5 \right\}$ and $s=\left\{ 0.0001, 0.001, 0.01, 0.05 \right\}$, respectively. The ratio of the uncertainty of speed for the single simulation compared to all simulations along one single road segment is given by
 \begin{equation}
 \label{eq:rel_speed_var_ratio}
 v_\ell^{e,s} =
 \frac{
-    \mathrm{Var}(\vec z_\ell^{e,s})
+    \mathrm{SE}(\vec z_\ell^{e,s})
 }{
-    \mathrm{Var}(\cup_e\cup_s \vec z_\ell^{e,s})
-}.
+    \mathrm{SE}(\cup_e\cup_s \vec z_\ell^{e,s})
+} =
+M \frac{
+    \mathrm{SD}(\vec z_\ell^{e,s})
+}{
+    \mathrm{SD}(\cup_e\cup_s \vec z_\ell^{e,s})
+},
 \end{equation}
+where $M$ is the number of simulations, in this case 16,
+and SE and SD are standard error and standard deviation, respectively.
 That is, for each segment in each simulation, we have a value representing whether this simulation estimates speed more or less accurately. We then compute the average ratio for all $L$ road segments,
 \begin{equation}
 \label{eq:rel_speed_var}
 \bar v^{e,s} = \frac{1}{L} \sum_{\ell=1}^L v_\ell^{e,s}.
 \end{equation}
-A small value of $\bar v^{e,s}$ tells us that, on average, the simulation with \gls{gps} error $e$ and system noise $s$ estimates road speed \emph{with greater precision} than the other simulations. \Cref{fig:model_performance_var} presents these results, where we see the greatest effect on relative variance caused by increasing \gls{gps} error. Increasing $\Np$ produces a small decrease, and changes to system noise show no discernible effect.
+A small value of $\bar v^{e,s}$ tells us that, on average, the simulation with \gls{gps} error $e$ and system noise $s$ estimates road speed \emph{with greater precision} than the other simulations. \Cref{fig:model_performance_var} presents these results, where we see the greatest effect on relative uncertainty caused by increasing \gls{gps} error. Increasing $\Np$ produces a small decrease, and changes to system noise show no discernible effect.
 
 
 \begin{knitrout}\small
@@ -88,7 +95,7 @@ A small value of $\bar v^{e,s}$ tells us that, on average, the simulation with \
 
 }
 
-\caption[Relative speed variance for varying values of GPS error, system noise, and number of particles]{Relative speed variance for varying values of GPS error, system noise, and number of particles.}\label{fig:model_performance_var}
+\caption[Relative speed uncertainty for varying values of GPS error, system noise, and number of particles]{Relative speed uncertainty for varying values of GPS error, system noise, and number of particles.}\label{fig:model_performance_var}
 \end{figure}
 
 

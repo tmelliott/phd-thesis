@@ -244,7 +244,7 @@ s00 %>%
 \subsubsection{Simulation B: bus stop model}
 \label{sec:vehicle_sim_B}
 
-In the previous simulation, we assumed the vehicle travelled along the route without stopping. Now, we add bus stop behaviour to the model, as shown in \cref{fig:sim2_graph}. In the simulated data, the bus stops at all stops with unknown dwell time, and we use $\pi=0.5$ for the stopping probability in the particle filter when estimating vehicle state. The sampling is the same as before: 10~second and 30~second rates, as well as observations at nodes (intersections and bus stops).
+In the previous simulation, we assumed the vehicle travelled along the route without stopping. Now, we add bus stop behaviour to the model, as shown in \cref{fig:sim2_graph}. In the simulated data, the bus stops at all stops with unknown dwell time, and we use $\pi=0.5$ for the stopping probability in the particle filter when estimating vehicle state. The sampling is the same as before: 10~second and 30~second rates, as well as observations at nodes (intersections and bus stops). In this simulation, models B1, B2, and B3 are modified versions of A1, A2, and A3, respectively, but include bus stopping behaviour from \cref{sec:vehicle_model_nodes}.
 
 
 <<sim2_gen,echo=FALSE,message=FALSE>>=

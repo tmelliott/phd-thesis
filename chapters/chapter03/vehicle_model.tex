@@ -14,18 +14,18 @@ When deciding which type of model implementation to use, historically the most c
 
 }
 
-\caption[Visualisation of vehicle state showing \emph{distance travelled} and \emph{speed}]{Visualisation of vehicle state showing \emph{distance travelled} and \emph{speed}. The distance travelled, $x$, over time includes points of observed states $\Vstate_k, k=0,\ldots,3$. The gradient of distance over time is speed, $\dot x$: steeper sections of the top graph correspond to higher speeds, and vice verca. The speed graph also includes a second right-hand axis with speed in kilometers per hour (km/h) for reference.}\label{fig:vehicle_state}
+\caption[Visualisation of vehicle state showing \emph{distance travelled} and \emph{speed}]{Visualisation of vehicle state showing \emph{distance travelled} and \emph{speed}. The distance travelled, $x$, over time includes points of observed states $\Vstate_k, k=0,\ldots,3$. The gradient of distance over time is speed, $\dot x$: steeper sections of the top graph correspond to higher speeds, and vice versa. The speed graph also includes a second right-hand axis with speed in kilometers per hour (km/h) for reference.}\label{fig:vehicle_state}
 \end{figure}
 
 
 \end{knitrout}
 
-The vehicle model itself involves describing bus behaviour algorithmically to infer the vehicle's \emph{unknown state} $\Vstate_k$ from a sequence of \gls{gps} observations. Since buses service routes with a known path, we represent their position using \emph{distance travelled} along the route's path, which we denote $\Vdist_k$ at time $\Vtime_k$. Additionally, we are interested in the \emph{speed} of the vehicle, $\Vspeed_k$. Therefore, the underlying, unknown, and \emph{unobservable} state of a vehicle at time t is denoted
+The vehicle model itself involves describing bus behaviour algorithmically to infer the vehicle's \emph{unknown state} $\Vstate_k$ from a sequence of \gls{gps} observations. Since buses service routes with a known path, we represent their position using \emph{distance travelled} along the route's path, which we denote $\Vdist_k$ at time $\Vtime_k$. Additionally, we are interested in the \emph{speed} of the vehicle, $\Vspeed_k$. Therefore, the underlying, unknown, and \emph{unobservable} state of a vehicle at time $\Vtime_k$ is denoted
 \begin{equation}
 \label{eq:vehicle_state}
 \Vstate_k = \tvec{\Vdist_k, \Vspeed_k}.
 \end{equation}
-\Cref{fig:vehicle_state} graphs a series of vehicle states with time along the x-axis and distance travelled (in meters) along the y-axis. The derivative (gradient) of the curve represents the vehicle's speed. So, for example, the vehicle state at time $t_1 = 30$~seconds is $\Vstate_1 = [\Vdist_1, \Vspeed_1]^\top = [200~\text{m}, 15~\text{m/s}]^\top$. The remainder of this section presents a model, along with a particle filter implementation of it, to estimate vehicle state.
+\Cref{fig:vehicle_state} graphs a series of vehicle states with time along the $x$-axis and distance travelled (in meters) along the $y$-axis. The derivative (gradient) of the curve represents the vehicle's speed. So, for example, the vehicle state at time $t_1 = 30$~seconds is $\Vstate_1 = [\Vdist_1, \Vspeed_1]^\top = [200~\text{m}, 15~\text{m/s}]^\top$. The remainder of this section presents a model, along with a particle filter implementation of it, to estimate vehicle state.
 
 The particle filter represents the vehicle's state using a sample of \emph{particles}, each with an individual state, $\Vstate_k\vi$. We can think of each particle as an ``imaginary bus'' which represents one possible state (and associated trajectory) of the true bus. Together, the particles approximate the posterior distribution of the vehicle's state at time $\Vtime_k$ given all observations up to time $\Vtime_k$, denoted $\Vobs_{1:k}$. The posterior distribution is expressed using the Dirac delta measure, $\dirac$, (\cref{app:dirac-delta-measure}):
 \begin{equation}
@@ -34,7 +34,7 @@ p(\Vstate_k \cond{} \Vobs_{1:k}) \approx
 \sum_{i=1}^\Np \Pwt_{k-1} \dirac_{\Vstate_k\vi}\left(\Vstate_k\right).
 \end{equation}
 
-Before implementing \agls{rbm} for these data, we need a \emph{transition function}, a \emph{measurement function}, and a \emph{likelihood}. The transition function, $\Vtrans$, describes how a vehicle behaves between two consecutive observations: that is, the shape of the curves in \cref{fig:vehicle_state}. This allows us to \emph{predict} the future state of the vehicle \emph{given its last known state}. Additionally, we include the \emph{system noise} parameter $\Vnoise$~m/s$^2$, which represents the rate of change of speed. The measurement function, $\Vmeas$, describes the relationship between the vehicle's state, $\Vstate_k$, and the observation of this state, $\Vobs_k$, which is a \gls{gps} location with an associated \emph{measurement error}, $\GPSerr$. We represent this using two simple equations,
+Before implementing \agls{rbm} for these data, we need a \emph{transition function}, a \emph{measurement function}, and a \emph{likelihood}. The transition function, $\Vtrans$, describes how a vehicle behaves between two consecutive observations: that is, the shape of the curves in \cref{fig:vehicle_state}. This allows us to \emph{predict} the future state of the vehicle \emph{given its last known state}. Additionally, we include the \emph{system noise} parameter $\VnoiseSD$~m/s$^2$, which represents the rate of change of speed. The measurement function, $\Vmeas$, describes the relationship between the vehicle's state, $\Vstate_k$, and the observation of this state, $\Vobs_k$, which is a \gls{gps} location with an associated \emph{measurement error}, $\GPSerrSD$. We represent this using two simple equations,
 \begin{equation}
 \label{eq:vehicle_model}
 \begin{split}

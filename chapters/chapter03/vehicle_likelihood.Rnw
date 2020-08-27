@@ -163,7 +163,7 @@ plh +
 
 @
 
-For the \gls{gps} location update, the inherent \gls{gps} error, $\GPSerr$, needs to be filtered out to get better estimates of the vehicle's state. Examples of positions are shown in \cref{fig:lhood_obs}. A particle's likelihood should represent the \emph{geographical closeness} of the estimated position to the vehicle's reported position. Therefore, we want the likelihood to depend on the \emph{distance between the observed and predicted} vehicle locations. The first step to computing the likelihood is therefore to calculate the \gls{gps} position of the \emph{particle}, $\Ppos\vi_k$, by using the \emph{measurement function},
+For the \gls{gps} location update, the inherent \gls{gps} error, $\GPSerrSD$, needs to be filtered out to get better estimates of the vehicle's state. Examples of positions are shown in \cref{fig:lhood_obs}. A particle's likelihood should represent the \emph{geographical closeness} of the estimated position to the vehicle's reported position. Therefore, we want the likelihood to depend on the \emph{distance between the observed and predicted} vehicle locations. The first step to computing the likelihood is therefore to calculate the \gls{gps} position of the \emph{particle}, $\Ppos\vi_k$, by way of the \emph{measurement function},
 \begin{equation}
 \label{eq:pf_measurement_fun}
 \Ppos\vi_k = \Vmeas(\Vstate\vi_k, \ShapePath),
@@ -203,7 +203,7 @@ R \begin{bmatrix}
 (\Vlat_1 - \Vlat_0)
 \end{bmatrix}.
 \end{equation}
-Now the distance between the points is easily computed using the \emph{euclidean distance} between their transformed coordinates,
+Now the distance between the points is easily computed using the \emph{Euclidean distance} between their transformed coordinates,
 \begin{equation}
 \label{eq:obs_dist}
 \dist{\Vobs_0, \Vobs_1} = \sqrt{x^2 + y^2},
@@ -266,15 +266,14 @@ ggplot(Yx, aes(x, y)) +
 @
 
 
-Now that spherical observations can be compared on a flat surface, we assume that \gls{gps} observations are distributed as a multivariate random variable around the true position of the vehicle on the ground, with a \GPS{} error of $\GPSerr$, and that the variation does not depend on direction. That is, if the observation $\Vobs_k$ is projected using \cref{eq:equirectangular_projection} conditional on the true position $\Vmeas(\Vstate_k)$, then the projected point will be a multivariate random variable $\vec{r}_k \sim \Normal{\vec{0}}{\GPSerr \mat{I}}$. This can more simply be expressed by
+Now that spherical observations can be compared on a flat surface, we assume that \gls{gps} observations are distributed as a multivariate \normal{} random variable around the true position of the vehicle on the ground, with a \GPS{} error of $\GPSerrSD$, and that the variation does not depend on direction. That is, if the observation $\Vobs_k$ is projected using \cref{eq:equirectangular_projection} conditional on the true position $\Vmeas(\Vstate_k)$, then the projected point will be a multivariate random variable $\vec{r}_k$. More simply,
 \begin{equation}
 % \label{eq:obs_projection}
 \label{eq:gps_error_model}
-\Vproj{\Vobs_k}{\Vmeas(\Vstate_k)} =
-    \Vproj{\Vmeas(\Vstate_k)}{\Vmeas(\Vstate_k)} + \vec{r}_k
-    = \vec{r}_k,
+\vec{r}_k = \Vproj{\Vobs_k}{\Vmeas(\Vstate_k)}
+\sim \Normal{\vec{0}}{\GPSerr \mat{I}},
 \end{equation}
-and is shown graphically in \cref{fig:gps_projection2}.
+as is shown graphically in \cref{fig:gps_projection2}.
 
 <<gps_error,eval=FALSE,echo=FALSE,message=FALSE,cache=TRUE,fig.width=4,fig.height=4,out.width="0.49\\textwidth",fig.align="center",fig.cap="Visualisation of GPS error on a map before ({\\sc a}) and after ({\\sc b}) the equirectangular projection.",fig.subcap=c("GPS map error", "Projected error"),fig.scap="Visualisation of GPS error on a map">>=
 xr <- Yx$lng[1] + 0.002 * c(-1, 1)
@@ -310,7 +309,7 @@ From \cref{eq:equirectangular_projection,eq:obs_dist,eq:gps_error_model}, the di
 \dist{\Vobs_k, \Vmeas(\Vstate_k)} = ||\vec{r}_k|| =
     \sqrt{r_{k1}^2 + r_{k2}^2}.
 \end{equation}
-However, this error can also be expressed in terms of two independent, standard Normal random variables $z_1, z_2 \sim \Normal{0}{1}$, such that $r_{jk} = \GPSerrSD z_j$ for $j = 1, 2$, leading to
+However, this error can also be expressed in terms of two independent, standard \normal{} random variables $z_1, z_2 \sim \Normal{0}{1}$, such that $r_{jk} = \GPSerrSD z_j$ for $j = 1, 2$, leading to
 \begin{equation}
 \dist{\Vobs_k, \Vmeas(\Vstate_k)} =
     \sqrt{(\GPSerrSD z_1)^2 + (\GPSerrSD z_2)^2} =
@@ -400,7 +399,7 @@ The trip update observations differ from the \GPS{} observations in that there a
 \end{itemize}
 
 
-To compute these likelihoods, we recall the dwell time model described by \cref{eq:stop_dwell_time,eq:stop_pstop,eq:stop_total_dwell_time}. Two additional parameters are needed: the actual arrival time of the bus at stop $m$, $\Tarr_{m}$, and the measurement error of arrival time in seconds, $\TUerr$. The arrival time can be computed for each stop $m$ directly from the model (via interpolation). The departure time is then computed by summing the arrival and dwell times.
+To compute these likelihoods, we recall the dwell time model described by \cref{eq:stop_dwell_time,eq:stop_pstop,eq:stop_total_dwell_time}. Two additional parameters are needed: the actual arrival time of the bus at stop $m$, $\Tarr_{m}$, and the measurement error of arrival time in seconds, $\TUerrSD$. The arrival time can be computed for each stop $m$ directly from the model (via interpolation). The departure time is then computed by summing the arrival and dwell times.
 
 
 The observed arrival and departured times, denoted $\Varr_m$ and $\Vdep_m$, respectively, are modelled as Normal random variables with mean and variance determined by the described model. For arrival time, this is
@@ -415,18 +414,18 @@ and for departure time, using dwell time $\pdwell_m$ from \cref{eq:stop_total_dw
 \end{equation}
 
 
-In our \pf{} implementation, each observation is processed individually: in situations where more than one type of observation is recieved, they are processed in chronological order and the particles reweighted between each. The necessary likelihood component for \cref{eq:vehicle_pf_reweight} is therefore
+In our \pf{} implementation, each observation is processed individually: in situations where more than one type of observation is recieved, they are processed in chronological order and the particles reweighted between each. The likelihood for the trip update, using $\tilde\Vobs_k$ to represent the most recent arrival or departure event at time $\Vtime_k$, is
 \begin{equation}
 \label{eq:tu_obs_lhood}
-p(\Vobs_k \cond{} \Vstate\vi_k) =
+p(\tilde\Vobs_k \cond{} \Vstate\vi_k) =
 \begin{cases}
 \frac{1}{\sqrt{2\pi\TUerr}}
     \exp\left\{
-        -\frac{(\Varr_m - \Tarr_m)^2}{2\TUerr}
+        -\frac{(\Varr_m - \Tarr\vi_m)^2}{2\TUerr}
     \right\} & \text{for arrival times,} \\
 \frac{1}{\sqrt{2\pi\TUerr}}
     \exp\left\{
-        -\frac{(\Vdep_m - \Tarr\vi_m - \pdwell\vi_m)^2}{2\TUerr}
+        -\frac{\left(\Vdep_m - \left(\Tarr\vi_m - \pdwell\vi_m\right)\right)^2}{2\TUerr}
     \right\} & \text{for departure times,}
 \end{cases}
 \end{equation}

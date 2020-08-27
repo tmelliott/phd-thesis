@@ -13,7 +13,7 @@ double avg_speed = std::accumulate(state.begin (), state.end (), 0.0,
   [](double x, Particle& p) {
     return x + p.weight () * p.segment_speed.at (seg_index);
   });
-\end{lstlisting}\pagebreak
+\end{lstlisting}
 along with the variance,
 \begin{lstlisting}
 double var_speed = std::accumulate(state.begin (), state.end (), 0.0,
@@ -22,7 +22,7 @@ double var_speed = std::accumulate(state.begin (), state.end (), 0.0,
       pow (p.segment_speed.at (seg_index) - avg_speed, 2.0);
   });
 \end{lstlisting}
-These observations are then passed to the relevant \class{Segment} object which contains a vector of new data (used in chapter 4). The \class{Vehicle} object contains a pointer to its \class{Trip}, which has a list of \class{Segment} objects:\footnote{Note that we must still ensure each pointer exists before proceeding, as mentioned in \cref{sec:rt-implementation}.}
+These observations are then passed to the relevant \class{Segment} object which contains a vector of new data (used in \cref{cha:network_model}). The \class{Vehicle} object contains a pointer to its \class{Trip}, which has a list of \class{Segment} objects:\footnote{Note that we must still ensure each pointer exists before proceeding, as mentioned in \cref{sec:rt-implementation}.}
 \begin{lstlisting}
 trip ()->segments ().at (seg_index)->push_data (avg_speed, var_speed);
 \end{lstlisting}

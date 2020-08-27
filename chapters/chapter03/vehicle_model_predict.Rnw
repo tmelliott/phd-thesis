@@ -17,10 +17,10 @@ The transition function $\Vtrans$ is where we define the vehicle behaviours ment
 \subsubsection{Component A: vehicle motion}
 \label{sec:vehicle_model_behaviour}
 
-The first behaviour to consider is the vehicle's motion along a known path: the \emph{speed} at which a vehicle is travelling will affect where it ends up. Since speed, $\Vspeed$, is the derivative of distance travelled over time, if $x = d(t)$, then $\Vspeed = d'(t)$, which is shown visually back in \cref{fig:vehicle_state}. It follows that we can predict a vehicle's future state, given its current state (distance travelled and speed) and system noise, $\Vnoise$, which is interpreted as \emph{the average change in speed per second}:
+The first behaviour to consider is the vehicle's motion along a known path: the \emph{speed} at which a vehicle is travelling will affect where it ends up. Since speed, $\Vspeed$, is the derivative of distance travelled over time, if $x = d(t)$, then $\Vspeed = d'(t)$, which is shown visually back in \cref{fig:vehicle_state}. It follows that we can predict a vehicle's future state, given its current state (distance travelled and speed) and system noise, $\VnoiseSD$, which is interpreted as \emph{the average change in speed per second}:
 \begin{equation}
 \label{eq:vehicle_model_newton}
-\Vstate_{k|k-1} = f_{A1}\left(\Vstate_{k-1|k-1}, \Vtdiff_k, \Vnoise\right) =
+\Vstate_{k|k-1} = f_{A1}\left(\Vstate_{k-1|k-1}, \Vtdiff_k, \VnoiseSD\right) =
 \begin{bmatrix}
 \Vdist_k \\ \Vspeed_k
 \end{bmatrix} =
@@ -197,20 +197,40 @@ F1 + F2 + F3
 
 @
 
-The main issue with this model is that it assumes constant speed between observations, which---given Auckland traffic---is unlikely to be the case. In \cref{fig:vehicle_state}, we showed speed varying over time, even between observations. To model this, we \emph{iteratively} update the vehicle's state\footnote{This is one advantage of the particle filter---we can easily perform iterative updates!} by reusing \cref{eq:vehicle_model_newton} $\Vtdiff_k$ times, setting $\Vtdiff_k=1$ in each iteration. The second graph in \cref{fig:transition_demo} shows the effect this has on the particles' trajectories.
+The main issue with this model is that it assumes constant speed between observations, which---given Auckland traffic---is unlikely to be the case. In \cref{fig:vehicle_state}, we showed speed varying over time, even between observations. To model this, we update the vehicle's state by reusing $\Vtrans_{A1}$ iteratively\footnote{This is one advantage of the particle filter---we can easily perform iterative updates!} $\Vtdiff_k$ times, setting $\Vtdiff_k=1$ in each iteration.
+Thus,
+\begin{equation}
+\label{eq:vehicle_model_newton_speed}
+\Vstate_{k|k-1} = \Vtrans_{A2}\left(\Vstate_{k-1|k-1},\Vtdiff_k,\VnoiseSD\right)
+\end{equation}
+is implemented by initialising a temporary value $\boldsymbol{z}_0 = \Vstate_{k-1|k-1}$ and computing, for $s=1,\ldots,\Vtdiff_k$,
+\begin{equation}
+\label{eq:vehicle_model_newton_speed_iter}
+\bz_s =
+\begin{bmatrix}
+z_s \\ \dot z_s
+\end{bmatrix} =
+\begin{bmatrix}
+z_{s-1} + \dot z_s \\
+\dot z_{s-1} + v_s
+\end{bmatrix},
+\end{equation}
+leading to the final value of $\Vstate_{k|k-1} = \boldsymbol{z}_{\Vtdiff_k}$.
+The system noise $v_s$ is sampled in each iteration from \cref{eq:vehicle_model_newton_noise}.
+The second graph in \cref{fig:transition_demo} shows the effect this has on the particles' trajectories.
 
 
 Of course, if speed is the first derivative of the vehicle's trajectory function, then \emph{acceleration} is the second, $\Vaccel = d''(t)$. In this case, we add a third component to the vehicle's state and consider speed similarly to distance. The transition function
 \begin{equation}
 \label{eq:vehicle_model_newton_accel}
-\Vstate_{k|k-1} = \Vtrans_{A3}\left(\Vstate_{k-1|k-1},\Vtdiff_k,\Vnoise\right)
+\Vstate_{k|k-1} = \Vtrans_{A3}\left(\Vstate_{k-1|k-1},\Vtdiff_k,\VnoiseSD\right)
 \end{equation}
-is iterative. It is initialised with $\bz_0 = \Vstate_{k-1|k-1}$ and repeated for $s = 1, \ldots, \Vtdiff_k$ to obtain $\Vstate_{k|k-1} = \bz_{\Vtdiff_k}$:
+is also iterative. As before, we initialize $\bz_0 = \Vstate_{k-1|k-1}$ and iterate the following for $s = 1, \ldots, \Vtdiff_k$ to obtain $\Vstate_{k|k-1} = \bz_{\Vtdiff_k}$:
 \begin{equation}
 \label{eq:vehicle_model_newton_accel_iter}
 \bz_s =
 \begin{bmatrix}
-z_s \\ z_s \\ z_s
+z_s \\ \dot z_s \\ \ddot z_s
 \end{bmatrix} =
 \begin{bmatrix}
 z_{s-1} + \dot z_s \\
@@ -224,7 +244,6 @@ System noise (interpreted as \emph{the average change in acceleration per second
 v_s \sim \TNormal{0}{\Vnoise}{-\dot z_{s-1} - \ddot z_{s-1}}{30 - \dot z_{s-1} - \ddot z_{s-1}}.
 \end{equation}
 These trajectories are shown in the third graph of \cref{fig:transition_demo}. The main issue with $\Vtrans_{A3}$ is that it is difficult to parameterize and constrain the acceleration to ensure speed remains within the interval $(0,30)$ while preserving the function's ability to generate plausible trajectories.
-
 
 
 \subsubsection{Component B: stopping at nodes}
@@ -257,7 +276,7 @@ A bus's wait time at a bus stop is referred to as \emph{dwell time} and consists
 Phases i and iii can be combined with 1a and 1c from above (deceleration and acceleration, respectively) into a single parameter, $\mindwell$, which is assumed constant across all buses, stops, and routes.
 
 
-Phase ii includes the time taken for passengers to get on and off the bus, which varies significantly between stops, routes, and time of day. There are many ways to model service time: an exponential \citep{Hans_2015}, regression models \citep{Shen_2013}, or a real-time Kalman filter \citep{Shalaby_2004}. Here, I present a truncated Normal distribution using the mean and variance of historical dwell times, truncated at zero. The service time at stop $m$ along a route ($m=1,...,M-1$; dwell time does not apply to the last stop) is denoted $\pserve_m$, modelled by its mean and variance, $\dwell_m$ and $\dwellvar_m$, respectively, as estimated from historical data:
+Phase ii includes the time taken for passengers to get on and off the bus, which varies significantly between stops, routes, and time of day. There are many ways to model service time: an exponential \citep{Hans_2015}, regression models \citep{Shen_2013}, or a real-time Kalman filter \citep{Shalaby_2004}. Here, I present a truncated \normal{} distribution (denoted $\mathcal{N}_T$) using the mean and variance of historical dwell times, truncated at zero. The service time at stop $m$ along a route ($m=1,...,M-1$; dwell time does not apply to the last stop) is denoted $\pserve_m$, modelled by its mean and variance, $\dwell_m$ and $\dwellvar_m$, respectively, as estimated from historical data:
 \begin{equation}
 \label{eq:stop_dwell_time}
 \pserve_m \sim \TNormal{\dwell_m}{\dwellvar_m}{0}{\infty}.
@@ -276,7 +295,7 @@ The total dwell time of a bus at stop $m$ can be expressed as
 which, under the particle filtering framework, is straightforward to implement. \Cref{fig:eta_dwell_times} displays the dwell time distribution at a stop.
 
 
-<<eta_dwell_times,echo=FALSE,fig.width=8*.8,fig.height=3,out.width=".8\\textwidth",fig.cap="The \\gls{pdf} of dwell time at bus stop $m$.",fig.align="center",fig.scap="The \\gls{pdf} of dwell time at a stop">>=
+<<eta_dwell_times,echo=FALSE,fig.width=8*.8,fig.height=3,out.width=".8\\textwidth",fig.cap="\\Gls{pdf} of dwell time at bus stop $m$.",fig.align="center",fig.scap="The \\gls{pdf} of dwell time at a stop">>=
 suppressPackageStartupMessages(library(tidyverse))
 gamma <- 10
 tau <- 20

@@ -4,7 +4,7 @@
 
 \glsresetall\phantom{\gls{gps} \gls{gtfs}}
 
-As vehicles travel along their respective routes, they report---in real-time---their geo\-graphical position as \gls{gps} coordinates. While these observations of location can be useful on their own, they also allow the inference of \emph{vehicle speed} which we cannot observe directly.\footnote{At least, not without being on the bus or standing on the roadside with a speed radar.} These speeds can then be mapped to physical road segments and used (in \cref{cha:network_model}) to update the network state.
+As vehicles travel along their respective routes, they report---in real-time---their geo\-graphical positions as \gls{gps} coordinates. While these observations of location can be useful on their own, they also allow the inference of \emph{vehicle speed} which we cannot observe directly.\footnote{At least, not without being on the bus or standing on the roadside with a speed radar.} These speeds can then be mapped to physical road segments and used (in \cref{cha:network_model}) to update the network state.
 
 Transit vehicles come in a variety of forms such as trains, trams, and buses. The last of these is the most notable for us since they are most affected by external factors, such as traffic congestion, and are therefore harder to predict. It is for this reason that we have used buses to develop the model presented in this chapter, which explores the following behaviours:
 \begin{itemize}
@@ -48,3 +48,11 @@ Once the vehicle's state has been estimated, we may infer its average speed alon
 \input{chapters/chapter03/vehicle_travel_times.tex}
 
 \input{chapters/chapter03/vehicle_implementation.tex}
+
+\section{Chapter contributions}
+\label{sec:pf_contrib}
+
+\begin{itemize}
+\item I developed a \pf{} to estimate road speeds using only real-time bus locations and arrival/departure data, implementing vehicle behaviours for bus stops and intersections. This is particularly useful when the truth of whether or not the bus did indeed stop is often unknowable.
+\item The likelihood function I have presented makes it possible to compare the particles directly to the observation, rather than the other way around (which involves matching map locations to the shape path and introducing potential errors).
+\end{itemize}
