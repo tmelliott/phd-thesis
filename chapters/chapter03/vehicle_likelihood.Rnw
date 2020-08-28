@@ -323,7 +323,7 @@ z_1^2 + z_2^2 \sim \Exp{\frac{1}{2}}.
 Further, if $X \sim \Exp{\theta}$, then $cX \sim \Exp{\frac{\theta}{c}}$, so the squared distance is exponential with mean dependent only on the \gls{gps} error,
 \begin{equation}
 \label{eq:distance_distrib}
-\dist{\Vobs_k, \Vmeas(\Vstate_k)}^2 \sim \Exp{\frac{1}{2\GPSerr}}.
+\dist{\Vobs_k, \Vmeas(\Vstate_k)}^2 \cond \GPSerrSD \sim \Exp{\frac{1}{2\GPSerr}}.
 \end{equation}
 
 Given a particle state estimate of $\Vstate\vi_k$,
@@ -405,12 +405,12 @@ To compute these likelihoods, we recall the dwell time model described by \cref{
 The observed arrival and departured times, denoted $\Varr_m$ and $\Vdep_m$, respectively, are modelled as Normal random variables with mean and variance determined by the described model. For arrival time, this is
 \begin{equation}
 \label{eq:tu_arr_lhood}
-\Varr_m \sim \Normal{\Tarr_{mr}}{\TUerr},
+\Varr_m \cond \Tarr_{m}, \TUerrSD \sim \Normal{\Tarr_{m}}{\TUerr},
 \end{equation}
 and for departure time, using dwell time $\pdwell_m$ from \cref{eq:stop_total_dwell_time}, is
 \begin{equation}
 \label{eq:tu_dep_lhood}
-\Vdep_m \sim \Normal{\Tarr_m + \pdwell_m}{\TUerr}.
+\Vdep_m \cond \Tarr_{mr}, \pdwell_m, \TUerrSD \sim \Normal{\Tarr_m + \pdwell_m}{\TUerr}.
 \end{equation}
 
 

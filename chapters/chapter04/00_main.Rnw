@@ -110,3 +110,11 @@ ggplot(d, aes(x)) + geom_path(aes(y = t + 1)) +
 \input{DIRNAME/parameter_estimation.tex}
 \input{DIRNAME/historical_model.tex}
 \input{DIRNAME/implementation.tex}
+
+\section{Chapter contributions}
+\label{sec:nw_contrib}
+
+\begin{itemize}
+\item This chapter presents a hierarchical approach to fitting a real-time \kf{} to transit vehicle speed observations, using historical data to estimate the intermediate noise parameters.
+\item The network model uses real-time observations obtained from the particle filter (average vehicle speeds along road segments) to estimate the current network state. Similar methods have been presented in the literature, but the primary different in this case is that the entire process works using only \gls{gtfs} data (no external input is required).
+\end{itemize}

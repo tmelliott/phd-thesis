@@ -31,7 +31,7 @@ The first behaviour to consider is the vehicle's motion along a known path: the 
 \end{equation}
 where
 \begin{equation}\label{eq:vehicle_model_newton_noise}
-v_k \sim \TNormal{0}{\Vnoise}{-\Vspeed_{k-1}}{30 - \Vspeed_{k-1}}.
+v_k \cond \Vstate_{k-1}, \Vnoise \sim \TNormal{0}{\Vnoise}{-\Vspeed_{k-1}}{30 - \Vspeed_{k-1}}.
 \end{equation}
 The noise term is truncated to ensure the new speed is both positive and under 30~m/s, which is 108~km/h (the maximum road speed in Auckland is 100~km/h). The resulting transition function, $\Vtrans_{A1}$, is easily implemented by simulating, for each particle, a new speed before calculating the final state using \cref{eq:vehicle_model_newton}. A similar model was used by \citet{Cathey_2003,Dailey_2001}.
 
@@ -95,7 +95,7 @@ z_{s-1} + \dot z_s \\
 System noise (interpreted as \emph{the average change in acceleration per second}) is applied to the acceleration term and truncated to ensure the speed remains positive and less than 30~m/s,
 \begin{equation}
 \label{eq:vehicle_model_accel_dist}
-v_s \sim \TNormal{0}{\Vnoise}{-\dot z_{s-1} - \ddot z_{s-1}}{30 - \dot z_{s-1} - \ddot z_{s-1}}.
+v_s \cond \boldsymbol{z}_{s-1}, \Vnoise \sim \TNormal{0}{\Vnoise}{-\dot z_{s-1} - \ddot z_{s-1}}{30 - \dot z_{s-1} - \ddot z_{s-1}}.
 \end{equation}
 These trajectories are shown in the third graph of \cref{fig:transition_demo}. The main issue with $\Vtrans_{A3}$ is that it is difficult to parameterize and constrain the acceleration to ensure speed remains within the interval $(0,30)$ while preserving the function's ability to generate plausible trajectories.
 
@@ -133,13 +133,13 @@ Phases i and iii can be combined with 1a and 1c from above (deceleration and acc
 Phase ii includes the time taken for passengers to get on and off the bus, which varies significantly between stops, routes, and time of day. There are many ways to model service time: an exponential \citep{Hans_2015}, regression models \citep{Shen_2013}, or a real-time Kalman filter \citep{Shalaby_2004}. Here, I present a truncated \normal{} distribution (denoted $\mathcal{N}_T$) using the mean and variance of historical dwell times, truncated at zero. The service time at stop $m$ along a route ($m=1,...,M-1$; dwell time does not apply to the last stop) is denoted $\pserve_m$, modelled by its mean and variance, $\dwell_m$ and $\dwellvar_m$, respectively, as estimated from historical data:
 \begin{equation}
 \label{eq:stop_dwell_time}
-\pserve_m \sim \TNormal{\dwell_m}{\dwellvar_m}{0}{\infty}.
+\pserve_m \cond \dwell_m, \dwellvar_m \sim \TNormal{\dwell_m}{\dwellvar_m}{0}{\infty}.
 \end{equation}
 
 For each bus stop, we also have a \emph{stopping probability} $\Prstop_m\in(0,1)$. For the first and last stops, $m\in\{1,M\}$, this is unity; for the remainder, we have no data with which we can reliably estimate $\Prstop_m$, so, for now, we assume all stops have the same values specified by a global $\Prstop$ parameter (see \cref{sec:pf_params} for details on this). The outcome of whether a bus stops at a bus stop, $p_m$, is a Bernoulli trial,
 \begin{equation}
 \label{eq:stop_pstop}
-\Istop_m \sim \Bern{\Prstop_m}.
+\Istop_m \cond \Prstop_m \sim \Bern{\Prstop_m}.
 \end{equation}
 The total dwell time of a bus at stop $m$ can be expressed as
 \begin{equation}
@@ -205,12 +205,12 @@ However, we had no reliable intersection location information available, so were
 We model the wait time $w$ at intersection $\ell$ with an exponential distribution with rate $\intwait_\ell^{-1}$:
 \begin{equation}
 \label{eq:int_wait}
-\pcwait_\ell \sim \Exp{\intwait_\ell^{-1}}.
+\pcwait_\ell \cond \intwait_\ell \sim \Exp{\intwait_\ell^{-1}}.
 \end{equation}
 As at bus stops, the stopping outcome $\Iint_\ell$ is a Bernoulli trial with probability $\rho_\ell$,
 \begin{equation}
 \label{eq:int_stop_bern}
-\Iint_\ell \sim \Bern{\rho_\ell},
+\Iint_\ell \cond \rho_\ell \sim \Bern{\rho_\ell},
 \end{equation}
 leading to an overall wait time of
 \begin{equation}
