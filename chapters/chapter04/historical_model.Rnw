@@ -32,6 +32,8 @@ Early work fitting Bayesian models to these data were not promising, as it invol
 
 From \cref{fig:tt_week0_load} it is clear that along each segment, there is a consistent pattern, with some variability between days as far as the temporal location and magnitude of the ``peak'' on weekdays; weekends are fairly consistent, although this is only two days' worth of data. Here I present a nearest-neighbour grid, which takes time and road state (traffic speed) as input, and outputs the mean (and uncertainty) of travel time in 10, 20, or 30~minutes from the current time. Similar ``speed maps'' have been used by the likes of \citet{Cathey_2003, Celan_2017, Chen_2014}. The first step is to aggregate observations into 5~minute intervals and take the mean traffic speed in each interval. Next, we bind lagged duplicates of these speeds (10, 20, 30~minutes, for example), such that each row includes current and future states. Any missing periods are interpolated from the mean of the adjacent states. The speed map for 30~minute predictions is shown in \cref{fig:tt_week0_grid}. The lighter areas represent higher speeds.
 
+Predictions are made from the ``speed map'', which is stored in the database, by finding the row corresponding to the current time and road state, $\NWstate_{\ellc}$. This row then contains the necessary forecast value for (in this case) 30~minutes in the future based on historical data.
+
 
 <<tt_week0_grid_fit,cache=TRUE,echo=FALSE>>=
 library(ggplot2)
@@ -272,7 +274,7 @@ Further work is needed to improve the forecasting abilities of our model. Howeve
 
 kable(
     tibble(
-        Method = c("Simple", "Forecast"),
+        Method = c("Naïve", "Forecast"),
         `RMSE (m/s)` = round(c(RMSE_equal, RMSE_forecast), 2)
     ),
     booktabs = TRUE,

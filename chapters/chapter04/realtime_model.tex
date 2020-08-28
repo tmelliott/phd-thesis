@@ -1,12 +1,13 @@
 \section{Real-time network model}
 \label{sec:nw_realtime}
 
-Due to the time constraints of real-time applications, our framework uses a Kalman filter to implement the model described above, which, as previously discussed, is a highly efficient estimation method. This requires the transition and measurement matrices as described in \cref{sec:kf} on \cpageref{sec:kf}. The measurement matrix is the identity matrix $\mat{I}$ since the data are now direct observations of the underlying state (average vehicle speed):
+Due to the time constraints of real-time applications, our framework uses a Kalman filter to implement the model described above, which, as previously discussed, is a highly efficient estimation method. This requires the transition and measurement matrices as described in \cref{sec:kf} on \cpageref{sec:kf}. The measurement matrix is the identity matrix $\mat{I}$ since the data are direct observations of the underlying state (average vehicle speed),
 \begin{equation}
 \label{eq:kf_meas_identity}
-\NWstate_{\ellc} = \mat{H}\Vtt_{\ellc} + w_{\ellc} = \Vtt_{\ellc} + w_{\ellc}.
+\NWstate_{\ellc} = \mat{H}\Vttobs_{\ellc} + w_{\ellc} =
+\Vttobs_{\ellc} + w_{\ellc},
 \end{equation}
-We also use the identity matrix for the transition matrix $\mat{F}$ as our best guess of the current traffic state is the previous state. So, assuming that $\NWvar_{\ell}$ and $\NWnoise_{\ell}$ are known, for now, we have everything needed to implement a Kalman filter on $\NWstate_{\ellc}$.
+where the measurement error $w_{\ellc} \sim \Normal{0}{\NWvar_{\ell}^2 + \Vtterr_{\ellc}^2}$ consists of between-vehicle and observation errors, which are assumed to be independent. We also use the identity matrix for the transition matrix $\mat{F}$ as our best guess of the current traffic state is the previous state. So, assuming that $\NWvar_{\ell}$ and $\NWnoise_{\ell}$ are known, for now, we have everything needed to implement a Kalman filter on $\NWstate_{\ellc}$.
 
 
 \subsection{Predict step}
@@ -74,7 +75,7 @@ The first step converts the predicted state vector and covariance matrix into in
 \end{equation}
 and information vector
 \begin{equation}\label{eq:nw_if_inf_vector}
-\hat\NWinfvec_{\ellc|c-1} = \NWstatevar_{\ellc|c-1}^{-1} \hat\NWstate_{c|c-1}.
+\NWinfvec_{\ellc|c-1} = \NWstatevar_{\ellc|c-1}^{-1} \hat\NWstate_{c|c-1}.
 \end{equation}
 
 
@@ -84,7 +85,7 @@ Converting the observations into information follows the same formula. Note firs
 \end{equation}
 and the observation information vector is
 \begin{equation}\label{eq:nw_if_inf_obsvector}
-\hat\NWobsinfvec_{\ellc}^v = \frac{\hat\NWobs_{\ellc}^v}{
+\NWobsinfvec_{\ellc}^v = \frac{\hat\NWobs_{\ellc}^v}{
     \NWvar_{\ell}^2 + (\NWerr_{\ellc}^v)^2
 }.
 \end{equation}
@@ -104,7 +105,7 @@ The state update is now just a case of adding the observation information in \cr
 \label{eq:nw_if_update}
 \begin{split}
 \NWinfmat_{\ellc|c} &= \NWinfmat_{\ellc|c-1} + \NWobsinfmat_{\ellc}, \\
-\hat\NWinfvec_{\ellc|c} &= \hat\NWinfvec_{\ellc|c-1} + \NWobsinfvec_{\ellc}.
+\NWinfvec_{\ellc|c} &= \NWinfvec_{\ellc|c-1} + \NWobsinfvec_{\ellc}.
 \end{split}
 \end{equation}
 Note that, in situations where no data is observed for a given segment, the information for that segment is zero, so there is no further change to the predicted state value. This could be useful at peak hour, for example, if the transition function predicts changes based on historical trends.
@@ -114,7 +115,7 @@ Finally, we back-transform the information into the state space,
 \begin{equation}
 \label{eq:nw_if_statespace}
 \begin{split}
-\hat\NWstate_{\ellc|c} &= \NWinfmat_{\ellc|c}^{-1} \hat\NWinfvec_{\ellc|c}, \\
+\hat\NWstate_{\ellc|c} &= \NWinfmat_{\ellc|c}^{-1} \NWinfvec_{\ellc|c}, \\
 \NWstatevar_{\ellc|c} &= \NWinfmat_{\ellc|c}^{-1}.
 \end{split}
 \end{equation}
@@ -125,8 +126,8 @@ The primary constraint on the model is the dependence on $\NWvar_{\ell}$ and $\N
 \begin{knitrout}\small
 \definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{figure}
 
-{\centering \subfloat[\kf{} estimate of the state mean (red line) and variance (shaded region) along with the true value (dashed black line).\label{fig:nw_simdata_fit1}]{\includegraphics[width=.8\textwidth]{figure/nw_simdata_fit-1} }\\
-\subfloat[Predictive distribution of average vehicle speed accounting for state uncertainty and between-vehicle uncertainty ($\NWvar^2$). Observations represented by black points.\label{fig:nw_simdata_fit2}]{\includegraphics[width=.8\textwidth]{figure/nw_simdata_fit-2} }\\
+{\centering \subfloat[\kf{} estimate of the state mean (red line) and variance (shaded region) along with the true value (dashed black line).\label{fig:nw_simdata_fit-1}]{\includegraphics[width=.8\textwidth]{figure/nw_simdata_fit-1} }\\
+\subfloat[Predictive distribution of average vehicle speed accounting for state uncertainty and between-vehicle uncertainty ($\NWvar^2$). Observations represented by black points.\label{fig:nw_simdata_fit-2}]{\includegraphics[width=.8\textwidth]{figure/nw_simdata_fit-2} }\\
 
 }
 
@@ -136,7 +137,7 @@ The primary constraint on the model is the dependence on $\NWvar_{\ell}$ and $\N
 
 \end{knitrout}
 
-The \kf{} was fitted to the simulated data using the same values of $\NWnoise_\ell$ and $\NWvar_\ell$ used to generate the data, with the estimate of $\NWstate_{\ell,1:c}$ shown by the solid red line in \cref{fig:nw_simdata_fit1} along with the associated uncertainty as estimated by $\NWstatevar_{\ell,1:c}$ (shaded region). A dashed black line represents the simulated true mean. We see that the 95\% credible region contains the true values of $\NWstate_{\ell,1:c}$. \Cref{fig:nw_simdata_fit2} shows the posterior estimate of $\NWstate_{\ell,1:c}$ along with the posterior predictive distribution of $\NWobs_{\ellc}^m$; that is, using the 95\% region defined by the sum of $\NWstatevar_{\ell,1:c}$ and $\NWvar_\ell^2$, the latter of which is known for the simulation. 99.8\% of the observations lie within the 95\% predictive region. Given the network parameters $\NWnoise_\ell$ and $\NWvar_\ell$ are known, the underlying network state can be recovered using a \kf{}.
+The \kf{} was fitted to the simulated data using the same values of $\NWnoise_\ell$ and $\NWvar_\ell$ used to generate the data, with the estimate of $\NWstate_{\ell,1:c}$ shown by the solid red line in \cref{fig:nw_simdata_fit-1} along with the associated uncertainty as estimated by $\NWstatevar_{\ell,1:c}$ (shaded region). A dashed black line represents the simulated true mean. We see that the 95\% credible region contains the true values of $\NWstate_{\ell,1:c}$. \Cref{fig:nw_simdata_fit-2} shows the posterior estimate of $\NWstate_{\ell,1:c}$ along with the posterior predictive distribution of $\NWobs_{\ellc}^m$; that is, using the 95\% region defined by the sum of $\NWstatevar_{\ell,1:c}$ and $\NWvar_\ell^2$, the latter of which is known for the simulation. Approximately 99.8\% of the observations lie within the 95\% predictive region. Given the network parameters $\NWnoise_\ell$ and $\NWvar_\ell$ are known, the underlying network state can be recovered using a \kf{}.
 
 
 \subsection{Limitations of the implementations}

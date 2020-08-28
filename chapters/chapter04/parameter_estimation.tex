@@ -10,10 +10,10 @@ The first step in the modelling process fits the following hierarchical model:
 \begin{equation}
 \label{eq:nw_model_simple}
 \begin{split}
-\Vttobs_{\ellc}^m &\sim \Normal{\Vtt_{\ellc}^m}{(\Vtterr_{\ellc}^m)^2}, \\
-\Vtt_{\ellc}^m &\sim \TNormal{\NWstate_{\ellc}}{\NWvar_{\ell}^2}{0}{\MaxSpeed_\ell}, \\
+\Vttobs_{\ellc}^m \cond \Vtt_{\ellc}^m &\sim \Normal{\Vtt_{\ellc}^m}{(\Vtterr_{\ellc}^m)^2}, \\
+\Vtt_{\ellc}^m \cond \NWstate_{\ellc}, \NWvar_{\ell} &\sim \TNormal{\NWstate_{\ellc}}{\NWvar_{\ell}^2}{0}{\MaxSpeed_\ell}, \\
 \NWstate_{\ell,0} &\sim \Uniform{0}{\MaxSpeed_\ell}, \\
-\NWstate_{\ellc} &\sim \TNormal{\NWstate_{\ell-1,c}}{(\NWtdiff_c \NWnoise_{\ell})^2}{0}{\MaxSpeed_\ell}, \\
+\NWstate_{\ellc} \cond \NWstate_{\ell-1,c}, \NWnoise_\ell &\sim \TNormal{\NWstate_{\ell-1,c}}{(\NWtdiff_c \NWnoise_{\ell})^2}{0}{\MaxSpeed_\ell}, \\
 \NWnoise_\ell &\sim \GammaD{0.01}{0.01}, \\
 \NWvar_\ell &\sim \GammaD{0.01}{0.01}.
 \end{split}
@@ -95,7 +95,7 @@ $\NWvar_\ell$ & 1.94 & 1.8 & 1.94 & 2.1 & 1.002\\
 
 
 
-To assess the adequacy of these parameters, we fit the \kf{} to the same data\footnote{In the next section we use two weeks of data, one for each of testing and training.} to see how well the mean and predictive distributions fit the data. The estimates of $\NWstate_{\ell,1:c}$, along with associated uncertainties, are shown in \cref{fig:nw_model_n1_kf1}, where we see that the mean approximately follows the center of the data. The predictive vehicle speed distribution, which accounts for both $\NWstatevar_{\ell,1:c}$ and vehicle variation, $\NWvar_{\ell}^2$, is shown in \cref{fig:nw_model_n1_kf2}, and shows most of the points contained within the 95\% posterior predictive region.
+To assess the adequacy of these parameters, we fit the \kf{} to the same data\footnote{In the next section we use two weeks of data, one for each of testing and training.} to see how well the mean and predictive distributions fit the data. The estimates of $\NWstate_{\ell,1:c}$, along with associated uncertainties, are shown in \cref{fig:nw_model_n1_kf1}, where we see that the mean approximately follows the center of the data. The predictive vehicle speed distribution, which accounts for both $\NWstatevar_{\ell,1:c}$ and between-vehicle uncertainty, $\NWvar_{\ell}$, is shown in \cref{fig:nw_model_n1_kf2}, and shows most of the points contained within the 95\% posterior predictive region.
 
 
 \begin{knitrout}\small
@@ -146,12 +146,12 @@ The hierarchical model used to estimate the network parameters is:
 \begin{equation}
 \label{eq:tt_hist_hier}
 \begin{split}
-\Vttobs_{\ellc}^m &\sim \Normal{\Vtt_{\ellc}^m}{\left(\Vtterr_{\ellc}^m\right)^2}, \\
-\Vtt_{\ellc}^m &\sim \TNormal{\NWstate_{\ellc}}{\NWvar_{\ell}^2}{0}{\MaxSpeed_\ell}, \\
+\Vttobs_{\ellc}^m \cond \Vtt_{\ellc}^m &\sim \Normal{\Vtt_{\ellc}^m}{\left(\Vtterr_{\ellc}^m\right)^2}, \\
+\Vtt_{\ellc}^m \cond \NWstate_{\ellc}, \NWvar_{\ell} &\sim \TNormal{\NWstate_{\ellc}}{\NWvar_{\ell}^2}{0}{\MaxSpeed_\ell}, \\
 \NWstate_{\ell0} &\sim \Normal{0}{10^2}, \\
-\NWstate_{\ellc} &\sim \TNormal{\NWstate_{\ellc-1}}{(\NWtdiff_c \NWnoise_{\ell})^2}{0}{\MaxSpeed_\ell}, \\
+\NWstate_{\ellc} \cond \NWstate_{\ellc-1}, \NWnoise_{\ell} &\sim \TNormal{\NWstate_{\ellc-1}}{(\NWtdiff_c \NWnoise_{\ell})^2}{0}{\MaxSpeed_\ell}, \\
 q &\sim \GammaD{0.001}{0.001}, \\
-\log\left(\NWvar_{\ell}\right) &\sim \Normal{\mu_\psi}{\sigma_\psi^2}, \\
+\log\left(\NWvar_{\ell}\right) \cond \mu_\psi, \sigma_\psi &\sim \Normal{\mu_\psi}{\sigma_\psi^2}, \\
 \mu_\psi &\sim \Normal{0}{10^2}, \\
 \sigma_\psi &\sim \GammaD{0.001}{0.001}.
 \end{split}
@@ -240,7 +240,7 @@ Trace plots for the segment-specific variance parameters are shown in \cref{fig:
 \end{knitrout}
 
 
-The \kf{} was fit to each segment using the posterior mean of $\NWvar_\ell$ and the population parameters. \Cref{fig:nw_model_n2_kf} shows the original data superimposed with a posterior sample of $\NWstate$'s, along with the next week's data with results from the \kf{}, including the 95\% credible region for the mean travel time and the 95\% posterior predictive region for individual vehicle travel times.
+The \kf{} was fit to each segment using the posterior mean of $\NWvar_\ell$ and the population parameters. \Cref{fig:nw_model_n2_kf} shows the original data superimposed with a posterior sample of $\NWstate$'s, along with the next week's data with results from the \kf{}, including the 95\% credible region for the mean road speed and the 95\% posterior predictive region for individual vehicles' average speeds.
 
 
 

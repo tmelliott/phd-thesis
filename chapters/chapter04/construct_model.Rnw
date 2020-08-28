@@ -13,24 +13,24 @@ Let us first consider the state of the network at time $t_c$, which we denote
 a vector containing the current real-time average traffic speed along all $L$ roads in the network. However, modelling the full state would increase computational demand as $L$ gets large, so we consider each road segment $\ell$ \emph{independently} (this assumption is revisited in \cref{sec:kf-limits}).
 
 
-Vehicles travelling along road segment $\ell$ at time $t_c$ have an underlying average speed of $\NWstate_{\ellc}$~seconds, which changes with an average rate of $\NWnoise_\ell$ m/s$^2$. Assuming the underlying road state is a Markov process, the model for the evolution of traffic speed along a road with a maximum velocity (speed) of $\MaxSpeed_\ell$~\gls{mps} is
+Vehicles travelling along road segment $\ell$ at time $t_c$ have an underlying average speed of $\NWstate_{\ellc}$~m/s, which changes with an average rate of $\NWnoise_\ell$ m/s$^2$. Assuming the underlying road state is a Markov process, the model for the evolution of traffic speed along a road with a maximum velocity (speed) of $\MaxSpeed_\ell$~\gls{mps} is
 \begin{equation}\label{eq:nw_state_markov}
-\NWstate_{\ellc} \sim
+\NWstate_{\ellc} \cond \NWstate_{\ellc-1}, \NWnoise_\ell \sim
 \TNormal{\mathcal{F}_c(\NWstate_{\ellc-1})}{(\NWtdiff_c \NWnoise_\ell)^2}{0}{\MaxSpeed_\ell},
 \end{equation}
-where $\NWtdiff_c = t_c - t_{c-1}$ is the time since the last update. This model allows traffic speed to follow temporal trends through the time-dependent transition function $\mathcal{F}_c$ (peak hour traffic, for example) as well as react to real-time events, such as accidents or weather events.
+where $\NWtdiff_c = t_c - t_{c-1}$ is the time since the last update and $\mathcal{N}_T$ the truncated \normal{} density on the interval $(0,\MaxSpeed_\ell)$. This model allows traffic speed to follow temporal trends through the time-dependent transition function $\mathcal{F}_c$ (peak hour traffic, for example) as well as react to real-time events, such as accidents or weather events.
 
 
 As already mentioned, there are many factors which can affect the speed of a vehicle along a given road segment. To encapsulate this uncertainty, we introduce a single parameter $\NWvar_{\ell}$, which describes the \emph{between-vehicle variability}, or the width of the distribution at the top of \cref{fig:nw_model_hierarchy}. The true average speed of bus $m$ along road segment $\ell$ at time $t_c$ is denoted $\Vtt_{\ellc}^m$, and is assumed to be an observation from the population distribution with mean $\NWstate_{\ellc}$ and variance $\NWvar_{\ell}^2$, again truncated appropriately:
 \begin{equation}\label{eq:nw_vehicle_tt}
-\Vtt_{\ellc}^m \sim
+\Vtt_{\ellc}^m \cond \NWstate_{\ellc}, \NWvar_\ell \sim
 \TNormal{\NWstate_{\ellc}}{\NWvar_{\ell}^2}{0}{\MaxSpeed_\ell}.
 \end{equation}
 
 
 Once a vehicle has traversed a segment, we estimate its average speed as $\Vttobs_{\ellc}^m$, as estimated in \cref{eq:pf_travel_time_mean} on \cpageref{eq:pf_travel_time_mean}. We assume the measurement is made with uncertainty $\Vtterr_{\ellc}^m$, as demonstrated in \cref{fig:nw_model_hierarchy} as the second level of the hierarchy, which is expressed as
 \begin{equation}\label{eq:nw_tt_obs_dist}
-\Vttobs_{\ellc}^m \sim \Normal{\Vtt_{\ellc}^m}{(\Vtterr_{\ellc}^m)^2}.
+\Vttobs_{\ellc}^m \cond \Vtt_{\ellc}^m \sim \Normal{\Vtt_{\ellc}^m}{(\Vtterr_{\ellc}^m)^2}.
 \end{equation}
 
 
