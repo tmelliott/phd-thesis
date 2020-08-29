@@ -47,7 +47,7 @@ There are three main reasons for there being no observations associated with a s
 \item the vehicle is late and has not yet started the trip; or
 \item a vehicle is servicing the trip but its \gls{avl} system is either not working or is registered with the wrong trip.\footnote{This happens more often than one might first imagine.}
 \end{enumerate}
-There is no way to differentiate these three situations without physical investigation, so we always assume there is a bus travelling the route. However, if no bus has been observed, it is desirable to display a warning to passengers so that they are aware and can decide to catch an alternative bus instead.
+There is no way to differentiate these three situations without physical investigation, so we always assume there is a bus travelling the route. However, if no bus has been observed, it is desirable to display a warning to passengers so that they are aware and can choose to catch an alternative bus instead.
 
 
 It is common for passengers waiting at the first stops along a route to have no available \gls{rti} until the bus is a few minutes away. This is because the bus does not register with the server until it has begun the trip. Until this happens, the \gls{dms} displays the default scheduled time, which can be problematic if the bus is late to start the route. In extreme cases, once the scheduled time has passed the service disappears from the \gls{dms}, leaving passengers wondering whether the bus will eventually come, which is why it is necessary to display to commuters if no \gls{rti} is available for a trip.

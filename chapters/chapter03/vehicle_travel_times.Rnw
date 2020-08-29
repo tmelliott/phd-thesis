@@ -41,7 +41,14 @@ The posterior mean travel time was used to examine and compare the estimation ac
 \end{equation}
 
 
-To evaluate and compare the estimation performance of the models, we use \gls{rmse} and \gls{mae} (defined in \cref{app:error-functions}).
+To evaluate and compare the estimation performance of the models, we use \gls{rmse} and \gls{mae}:
+\begin{align}
+\label{eq:pf_rmse}
+\text{RMSE} &= \sqrt{\frac{1}{N}\sum_{n=1}^N \left(X_a - \hat X_n\right)^2}, \\
+\label{eq:pf_mae}
+\text{MAE} &= \frac{1}{N}\sum_{n=1}^N \left|X_a - \hat X_n\right|,
+\end{align}
+where $X_a$ is the true travel time and $X_n:n=1,\ldots,N$ are the model estimates.
 
 
 \subsubsection{Simulation A: general vehicle model}
@@ -244,7 +251,7 @@ s00 %>%
 \subsubsection{Simulation B: bus stop model}
 \label{sec:vehicle_sim_B}
 
-In the previous simulation, we assumed the vehicle travelled along the route without stopping. Now, we add bus stop behaviour to the model, as shown in \cref{fig:sim2_graph}. In the simulated data, the bus stops at all stops with unknown dwell time, and we use $\pi=0.5$ for the stopping probability in the particle filter when estimating vehicle state. The sampling is the same as before: 10~second and 30~second rates, as well as observations at nodes (intersections and bus stops). In this simulation, models B1, B2, and B3 are modified versions of A1, A2, and A3, respectively, but include bus stopping behaviour from \cref{sec:vehicle_model_nodes}.
+Simulation A assumed the vehicle travelled along the route without stopping. Now, we add bus stop behaviour to the model, as shown in \cref{fig:sim2_graph}. In the simulated data, the bus stops at all stops with unknown dwell time, and we use $\pi=0.5$ for the stopping probability in the particle filter when estimating vehicle state. As before, we use 10~second and 30~second sampling rates, as well as observations at nodes (intersections and bus stops). Models B1, B2, and B3 are modified versions of A1, A2, and A3, respectively, but include bus stopping behaviour from \cref{sec:vehicle_model_nodes}.
 
 
 <<sim2_gen,echo=FALSE,message=FALSE>>=
@@ -258,7 +265,7 @@ segs <- lapply(1:nrow(s2$segments),
 )
 tt <- s2$segments$tt
 
-fcap2 <- 'A simulated vehicle trajectory (top left) for simulation B along five road segments (dashed grey lines) with four stops (dotted orange lines). Observations are sampled using three techniques (see text).'
+fcap2 <- 'A simulated vehicle trajectory (top left) for simulation B along five road segments (dashed grey lines) with four stops (dotted orange lines) sampled using the three techniques (see text).'
 fscap2 <- c(
     "The simulated data.",
     "10~s sampling.",

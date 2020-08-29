@@ -329,7 +329,7 @@ Ruvae Jane Tupaea Cottrell
 % Uncomment the lines as you write the Appendices
 
 \include{endmatter/appendix_gtfs/main}
-\include{endmatter/appendix_math/main}
+% \include{endmatter/appendix_math/main}
 \include{endmatter/appendix_pf/main}
 
 

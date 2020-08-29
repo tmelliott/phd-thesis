@@ -59,7 +59,7 @@ For bus stop dwell times, we collected two weeks of data (as in \cref{sec:nw_par
 \subsection[Historical arrival delays]{Historical arrival delays (\Fhist{})}
 \label{eq:prediction_arrival_historical}
 
-Another way to make predictions is to use historical data instead of real-time. We collected two weeks of data and recorded arrival time delays by stop and route to obtain a distribution which can then be used to make predictions. The arrival time at stop $j$ along route $r$ has an average delay of $\bar d_{rj}$ seconds with variance $\ArrTvar_{rj}^2$, so the predicted arrival time at stop $j$ on route $r$ with scheduled arrival time $S_{rj}$ is
+Another way to make predictions is to use historical data instead of real-time. We collected two weeks of data and recorded arrival time delays by stop and route to obtain a distribution which can then be used to make predictions. The arrival time at stop $j$ along route $r$ has an average delay of $\bar d_{rj}$ seconds with uncertainty $\ArrTvar_{rj}$, so the predicted arrival time at stop $j$ on route $r$ with scheduled arrival time $S_{rj}$ is
 \begin{equation}
 \label{eq:arrival_pred_historical}
 \hat\Tarr_{j} \sim \Normal{S_{rj} + \bar d_{rj}}{\ArrTvar_{rj}^2}.
@@ -78,7 +78,8 @@ The currently deployed prediction method uses the scheduled arrival time at stop
 \Curdwell_{r} =
 \begin{cases}
 \Varr_{rm} - S_{rm} & \text{if arrival,} \\
-\Vdep_{rm} - S_{rm} & \text{if departure.}
+\Vdep_{rm} - S_{rm} & \text{if departure,} \\
+0 & \text{if neither observed for trip.}
 \end{cases}
 \end{equation}
 The arrival time is then predicted as

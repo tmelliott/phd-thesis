@@ -1,9 +1,9 @@
 \subsection[Normal approximation]{Normal approximation (\Fnorm{})}
 \label{sec:prediction_arrival_time_normal}
 
-Due to the computational demand of the particle filter, significant speed improvements can be obtained by using a Normal approximation instead. The network state is a multivariate Normal random variable, so the issue lies with stop dwell times having a point mass at zero, resulting in a mixture predictive distribution. For each stop the vehicle passes, there are twice as many components, so after $m$ stops, there are $2^m$ components. However, these regularly converge after a few stops, as shown in \cref{fig:normal_approx}.
+Due to the computational demand of the particle filter, significant speed improvements can be obtained by using a \normal{} approximation instead. The network state is a multivariate \normal{} random variable, so the issue lies with stop dwell times having a point mass at zero, resulting in a mixture predictive distribution. For each stop the vehicle passes, there are twice as many components, so after $m$ stops, there are $2^m$ components. However, these regularly converge after a few stops, as shown in \cref{fig:normal_approx}.
 
-<<normal_approx,cache=TRUE,echo=FALSE,fig.width=8,fig.height=5,fig.cap="Normal approximation for 1, 2, 3, and 8 stops ahead. The full distribution is shown by the histogram with each components superimposed (dashed curves). The vertical lines represent the quantiles (2.5, 50, and 97.5\\%) computed using the samples (blue), the Normal mixture (red), and a single Normal approximation (green). The green curve is the single Normal approximation.",out.width="\\textwidth",fig.align="center">>=
+<<normal_approx,cache=TRUE,echo=FALSE,fig.width=8,fig.height=5,fig.cap="Normal approximation for 1, 2, 3, and 8 stops ahead. The full distribution is shown by the histogram with each components superimposed (dashed curves). The vertical lines represent the quantiles (2.5, 50, and 97.5\\%) computed using the samples (blue), the \\normal{} mixture (red), and a single \\normal{} approximation (green). The green curve is the single \\normal{} approximation.",out.width="\\textwidth",fig.align="center">>=
 suppressPackageStartupMessages(library(tidyverse))
 napprox <- function(n, pi = rep(0.8, n), t = c(80, 15),
                     mu = rep(20, n), sigma = rep(5, n)) {
@@ -127,7 +127,7 @@ napprox(1, pi = 0.8, mu = 30, sigma = 20, t = c(30, 5)) +
     theme(legend.position = "bottom") & labs(colour = "")
 @
 
-A mixture of Normal distributions can approximate the arrival time distribution \citep{Wang_2012} by expressing the mean and uncertainty as vectors $\tilde\mu$ and $\tilde\sigma^2$, respectively, along with a third vector $\tilde\pi$ denoting the $\tilde N$ mixture weights,\footnote{I place a tilde over parameters related to the Normal approximation, e.g., $\tilde x$, to help distinguish them from others used throughout the thesis.} such that
+A mixture of \normal{} distributions can approximate the arrival time distribution \citep{Wang_2012} by expressing the mean and uncertainty as vectors $\tilde\mu$ and $\tilde\sigma^2$, respectively, along with a third vector $\tilde\pi$ denoting the $\tilde N$ mixture weights,\footnote{I place a tilde over parameters related to the \normal{} approximation, e.g., $\tilde x$, to help distinguish them from others used throughout the thesis.} such that
 \begin{equation}
 \label{eq:ch5:mixture_weight_spec}
 \tilde\pi_i > 0, i = 1, \ldots, \tilde N
@@ -205,4 +205,4 @@ An optimisation is used to obtain quantiles $q_\alpha$ such that
 \end{equation}
 This is straightforward using Brent's Algorithm \citep{Brent_1971}, implemented in the \pkg{Boost} \Cpp{} library.
 
-When the 2.5\%, 50\%, and 97.5\% quantiles for the single approximation are within 30~seconds of the same quantiles computed for the mixture distribution, the mixture is replaced with one single component with mean and variance defined by \cref{eq:mixture_mean,eq:mixture_variance}. In some situations, the mixture may not converge into a single distribution quick enough, so to prevent the number of components $\tilde N$ from exceeding $2^8=256$, all components with weights less than a predefined threshold (we used $\frac{1}{2}\max_i(\pi_i)$) are combined into a single component.
+When the 2.5\%, 50\%, and 97.5\% quantiles for the single approximation are within 30~seconds of the same quantiles computed for the mixture distribution, the mixture is replaced with one single component with mean and variance defined by \cref{eq:mixture_mean,eq:mixture_variance}. In some situations, the mixture may not converge into a single distribution quick enough, so to prevent the number of components $\tilde N$ from exceeding $2^8=256$, all components with weights less than a predefined threshold (we used $\frac{1}{2}\max_i(\tilde\pi_i)$) are combined into a single component.

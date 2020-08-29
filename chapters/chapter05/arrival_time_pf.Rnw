@@ -5,7 +5,7 @@ Each active trip is associated with a single vehicle, itself associated with a s
 
 
 To implement the particle filter forecast method, denoted \Fpf{}, we take a (weighted) subsample of $\Np^\star$ particles at time $\Vtime_k$ (the time of the most recent vehicle observation). For each particle, we calculate the arrival time at each upcoming stop.
-To do so, each particle samples a speed for each segment from the network state, which could include correlations is these are available. Computing arrival times follows an iterative process.
+To do so, each particle samples a speed for each segment from the network state, which could include correlations if these are available. Computing arrival times follows an iterative process.
 % To do so, each particle samples a speed $v\vi_\ell$ for segment $\ell$ (which has ) from the network state:
 % \begin{equation}
 % \label{eq:pred_seg_speed}
@@ -45,9 +45,10 @@ v\vi_j \sim
   \wedge P_\text{max}
 }{0}{\MaxSpeed_j},
 \end{equation}
-Travel-time-so-far is incremented by the travel time along segment $j$,
+Travel-time-so-far $\ttsofar\vi$ is incremented by the travel time $z\vi_j$ along segment $j$:
 \begin{equation}
 \label{eq:tt_segj}
+\ttsofar\vi = \ttsofar\vi + z\vi_j,\quad\text{where}\quad
 z\vi_j = \frac{\Tseglen_j}{v\vi_j}.
 \end{equation}
 This set-up allows forecasts for segments that are further away to increase in variability up to the maximum (this prevents speeds becoming unnecessarily variable).
