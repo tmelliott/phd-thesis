@@ -53,7 +53,7 @@
 \usepackage{enumerate}
 
 \cslet{blx@noerroretextools}\empty
-\usepackage[backend=bibtex,style=authoryear-comp,natbib=true,giveninits]{biblatex} % Use the bibtex backend with the authoryear citation style (which resembles APA)
+\usepackage[backend=bibtex,maxbibnames=7,style=authoryear-comp,natbib=true,giveninits]{biblatex}
 \DeclareNameAlias{sortname}{family-given}
 
 \addbibresource{reflist.bib} % The filename of the bibliography
