@@ -243,7 +243,7 @@ For each, I calculated \gls{mae} and \gls{mape} to assess accuracy, along with t
 P_\text{caught} = \frac{N_\text{caught}}{N_\text{eta}}
 = \frac{\sum_{i,j,k} I_{A_{ijk} < \hat\Teta_{qijk}}}{\sum_{i,j,k} 1},
 \end{equation}
-where $A_{ijk}$ is a real number, $N_\text{caught}$ is the number of predictions earlier than actual arrival, and $N_\text{eta}$ is the total number of predictions. For those estimates that were earlier than the actual arrival, the average waiting time is
+where $N_\text{caught}$ is the number of predictions earlier than actual arrival and $N_\text{eta}$ is the total number of predictions. For those estimates that were earlier than the actual arrival, the average waiting time is
 \begin{equation}
 \label{eq:avg_wait_time}
 \widebar{W}_\text{caught} =

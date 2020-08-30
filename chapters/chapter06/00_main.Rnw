@@ -13,7 +13,7 @@ Accurately predicting the arrival time of a transit vehicle is a decidedly diffi
 Another desirable aspect of \gls{rti} is journey planning: given an origin and a destination, and optionally one or more constraints, what is the optimal route (or routes for journeys requiring multiple \emph{legs}). \Citet{Berczi_2017} developed an approach to journey planning that uses a \emph{probabilistic model} of arrival times to decide between competing options. Since the initial selection of candidate options is a complicated topic (see \citet{Hame_2013a,Hame_2013b,Zheng_2016} for methods of doing so) we do not consider this problem here. Instead, we use the results from \cref{cha:prediction} to decide between pre-selected options.
 
 
-Both the arrival time estimates (point and interval) and journey planning decisions use the arrival time distributions estimated in chapter 5. First, however, we need to express the distribution of arrival times in a form that is easy to work with and distribute. The first consideration is that \glspl{eta} are typically displayed in minutes as integers, so any estimates first need to be rounded. Take, for example, an \gls{eta} of 105~seconds, or 1.75~minutes, which we may round up to 2~minutes, or down to 1~minute. We use Bayesian posterior predictive probabilities to estimate the median arrival time $a_{0.5}$ such that $\Pr{A \geq a_{0.5}} = 0.5$. If we round 1.75 in the above example to $\hat a_{0.5} = 2$~minutes, then the equality is incorrect: the probability that the actual arrival time $A$ is later than the estimated arrival time $\hat a_{0.5}$ is, in fact, \emph{less} than 50\%. However, if we round \emph{down} to $\hat a_{0.5} = 1$~minute, then, although the equality remains invalid, the probability that the bus arrives after $\hat a_{0.5}$ is \emph{greater than} 50\%.
+Both the arrival time estimates (point and interval) and journey planning decisions use the arrival time distributions estimated in chapter 5. First, however, we need to express the distribution of arrival times in a form that is easy to work with and distribute. The first consideration is that \glspl{eta} are typically displayed in minutes as integers, so any estimates first need to be rounded. Take, for example, an \gls{eta} of 105~seconds, or 1.75~minutes, which we may round up to 2~minutes, or down to 1~minute. We use Bayesian posterior predictive probabilities to estimate the median arrival time $a_{0.5}$ such that $\Pr{A \geq a_{0.5}} = 0.5$. If we round 1.75 in the above example to $\hat a_{0.5} = 2$~minutes, then the equality is incorrect: the probability that the actual arrival time $A$ is later than the estimated arrival time $\hat a_{0.5}$ is, in fact, \emph{less} than 50\%. However, if we round \emph{down} to $\hat a_{0.5} = 1$~minute, then, although the equality remains invalid, the probability that the bus arrives after $\hat a_{0.5}$ is \emph{at least} 50\%.
 
 
 To compute the \gls{cdf} of integer-valued arrival times, we first convert each particle's arrival time $\Tarr\vi$ to minutes and round down, which is the equivalent of taking its modulus with 60:
@@ -27,7 +27,7 @@ Next, we tally the number of particles with each arrival time $a$ and calculate 
 \Pr{A \in [a, a+1)} =
 \frac{1}{N^\star} \sum_{i=1}^{N^\star} I_{\breve\Tarr\vi = a},
 \end{equation}
-where $I_{a=b}$, the indicator, is 1 if $a$ equals $b$, and zero otherwise. Computationally, this is significantly easier than computing quantiles, since the latter involves sorting the particles (see \cref{app:particle-summaries}), whereas tallying integers can be performed with a single, unsorted pass over the particle vector. This provides significant performance enhancements, remembering that quantiles require sorting of particles at every stop.
+where the indicator $I_{a=b}$ is 1 if $a$ equals $b$, and zero otherwise. Computationally, this is significantly easier than computing quantiles, since the latter involves sorting the particles (see \cref{app:particle-summaries}), whereas tallying integers can be performed with a single, unsorted pass over the particle vector. This provides significant performance enhancements, remembering that quantiles require sorting of particles \emph{at every stop}.
 
 
 Using \cref{eq:pf_pdf_arrivaltime}, the \gls{cdf} is
@@ -62,3 +62,12 @@ ggplot(d, aes(t, cumsum(n))) +
 
 \input{DIRNAME/eta_estimates.tex}
 \input{DIRNAME/eta_journey.tex}
+
+\section{Chapter contributions}
+\label{sec:eta_contrib}
+
+\begin{itemize}
+\item We present a simple, discrete approximation to the arrival time \gls{cdf}, achieved by ``rounding down'' from seconds to minutes, which can be sent to users' phones, for example.
+
+\item We can use our \pf{} \glspl{cdf} to answer some common journey planning questions and calculate the probabilities of events. This could then be used by dedicated journey planning software to determine the optimal route.
+\end{itemize}

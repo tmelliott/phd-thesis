@@ -66,7 +66,7 @@ We can provide information relating to these questions using the \glspl{cdf} of 
 
 \end{knitrout}
 
-Based on the arrival results alone, I would choose to walk to option A as it has a good chance of a short wait; however, the passenger also needs to consider their appointment at  2:00~pm. \Cref{fig:eta_journey_arriveby} provides \glspl{cdf} of each trip's arrival time at the final stop, as well as vertical lines representing the appointment time (solid) and necessary arrival time at the stop to allow for walking time (dashed). None of the trips shows definitive signs of being late, although the passenger would likely hope to catch the 1:10~pm 25L to maximise their chances of arriving on-time.
+Based on the arrival results alone, I would choose to walk to option A as it has a good chance of a short wait; however, the passenger also needs to consider their appointment at  2:00~pm. \Cref{fig:eta_journey_arriveby} provides \glspl{cdf} of each trip's arrival time at the final stop, as well as vertical lines representing the appointment time (solid) and necessary arrival time at the stop to allow for walking time (dashed). None of the trips show definitive signs of being late, although the passenger would likely hope to catch the 1:10~pm 25L to maximise their chances of arriving on-time.
 
 
 \begin{knitrout}\small
@@ -100,7 +100,7 @@ The \glspl{cdf} allow easy calculation of the predicted probability of success i
 
 
 
-The results in \cref{fig:eta_journey_arrival,fig:eta_journey_arriveby} and \cref{tab:eta_journey_results} are based on \emph{one single forecast} made at  1:20~pm. To evaluate the overall performance of our prediction method, I repeated the process described above in 5~minute intervals over the off-peak period from  9:00~am to  3:00~pm. For the appointment time, I used 30-minute intervals allowing for 15--45 minutes for the journey: leaving between 9:15~am and 9:45~am had a targetted arrival time of 10:00~am; 9:45~am--10:15~am targetted 10:30~am; and so on. The probabilities of catching the bus and arriving on time were calculated for each case. \Cref{fig:eta_journey_results_avg} graphs the distribution of predicted probabilities for each of the two outcomes, for both catching the bus (left) and arriving on time (right). For most of the buses that arrived before the passenger, our method predicted capture probability below 50\%, though more buses which arrived after the passenger also had capture probabilities below 50\%. As for the arrival outcome, the maximum probability of arriving on time for buses which did not was 75\%, whereas a few buses which did arrive on time had small (< 50\%) probabilities of doing so.
+The results in \cref{fig:eta_journey_arrival,fig:eta_journey_arriveby}, and \cref{tab:eta_journey_results}, are based on \emph{one single forecast} made at  1:20~pm. To evaluate the overall performance of our prediction method, I repeated the process described above in 5~minute intervals over the off-peak period from  9:00~am to  3:00~pm. For the appointment time, I used 30-minute intervals allowing for 15--45 minutes for the journey: leaving between 9:15~am and 9:45~am had a targetted arrival time of 10:00~am; 9:45~am--10:15~am targetted 10:30~am; and so on. The probabilities of catching the bus and arriving on time were calculated for each case. \Cref{fig:eta_journey_results_avg} graphs the distribution of predicted probabilities for each of the two outcomes, for both catching the bus (left) and arriving on time (right). For most of the buses that arrived before the passenger, our method predicted capture probability below 50\%, though more buses which arrived after the passenger also had capture probabilities below 50\%. As for the arrival outcome, the maximum probability of arriving on time for buses which did not was 75\%, whereas a few buses which did arrive on time had small (< 50\%) probabilities of doing so.
 
 
 \begin{knitrout}\small
@@ -147,7 +147,7 @@ In both methods, predicting bus capture is more accurate than predicting on-time
 \subsection{Planning a multi-stage journey}
 \label{sec:journey_transfer}
 
-A more complex scenario is one in which the passenger must transfer from one route to another. Transfer journeys are common among travellers commuting from further afield, and occur when there is no single route between their origin and destination, as is demonstrated in \cref{fig:eta_journey_arrival_prep}. In this scenario, the passenger must first catch a bus along route group A\footnote{We use route groups since there are several different routes which make the same journey, as can be seen with route group B branching in the south-west of \cref{fig:eta_journey_arrival_prep}.} to the stop marked ``Transfer'', at which point they disembark and wait for the next bus along route group B to get to their final destination.
+A more complex scenario is one in which the passenger must transfer from one route to another. Transfer journeys are common among travellers commuting from further afield, and occur when there is no single route between their origin and destination, as is demonstrated in \cref{fig:eta_journey_arrival_prep}. In this scenario, the passenger must first catch a bus along leg 1\footnote{Each leg of the journey is serviced by one or more unique routes which make the same journey, as can be seen with leg 2 branching in the south-west of \cref{fig:eta_journey_arrival_prep}.} to the stop marked ``Transfer'', at which point they disembark and wait for the next bus along leg 2 to get to their final destination.
 
 
 \begin{knitrout}\small
@@ -179,20 +179,20 @@ A more complex scenario is one in which the passenger must transfer from one rou
 \end{knitrout}
 
 
-As with \cref{sec:journey_simple}, we take one single forecast of all trip arrivals at 1~pm. Walking time has been removed to simplify the example, but could easily be included if desired. \Cref{fig:eta_journey_transfer_graph} shows, for all active trips at  1:00~pm, their arrival time \glspl{cdf} at the start and transfer stops (for the first leg), and the transfer and end stops (for the second). Additional constraints, such as arrival by a specific time, could, of course, be added; in this instance, however, we are solely interested in how well the \pf{} \gls{cdf} predicts a successful transfer from A to B.
+As with \cref{sec:journey_simple}, we take one single forecast of all trip arrivals at 1~pm. Walking time has been removed to simplify the example, but could easily be included if desired. \Cref{fig:eta_journey_transfer_graph} shows, for all active trips at  1:00~pm, their arrival time \glspl{cdf} at the start and transfer stops (for the first leg), and the transfer and end stops (for the second). Additional constraints, such as arrival by a specific time, could, of course, be added; in this instance, however, we are solely interested in how well the \pf{} \gls{cdf} predicts a successful transfer from leg 1 ($L_1$) to leg 2 ($L_2$).
 
 
-Given \glspl{cdf} for two trips arriving at a stop, the probability that a transfer can successfully be made from A to B is calculated by
+Given \glspl{cdf} for two trips arriving at a stop, the probability that a transfer can successfully be made from $L_1$ to $L_2$ is calculated by
 \begin{equation}
 \label{eq:eta_total_prob}
 \begin{split}
 \Pcatch =
-\Pr{A < B} &= \sum_{x=1}^{\infty} \Pr{A < B\,|\,B = x}\Pr{B=x} \\
+\Pr{L_1 < L_2} &= \sum_{x=1}^{\infty} \Pr{L_1 < L_2\,|\,L_2 = x}\Pr{L_2=x} \\
   &= \sum_{x=1}^\infty
-    \Pr{A < x} \Pr{B=x} \\
+    \Pr{L_1 < x} \Pr{L_2=x} \\
   &= \sum_{x=1}^\infty
-    \Pr{A < x} \left[
-      \Pr{B < x + 1} - \Pr{B < x}
+    \Pr{L_1 < x} \left[
+      \Pr{L_2 < x + 1} - \Pr{L_2 < x}
     \right],
 \end{split}
 \end{equation}
