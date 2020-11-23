@@ -8,7 +8,7 @@
 
 #figure
 #allrefs.bib
-thesis.pdf
+#thesis.pdf
 
 ### Emacs ###
 # -*- mode: gitignore; -*-
